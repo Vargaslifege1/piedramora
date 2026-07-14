@@ -40,17 +40,38 @@ const ICONO_RELOJ = `<svg class="icono-info" viewBox="0 0 24 24" fill="none" str
 const ICONO_PUNTO = `<svg class="icono-punto" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" /></svg>`;
 
 
+/* ===== Tracking de clics (Google Analytics) ===== */
+
+// Manda un evento a GA4 con el tipo de botón y la sucursal.
+// Si gtag todavía no cargó (bloqueador de anuncios, sin conexión, etc.) no rompe nada.
+function trackearClic(tipoBoton, sucursal) {
+  if (typeof gtag === 'function') {
+    gtag('event', 'click_boton_pedido', {
+      tipo_boton: tipoBoton,
+      sucursal_id: sucursal.id,
+      sucursal_nombre: sucursal.nombre
+    });
+  }
+}
+
+// Genera el atributo onclick como texto, escapando comillas para que
+// no rompa el HTML generado como string.
+function atributoTracking(tipoBoton, sucursal) {
+  return `onclick="trackearClic('${tipoBoton}', SUCURSALES['${sucursal.id}'])"`;
+}
+
+
 /* ===== Generación de un botón de pedido ===== */
 
-function crearBoton({ href, clase = '', icono, texto }) {
+function crearBoton({ href, clase = '', icono, texto, tracking }) {
   return `
-    <a href="${href}" target="_blank" rel="noopener noreferrer" class="btn-pedido ${clase}">
+    <a href="${href}" target="_blank" rel="noopener noreferrer" class="btn-pedido ${clase}" ${tracking}>
       ${icono}
       <span>${texto}</span>
     </a>`;
 }
 
-function crearBotonesPedido(botones) {
+function crearBotonesPedido(botones, sucursal) {
   const piezas = [];
 
   if (botones.whatsapp) {
@@ -58,7 +79,8 @@ function crearBotonesPedido(botones) {
       href: `https://wa.me/${botones.whatsapp}?text=Hola!%20Quiero%20hacer%20un%20pedido`,
       clase: 'btn-whatsapp',
       icono: ICONOS.whatsapp,
-      texto: 'Pedir por WhatsApp'
+      texto: 'Pedir por WhatsApp',
+      tracking: atributoTracking('whatsapp', sucursal)
     }));
   }
 
@@ -66,13 +88,14 @@ function crearBotonesPedido(botones) {
     piezas.push(crearBoton({
       href: botones.pedix,
       icono: ICONOS.pedix,
-      texto: 'Pedir por Pedix'
+      texto: 'Pedir por Pedix',
+      tracking: atributoTracking('pedix', sucursal)
     }));
   }
 
   if (botones.telefono) {
     piezas.push(`
-      <a href="tel:${botones.telefono}" class="btn-pedido">
+      <a href="tel:${botones.telefono}" class="btn-pedido" ${atributoTracking('telefono', sucursal)}>
         ${ICONOS.telefono}
         <span>Llamar por teléfono</span>
       </a>`);
@@ -82,7 +105,8 @@ function crearBotonesPedido(botones) {
     piezas.push(crearBoton({
       href: botones.pedidosya,
       icono: ICONOS.pedidosya,
-      texto: 'Pedir por PedidosYa'
+      texto: 'Pedir por PedidosYa',
+      tracking: atributoTracking('pedidosya', sucursal)
     }));
   }
 
@@ -131,8 +155,8 @@ function crearTarjetaSucursal(sucursal) {
         </p>
 
         <div class="botones-pedido">
-          ${crearBotonesPedido(sucursal.botones)}
-          <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="btn-pedido btn-maps">
+          ${crearBotonesPedido(sucursal.botones, sucursal)}
+          <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="btn-pedido btn-maps" ${atributoTracking('maps', sucursal)}>
             ${ICONOS.maps}
             <span>Abrir en Google Maps</span>
           </a>
