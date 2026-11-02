@@ -1,12 +1,15 @@
 {
   "sucursales": [
-    {
+ {
       "id": "maestro-quiroga",
       "nombre": "Maestro Quiroga",
+      "tituloCarta": "Maestro Quiroga 86",
+      "requiereModalidad": false,
       "direccion": "Av. Maestro Quiroga 86",
-      "foto": "assets/sucursal-maestro-quiroga.jpg",
-      "lat": -28.4594712,
-      "lng": -65.7846355,
+  "maps_url": "https://maps.app.goo.gl/eLAKWgPFNGEqchCo8",
+  "foto": "assets/sucursal-maestro-quiroga.webp",
+  "lat": -28.4594712,
+  "lng": -65.7846355,
 
       "horarioTexto": "Lun a Dom · 20:30 a 00:30 (vie y sáb hasta la 01:00)",
       "horarios": {
@@ -25,9 +28,12 @@
     },
     {
       "id": "intendente-lascano",
-      "nombre": "Intendente Lascano",
+      "nombre": "Oeste",
+      "tituloCarta": "INT. LASCANO 2153",
+      "requiereModalidad": true,
       "direccion": "Av. Int. Lascano 2153",
-      "foto": "assets/sucursal-intendente-lascano.jpeg",
+      "maps_url": "https://maps.app.goo.gl/bPhLymQoPjmVJHoB8",
+      "foto": "assets/sucursal-intendente-lascano.webp",
       "lat": -28.4677229,
       "lng": -65.8149113,
 

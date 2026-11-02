@@ -1,0 +1,18 @@
+{
+  "negocio": {
+    "nombre": "Piedra Mora",
+    "ciudad": "San Fernando del Valle de Catamarca"
+  },
+  "pagos": {
+    "efectivo": {
+      "etiqueta": "Efectivo",
+      "emoji": "💸",
+      "descuentoPorcentaje": 0
+    },
+    "transferencia": {
+      "etiqueta": "Transferencia",
+      "emoji": "📲",
+      "descuentoPorcentaje": 0
+    }
+  }
+}

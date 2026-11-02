@@ -1,0 +1,86 @@
+{
+  "cartasPorSucursal": {
+    "maestro-quiroga": [
+      {
+        "id": "carta",
+        "nombre": "Carta",
+        "mostrarWhatsapp": true,
+        "actualizado": "2026-10-27",
+        "categorias": [
+          {
+            "nombre": "Lomitos",
+            "foto": "assets/menu-lomito.jpg",
+            "productos": [
+              {
+                "nombre": "[EJEMPLO] Lomito Simple",
+                "descripcion": "Descripción random de ejemplo para reemplazar.",
+                "precio": 9000,
+                "foto": ""
+              },
+              {
+                "nombre": "[EJEMPLO] Lomito Completo",
+                "descripcion": "Descripción random de ejemplo para reemplazar.",
+                "precio": 10500,
+                "foto": ""
+              }
+            ]
+          },
+          {
+            "nombre": "Pizzas",
+            "foto": "assets/menu-pizza.jpg",
+            "productos": [
+              {
+                "nombre": "[EJEMPLO] Pizza Muzzarella",
+                "descripcion": "Descripción random de ejemplo para reemplazar.",
+                "precio": 8500,
+                "foto": ""
+              },
+              {
+                "nombre": "[EJEMPLO] Pizza Especial",
+                "descripcion": "Descripción random de ejemplo para reemplazar.",
+                "precio": 9500,
+                "foto": ""
+              }
+            ]
+          },
+          {
+            "nombre": "Hamburguesas",
+            "foto": "assets/menu-hamburguesa.jpg",
+            "productos": [
+              {
+                "nombre": "[EJEMPLO] Hamburguesa Simple",
+                "descripcion": "Descripción random de ejemplo para reemplazar.",
+                "precio": 7500,
+                "foto": ""
+              },
+              {
+                "nombre": "[EJEMPLO] Hamburguesa Completa",
+                "descripcion": "Descripción random de ejemplo para reemplazar.",
+                "precio": 8500,
+                "foto": ""
+              }
+            ]
+          },
+          {
+            "nombre": "Milanesas",
+            "foto": "assets/menu-milanesa.jpg",
+            "productos": [
+              {
+                "nombre": "[EJEMPLO] Milanesa Simple",
+                "descripcion": "Descripción random de ejemplo para reemplazar.",
+                "precio": 8000,
+                "foto": ""
+              },
+              {
+                "nombre": "[EJEMPLO] Milanesa Completa",
+                "descripcion": "Descripción random de ejemplo para reemplazar.",
+                "precio": 9000,
+                "foto": ""
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#080808">
+  <title>Piedra Mora | Administración de Carta</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+  <header class="admin-topbar">
+    <a class="admin-marca" href="index.html">
+      <img src="assets/logo.webp" alt="Piedra Mora" class="admin-logo">
+      <span>Piedra Mora <strong>Admin</strong></span>
+    </a>
+    <div id="admin-sesion" class="admin-sesion" hidden>
+      <span id="admin-sesion-email"></span>
+      <button type="button" id="btn-logout" class="btn-secundario">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section id="admin-login" class="admin-card admin-login">
+      <p class="admin-eyebrow">Panel privado</p>
+      <h1>Acceso administrador</h1>
+      <p class="admin-ayuda">Gestioná categorías, productos, precios, ofertas e imágenes de toda la carta.</p>
+
+      <form id="form-login" class="admin-form" autocomplete="on">
+        <label id="admin-email-wrap" class="admin-campo" hidden>
+          <span>Email administrador</span>
+          <input id="admin-email" type="email" name="email" placeholder="admin@tudominio.com" autocomplete="username">
+        </label>
+
+        <label class="admin-campo">
+          <span>Contraseña</span>
+          <input id="admin-password" type="password" name="password" placeholder="Tu contraseña" autocomplete="current-password" required>
+        </label>
+
+        <button type="submit" id="btn-login" class="btn-primario">Ingresar al panel</button>
+        <p id="login-estado" class="admin-estado" aria-live="polite"></p>
+      </form>
+
+      <details id="admin-config-pendiente" class="admin-config" open>
+        <summary>Configuración de Supabase</summary>
+        <ol>
+          <li>Crear un proyecto gratuito en <strong>supabase.com</strong>.</li>
+          <li>Ejecutar completo <code>supabase-setup.sql</code> en el SQL Editor. Incluye la tabla, permisos y el bucket de imágenes.</li>
+          <li>En <strong>Authentication</strong>, habilitar Email/Password, crear el usuario administrador y desactivar registros públicos.</li>
+          <li>Completar <code>data/nube.json</code> con <code>supabaseUrl</code>, <code>supabaseAnonKey</code> y el mismo <code>adminEmail</code>.</li>
+          <li>Abrir <code>admin.html</code>, iniciar sesión y tocar <strong>Guardar y publicar</strong> una vez para subir la carta local.</li>
+        </ol>
+        <p class="admin-nota">Las imágenes se guardan en el bucket público <code>carta-imagenes</code>. Mientras la nube no esté configurada, la web usa <code>data/cartas.json</code> como respaldo.</p>
+      </details>
+    </section>
+
+    <section id="admin-panel" class="admin-panel" hidden>
+      <div class="admin-toolbar">
+        <div class="admin-toolbar-info">
+          <p class="admin-eyebrow">Panel de control</p>
+          <h1>Carta Piedra Mora</h1>
+          <p class="admin-ayuda">Elegí una categoría, ordená sus productos y publicá los cambios en la nube.</p>
+        </div>
+        <div class="admin-toolbar-acciones">
+          <button type="button" id="btn-guardar" class="btn-primario">Guardar y publicar</button>
+          <button type="button" id="btn-recargar" class="btn-secundario">Recargar</button>
+          <button type="button" id="btn-exportar" class="btn-secundario">Exportar JSON</button>
+        </div>
+      </div>
+
+      <p id="admin-estado" class="admin-estado admin-estado-toolbar" aria-live="polite"></p>
+      <div id="admin-aviso" class="admin-aviso" hidden></div>
+
+      <section class="admin-seccion-categorias">
+        <div class="admin-seccion-head">
+          <div>
+            <p class="admin-eyebrow">Navegación</p>
+            <h2>Categorías</h2>
+            <p class="admin-ayuda">Hacé clic en una categoría para ver y editar únicamente sus productos.</p>
+          </div>
+          <button type="button" id="btn-nueva-categoria" class="btn-primario">+ Nueva categoría</button>
+        </div>
+        <div id="lista-categorias" class="admin-categorias-grid"></div>
+      </section>
+
+      <section id="admin-sin-categoria" class="admin-card admin-placeholder" hidden>
+        <p class="admin-eyebrow">Empezar</p>
+        <h2>Seleccioná una categoría</h2>
+        <p class="admin-ayuda">Desde las tarjetas de arriba podés abrir una categoría, editar su portada o crear una nueva.</p>
+      </section>
+
+      <section id="admin-categoria-detalle" class="admin-card admin-categoria-detalle" hidden>
+        <div class="admin-detalle-head">
+          <div class="admin-detalle-identidad">
+            <img id="detalle-categoria-foto" class="admin-detalle-foto" src="assets/logo.webp" alt="">
+            <div>
+              <p class="admin-eyebrow">Categoría seleccionada</p>
+              <h2 id="detalle-categoria-nombre"></h2>
+              <p id="detalle-categoria-meta" class="admin-ayuda"></p>
+            </div>
+          </div>
+          <div class="admin-detalle-acciones">
+            <button type="button" id="btn-editar-categoria" class="btn-secundario">Editar categoría</button>
+            <button type="button" id="btn-nuevo-producto" class="btn-primario">+ Agregar producto</button>
+          </div>
+        </div>
+
+        <div id="admin-categoria-vacia" class="admin-vacio" hidden>
+          <p>Todavía no hay productos en esta categoría.</p>
+          <button type="button" id="btn-vacio-nuevo-producto" class="btn-primario">+ Agregar el primero</button>
+        </div>
+
+        <div id="lista-productos" class="admin-lista-productos"></div>
+      </section>
+
+      <section id="panel-nuevo-producto" class="admin-card admin-panel-producto" hidden>
+        <div class="admin-seccion-head">
+          <div>
+            <p class="admin-eyebrow">Nuevo producto en <span id="producto-categoria-chip" class="admin-chip"></span></p>
+            <h2>Agregar producto</h2>
+          </div>
+          <button type="button" id="btn-cerrar-form-producto" class="btn-icono" aria-label="Cerrar formulario">×</button>
+        </div>
+
+        <form id="form-producto" class="admin-form">
+          <div class="admin-grid-campos">
+            <label class="admin-campo admin-campo-ancho">
+              <span>Nombre</span>
+              <input id="producto-nombre" type="text" placeholder="Doble cheeseburger" required>
+            </label>
+
+            <label class="admin-campo admin-campo-ancho">
+              <span>Descripción</span>
+              <textarea id="producto-descripcion" rows="2" placeholder="Dos medallones, cheddar, cebolla y salsa especial"></textarea>
+            </label>
+
+            <div class="admin-campo admin-campo-ancho">
+              <span>Imagen del producto</span>
+              <div id="producto-foto-zona" class="admin-upload" title="Hacé clic para elegir una imagen">
+                <img id="producto-foto-preview" class="admin-upload-preview" src="assets/logo.webp" alt="Vista previa">
+                <div class="admin-upload-info">
+                  <button type="button" id="btn-subir-producto" class="btn-secundario">Seleccionar imagen</button>
+                  <input id="producto-foto-file" class="admin-file-input" type="file" accept="image/*" aria-label="Seleccionar imagen del producto">
+                  <p class="admin-upload-ayuda">JPG, PNG, WEBP, AVIF o GIF · máximo 5 MB</p>
+                  <p id="producto-foto-estado" class="admin-estado" aria-live="polite"></p>
+                </div>
+              </div>
+            </div>
+
+            <label class="admin-campo">
+              <span>Precio delivery</span>
+              <input id="producto-delivery" type="number" min="0" step="100" placeholder="12000" required>
+            </label>
+
+            <label class="admin-campo">
+              <span>Precio mesa</span>
+              <input id="producto-mesa" type="number" min="0" step="100" placeholder="13500" required>
+            </label>
+
+            <label class="admin-campo">
+              <span>Tipo de oferta</span>
+              <select id="producto-tipo-oferta">
+                <option value="">Sin oferta</option>
+                <option value="dia">Oferta del día</option>
+                <option value="semana">Oferta de la semana</option>
+              </select>
+            </label>
+
+            <label class="admin-campo">
+              <span>Delivery oferta</span>
+              <input id="producto-delivery-oferta" type="number" min="0" step="100" placeholder="9900">
+            </label>
+
+            <label class="admin-campo">
+              <span>Mesa oferta</span>
+              <input id="producto-mesa-oferta" type="number" min="0" step="100" placeholder="10900">
+            </label>
+          </div>
+
+          <div class="admin-form-acciones">
+            <button type="submit" id="btn-agregar-producto" class="btn-primario">Agregar producto</button>
+            <button type="button" id="btn-cancelar-producto" class="btn-secundario">Cancelar</button>
+            <p id="producto-estado" class="admin-estado" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <div id="modal-categoria" class="admin-modal-overlay" hidden>
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="modal-categoria-titulo">
+      <div class="admin-modal-head">
+        <div>
+          <p class="admin-eyebrow">Categoría</p>
+          <h2 id="modal-categoria-titulo">Nueva categoría</h2>
+        </div>
+        <button type="button" id="btn-cerrar-modal-categoria" class="btn-icono" aria-label="Cerrar">×</button>
+      </div>
+
+      <form id="form-categoria" class="admin-form">
+        <label class="admin-campo">
+          <span>Nombre</span>
+          <input id="categoria-nombre" type="text" maxlength="40" placeholder="Hamburguesas" required>
+        </label>
+
+        <div class="admin-campo">
+          <span>Imagen de portada</span>
+          <div id="categoria-foto-zona" class="admin-upload" title="Hacé clic para elegir una imagen">
+            <img id="categoria-foto-preview" class="admin-upload-preview" src="assets/logo.webp" alt="Vista previa">
+            <div class="admin-upload-info">
+              <button type="button" id="btn-subir-categoria" class="btn-secundario">Seleccionar imagen</button>
+              <input id="categoria-foto-file" class="admin-file-input" type="file" accept="image/*" aria-label="Seleccionar imagen de portada de la categoría">
+              <p class="admin-upload-ayuda">JPG, PNG, WEBP, AVIF o GIF · máximo 5 MB</p>
+              <p id="categoria-foto-estado" class="admin-estado" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+
+        <p id="categoria-estado" class="admin-estado" aria-live="polite"></p>
+
+        <div class="admin-form-acciones">
+          <button type="submit" id="btn-guardar-categoria" class="btn-primario">Guardar categoría</button>
+          <button type="button" id="btn-cancelar-categoria" class="btn-secundario">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="admin.js"></script>
+</body>
+
+</html>

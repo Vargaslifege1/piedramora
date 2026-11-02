@@ -13,18 +13,20 @@
   <meta property="og:title" content="Piedra Mora | Pizzas, Lomitos y Hamburguesas en Catamarca">
   <meta property="og:description"
     content="Pedí pizzas, hamburguesas, lomitos y milanesas online en Piedra Mora. Elegí tu sucursal y hacé tu pedido en segundos.">
-  <meta property="og:image" content="assets/fachada-local.jpeg">
+  <meta property="og:image" content="assets/fachada-local.webp">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Piedra Mora">
+  <meta property="og:site_name" content="Piedra Mora" data-marca-meta="">
   <meta property="og:locale" content="es_AR">
   <meta property="og:url" content="https://piedramora.com.ar/">
   <meta name="theme-color" content="#0a0a0a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Piedra Mora">
-
+  <meta name="apple-mobile-web-app-title" content="Piedra Mora" data-marca-meta="">
+  <!-- Leaflet CSS y JS (Mapas interactivos) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- SEO -->
-  <meta name="author" content="Piedra Mora">
+  <meta name="author" content="Piedra Mora" data-marca-meta="">
   <meta name="keywords"
     content="Piedra Mora, pizzas, hamburguesas, lomitos, milanesas, comida, Catamarca, delivery, PedidosYa, Pedix">
 
@@ -36,7 +38,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Piedra Mora">
   <meta name="twitter:description" content="Comida con identidad en Catamarca. Pedí online en segundos.">
-  <meta name="twitter:image" content="assets/fachada-local.jpeg">
+  <meta name="twitter:image" content="assets/fachada-local.webp">
 
   <!-- Robots -->
   <meta name="robots" content="index, follow">
@@ -47,11 +49,11 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="android-chrome-512.png">
-  <link rel="manifest" href="site.webmanifest">
   <link rel="shortcut icon" href="favicon.ico">
-  <link rel="preload" as="image" href="assets/logo.png">
+  <link rel="preload" as="image" href="assets/logo.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="//fonts.googleapis.com">
   <link rel="dns-prefetch" href="//fonts.gstatic.com">
   <link rel="dns-prefetch" href="//www.instagram.com">
@@ -60,7 +62,7 @@
     as="style">
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700&display=swap"
     rel="stylesheet">
-  <link rel="preload" as="image" href="assets/fachada-local.jpeg">
+  <link rel="preload" as="image" href="assets/fachada-local.webp">
   <link rel="stylesheet" href="style.css">
 
   <!-- Google Analytics 4 -->
@@ -104,15 +106,15 @@
   <div id="toast-ubicacion" class="toast-ubicacion" role="status" aria-live="polite" hidden></div>
 
   <nav class="navbar">
-    <img src="assets/logo.png" alt="Logo Piedra Mora" class="logo-chico">
+    <img src="assets/logo.webp" alt="Logo Piedra Mora" class="logo-chico" data-marca-alt="Logo">
   </nav>
 
   <header class="hero">
-    <img src="assets/fachada-local.jpeg" alt="Fachada del local Piedra Mora" class="hero-bg">
+    <img src="assets/fachada-local.webp" alt="Fachada del local Piedra Mora" class="hero-bg">
     <div class="hero-degradado"></div>
     <div class="hero-overlay">
-      <img src="assets/logo.png" alt="Piedra Mora" class="logo-grande">
-      <h1 class="hero-title">PIEDRA MORA</h1>
+      <img src="assets/logo.webp" alt="Piedra Mora" class="logo-grande" data-marca-alt="">
+      <h1 class="hero-title" data-marca data-marca-mayusculas>PIEDRA MORA</h1>
       <p class="hero-subtitle">Elegí tu sucursal y hacé tu pedido en segundos.</p>
       <a href="#sucursales-lista" class="btn-hero-cta">
         <span aria-hidden="true">↓</span> Elegir sucursal
@@ -145,7 +147,7 @@
   <section class="ventajas" aria-labelledby="titulo-ventajas">
     <div class="titulo-seccion reveal">
       <span class="eyebrow">Por qué elegirnos</span>
-      <h2 id="titulo-ventajas">¿Por qué elegir Piedra Mora?</h2>
+      <h2 id="titulo-ventajas">¿Por qué elegir <span data-marca>Piedra Mora</span>?</h2>
     </div>
 
     <div class="ventajas-grid">
@@ -198,37 +200,35 @@
     </div>
   </section>
 
-  <section class="menu" aria-labelledby="titulo-menu">
+<section class="menu" aria-labelledby="titulo-menu">
     <div class="titulo-seccion reveal">
       <span class="eyebrow">Nuestro menú</span>
       <h2 id="titulo-menu">Algo para cada antojo</h2>
       <p class="menu-nota">Precios y variedad completa dentro de cada sucursal</p>
     </div>
 
-    <div class="menu-grid">
+  <div class="menu-grid">
       <div class="menu-item reveal">
-        <img src="assets/menu-hamburguesa.jpg" alt="Hamburguesa Piedra Mora" loading="lazy">
+        <img src="assets/menu-hamburguesas.webp" alt="Hamburguesa Piedra Mora" loading="lazy">
         <span class="menu-item-nombre">Hamburguesas</span>
       </div>
       <div class="menu-item reveal">
-        <img src="assets/menu-lomito.jpg" alt="Lomito Piedra Mora" loading="lazy">
+        <img src="assets/menu-lomitos.webp" alt="Lomito Piedra Mora" loading="lazy">
         <span class="menu-item-nombre">Lomitos</span>
       </div>
       <div class="menu-item reveal">
-        <img src="assets/menu-pizza.jpg" alt="Pizza Piedra Mora" width="500" height="500" loading="lazy">
+        <img src="assets/menu-pizzas.webp" alt="Pizza Piedra Mora" loading="lazy">
         <span class="menu-item-nombre">Pizzas</span>
       </div>
       <div class="menu-item reveal">
-        <img src="assets/menu-milanesa.jpg" alt="Milanesa Piedra Mora" loading="lazy">
+        <img src="assets/menu-milanesas.webp" alt="Milanesa Piedra Mora" loading="lazy">
         <span class="menu-item-nombre">Milanesas</span>
       </div>
     </div>
-
-    <p class="menu-footer-nota reveal">Ver menú completo dentro de la sucursal seleccionada.</p>
   </section>
 
   <footer class="footer">
-    <img src="assets/logo.png" alt="Piedra Mora" class="footer-logo">
+    <img src="assets/logo.webp" alt="Piedra Mora" class="footer-logo" data-marca-alt="">
 
     <div class="footer-redes">
       <a href="https://www.instagram.com/piedramora.cta/" target="_blank" rel="noopener noreferrer"
@@ -237,9 +237,344 @@
         rel="noopener noreferrer" class="footer-red">Cómo llegar</a>
     </div>
 
-    <p class="footer-copy">© 2026 Piedra Mora — San Fernando del Valle de Catamarca</p>
+    <p class="footer-copy" data-marca-footer>© 2026 Piedra Mora — San Fernando del Valle de Catamarca</p>
   </footer>
 
+  <!-- MODAL / PANEL DE CARTA -->
+  <div id="carta-overlay" class="carta-overlay" hidden></div>
+  <div id="carta-panel" class="carta-panel" role="dialog" aria-modal="true" aria-labelledby="carta-titulo-marca" tabindex="-1" hidden>
+    <div class="carta-panel-inner">
+      <header class="carta-header">
+        <div class="carta-header-brand">
+          <img src="assets/logo.webp" alt="Piedra Mora" class="carta-header-logo" data-marca-alt="">
+          <div class="carta-header-text">
+            <div id="carta-titulo-marca" class="carta-titulo-marca" data-marca data-marca-mayusculas>PIEDRA MORA</div>
+            <div id="carta-titulo-sucursal" class="carta-titulo-sucursal-nombre"></div>
+          </div>
+        </div>
+        <button id="carta-cerrar" class="carta-cerrar" type="button" aria-label="Cerrar carta" data-carta-cerrar>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+
+      <div class="carta-body">
+        <!-- ETAPA 0: Selección de modalidad (solo para Intendente Lascano) -->
+        <section id="carta-etapa-modalidad" class="carta-etapa carta-etapa-modalidad" aria-live="polite">
+          <div class="carta-modalidad-header">
+            <p class="carta-modalidad-titulo">¿Cómo querés hacer tu pedido?</p>
+          </div>
+          <div class="carta-modalidad-viewport">
+            <div class="carta-modalidad-contenedor">
+              <div class="carta-modalidad-lista">
+                <button type="button" class="carta-modalidad-card carta-modalidad-card--mesa" data-modalidad="mesa" aria-label="Pedir en Mesa">
+                  <div class="carta-modalidad-card-media"></div>
+                  <div class="carta-modalidad-card-overlay"></div>
+                  <div class="carta-modalidad-card-contenido">
+                    <span class="carta-modalidad-card-nombre">MESA</span>
+                  </div>
+                  <span class="carta-modalidad-card-flecha">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </span>
+                </button>
+                <button type="button" class="carta-modalidad-card carta-modalidad-card--delivery" data-modalidad="delivery_takeaway" aria-label="Pedir para Delivery o Takeaway">
+                  <div class="carta-modalidad-card-media"></div>
+                  <div class="carta-modalidad-card-overlay"></div>
+                  <div class="carta-modalidad-card-contenido">
+                    <span class="carta-modalidad-card-nombre">DELIVERY / TAKEAWAY</span>
+                  </div>
+                  <span class="carta-modalidad-card-flecha">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ETAPA 1: Selección de categorías -->
+        <section id="carta-etapa-categorias" class="carta-etapa" aria-live="polite">
+          <div class="carta-navegacion-superior carta-navegacion-categorias">
+            <button id="carta-volver-modalidad" class="carta-volver-btn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span>VOLVER</span>
+            </button>
+          </div>
+          <div id="carta-lista-categorias-vertical" class="carta-lista-categorias-vertical"></div>
+          <div class="carta-espaciador-vertical"></div>
+        </section>
+
+        <!-- ETAPA 2: Productos de categoría -->
+        <section id="carta-etapa-productos" class="carta-etapa" aria-live="polite">
+          <div class="carta-navegacion-superior">
+            <button id="carta-volver-categorias" class="carta-volver-btn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span>Menú</span>
+            </button>
+            <h2 id="carta-titulo-categoria-activa" class="carta-titulo-categoria-activa"></h2>
+          </div>
+
+          <div class="carta-categorias-horiz-container">
+            <div id="carta-categorias-horiz" class="carta-categorias-horiz" role="tablist" aria-label="Categorías del menú"></div>
+          </div>
+
+          <div id="carta-productos-contenedor" class="carta-productos-contenedor">
+            <div id="carta-productos-lista" class="carta-productos-lista"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div id="carta-whatsapp-wrap" class="carta-whatsapp-wrap">
+      <a id="carta-whatsapp" class="carta-whatsapp" target="_blank" rel="noopener noreferrer" aria-live="polite">
+        <svg class="icono-whatsapp-carta" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.87 9.87 0 0 0 12.04 2Zm0 18.12h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.39c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.55-3.7 8.24-8.24 8.24Zm4.52-6.17c-.25-.12-1.46-.72-1.69-.8-.23-.08-.39-.12-.56.13-.17.24-.64.8-.78.96-.14.17-.29.19-.53.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.7-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.15.16-.25.24-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.24-.86.85-.86 2.06 0 1.22.88 2.4 1 2.56.12.17 1.74 2.66 4.22 3.73.59.25 1.05.4 1.41.52.59.19 1.13.16 1.55.1.47-.07 1.46-.6 1.67-1.17.2-.58.2-1.08.14-1.18-.06-.1-.22-.16-.47-.28Z" />
+        </svg>
+        <span>PEDIR POR WHATSAPP</span>
+      </a>
+    </div>
+  </div>
+
+  <button type="button" id="acceso-carrito-global" class="acceso-carrito-global" aria-live="polite" hidden>
+    <span class="acceso-carrito-icono" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="20" r="1.4"></circle>
+        <circle cx="18" cy="20" r="1.4"></circle>
+        <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21.5 8H6.1"></path>
+      </svg>
+    </span>
+    <span class="acceso-carrito-texto">
+      <strong>Retomar pedido activo</strong>
+      <span class="acceso-carrito-detalle">
+        <span id="acceso-carrito-items" class="acceso-carrito-items">0 productos</span>
+        <span class="acceso-carrito-separador" aria-hidden="true">•</span>
+        <span id="acceso-carrito-total" class="acceso-carrito-total">$ 0</span>
+      </span>
+    </span>
+  </button>
+
+  <div id="confirmacion-overlay" class="confirmacion-overlay" hidden></div>
+  <div id="confirmacion-panel" class="confirmacion-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmacion-titulo" aria-describedby="confirmacion-mensaje" tabindex="-1" hidden>
+    <button type="button" id="confirmacion-cerrar" class="confirmacion-cerrar" aria-label="Cerrar confirmación">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    <span class="confirmacion-icono" aria-hidden="true">!</span>
+    <h3 id="confirmacion-titulo">Confirmar acción</h3>
+    <p id="confirmacion-mensaje"></p>
+    <div class="confirmacion-acciones">
+      <button type="button" id="confirmacion-cancelar" class="confirmacion-btn confirmacion-btn--secundario">Cancelar</button>
+      <button type="button" id="confirmacion-aceptar" class="confirmacion-btn confirmacion-btn--peligro">Aceptar</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE CHECKOUT / RESUMEN DE PEDIDO -->
+  <div id="checkout-overlay" class="carta-overlay" hidden></div>
+  <div id="checkout-panel" class="checkout-panel" hidden tabindex="-1">
+    <div class="checkout-header">
+      <h3>Resumen de tu pedido</h3>
+      <button type="button" id="checkout-cerrar" class="checkout-cerrar-btn" aria-label="Cerrar resumen del pedido">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="checkout-body">
+      <!-- Lista de productos elegidos -->
+      <div id="checkout-lista-items" class="checkout-lista-items"></div>
+
+      <!-- Formulario de Pedido -->
+      <form id="checkout-form" class="checkout-form" novalidate>
+        <div class="form-grupo">
+          <label for="cliente-nombre">Nombre y Apellido</label>
+          <input type="text" id="cliente-nombre" required minlength="2" maxlength="80" autocomplete="name" placeholder="Ej: Juan Pérez">
+          <span id="cliente-nombre-error" class="form-error" role="alert" hidden></span>
+        </div>
+
+        <div class="form-grupo">
+          <label for="cliente-telefono">Teléfono / WhatsApp</label>
+          <input type="tel" id="cliente-telefono" required minlength="8" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="Ej: 383 400 0000" aria-describedby="cliente-telefono-ayuda cliente-telefono-error">
+          <span id="cliente-telefono-ayuda" class="form-ayuda">Solo números; podés incluir el código de área.</span>
+          <span id="cliente-telefono-error" class="form-error" role="alert" hidden></span>
+        </div>
+
+        <!-- Tipo de Entrega -->
+        <div class="form-grupo" id="form-grupo-entrega">
+          <label>Forma de Entrega</label>
+          <div class="opciones-selector">
+            <button type="button" class="btn-opcion activa" data-tipo-entrega="delivery">🛵 Delivery</button>
+            <button type="button" class="btn-opcion" data-tipo-entrega="retiro">🏃 Retiro / Takeaway</button>
+          </div>
+        </div>
+
+        <div class="form-grupo" id="form-grupo-mesa" hidden>
+          <label>Atención</label>
+          <p class="checkout-mesa-nota">🍽️ Pedido para consumir en el salón. Indicá el número de mesa en las observaciones.</p>
+        </div>
+
+        <!-- Campo de Dirección / Ubicación (Solo Delivery) -->
+        <!-- Campo de Dirección / Ubicación (Estilo Pedix) -->
+<div id="campo-delivery-wrap" class="form-grupo">
+  <label>Dirección (calle y número) o lugar de entrega *</label>
+
+  <!-- ESTADO 1: Buscador inicial -->
+  <div id="pedix-buscador-contenedor">
+    <div class="pedix-input-wrap">
+      <input type="text" id="cliente-direccion-input" autocomplete="street-address" maxlength="160" enterkeyhint="search" placeholder="¿A dónde enviamos el pedido?" aria-describedby="pedix-busqueda-estado cliente-direccion-error">
+      <button type="button" id="btn-buscar-direccion" class="pedix-btn-buscar">🔍 Buscar</button>
+    </div>
+    <p id="pedix-busqueda-estado" class="pedix-ayuda-texto" role="status" aria-live="polite">
+      Buscá y seleccioná tu dirección; si no aparece, podés ajustar el punto exacto desde el mapa.
+    </p>
+    <button type="button" id="btn-ubicacion-manual" class="pedix-btn-manual">
+      📍 Ubicarme manualmente en el mapa
+    </button>
+  </div>
+
+  <!-- ESTADO 2: Lista de resultados con Radio Buttons -->
+  <div id="pedix-lista-resultados" class="pedix-lista-resultados" hidden>
+    <p class="pedix-titulo-lista">📍 Seleccioná una dirección de la lista</p>
+    <div id="pedix-radios-container" class="pedix-radios-container"></div>
+  </div>
+
+  <!-- ESTADO 3: Dirección seleccionada + Mapa de Previsualización -->
+  <div id="pedix-confirmado-container" class="pedix-confirmado-container" hidden>
+    <div class="pedix-direccion-confirmada-head">
+      <span class="pedix-pin-icon">📍</span>
+      <span id="pedix-direccion-texto-final" class="pedix-direccion-texto-final"></span>
+      <button type="button" id="btn-editar-direccion" class="pedix-btn-editar" title="Cambiar dirección">✏️</button>
+    </div>
+
+    <!-- Mini Mapa de vista previa -->
+    <div id="pedix-mini-mapa" class="pedix-mini-mapa"></div>
+
+    <div class="pedix-alerta-mapa">
+      <span class="pedix-info-icon">ℹ️</span>
+      <span>¿La ubicación es incorrecta? Ingresá una nueva dirección ó ajustá tu ubicación actual haciendo click en el mapa.</span>
+    </div>
+  </div>
+
+  <span id="cliente-direccion-error" class="form-error" role="alert" hidden></span>
+</div>
+
+        <!-- Método de Pago -->
+        <div class="form-grupo">
+          <label>Forma de Pago</label>
+          <div class="opciones-selector">
+            <button type="button" class="btn-opcion btn-opcion-pago activa" data-tipo-pago="efectivo">
+              <span class="pago-opcion-principal">💵 Efectivo</span>
+              <small class="pago-opcion-descuento" data-descuento-pago="efectivo">Sin descuento</small>
+            </button>
+            <button type="button" class="btn-opcion btn-opcion-pago" data-tipo-pago="transferencia">
+              <span class="pago-opcion-principal">💳 Transferencia</span>
+              <small class="pago-opcion-descuento" data-descuento-pago="transferencia">Sin descuento</small>
+            </button>
+          </div>
+          <p id="checkout-pago-condicion" class="pago-condicion" aria-live="polite">Sin descuentos activos por medio de pago.</p>
+        </div>
+
+        <div class="form-grupo">
+          <label for="cliente-notas">Aclaraciones u observaciones</label>
+          <textarea id="cliente-notas" rows="2" placeholder="Ej: Sin cebolla, timbre 2B"></textarea>
+        </div>
+
+        <!-- Resumen de Totales -->
+        <div class="checkout-totales" aria-live="polite">
+          <div class="linea-total">
+            <span>Subtotal</span>
+            <span id="checkout-subtotal">$ 0</span>
+          </div>
+          <div class="linea-total">
+            <span>Forma de pago</span>
+            <span id="checkout-pago-seleccionado">Efectivo</span>
+          </div>
+          <div class="linea-total linea-descuento" hidden>
+            <span>Descuento <span id="checkout-descuento-label">(Efectivo)</span></span>
+            <span id="checkout-descuento">$ 0</span>
+          </div>
+          <div class="linea-total gran-total">
+            <span>Total a pagar</span>
+            <span id="checkout-total">$ 0</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-confirmar-whatsapp">
+          📲 ENVIAR PEDIDO POR WHATSAPP
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- MODAL DE ADICIONALES / PERSONALIZACIÓN -->
+<div id="modal-adicionales-overlay" class="carta-overlay" hidden></div>
+<div id="modal-adicionales" class="checkout-panel adicionales-panel" role="dialog" aria-modal="true" aria-labelledby="adicionales-producto-nombre" hidden tabindex="-1">
+  <div class="checkout-header">
+    <div class="adicionales-header-texto">
+      <span class="adicionales-eyebrow">Personalizá tu pedido</span>
+      <h3 id="adicionales-producto-nombre">Personalizar Producto</h3>
+    </div>
+    <button type="button" id="adicionales-cerrar" class="checkout-cerrar-btn" aria-label="Cerrar modal de adicionales">✕</button>
+  </div>
+
+  <div class="checkout-body adicionales-body">
+    <p id="adicionales-producto-descripcion" class="adicionales-descripcion"></p>
+
+    <div id="adicionales-variaciones-container"></div>
+    <div id="adicionales-lista-container"></div>
+
+    <p id="adicionales-validacion" class="adicionales-validacion" hidden>
+      Elegí una opción para continuar.
+    </p>
+
+    <!-- Selector de Cantidad con mejor contraste -->
+    <div class="adicionales-cantidad-fila">
+      <div class="adicionales-cantidad-info">
+        <span class="adicionales-cantidad-label">Cantidad</span>
+        <small>Unidades de esta configuración</small>
+      </div>
+      <div class="selector-cantidad adicionales-selector-cantidad" role="group" aria-label="Cantidad a agregar">
+        <button type="button" id="adicionales-cantidad-menos" aria-label="Restar una unidad" disabled>−</button>
+        <span id="adicionales-cantidad-valor" aria-live="polite">1</span>
+        <button type="button" id="adicionales-cantidad-mas" aria-label="Sumar una unidad">+</button>
+      </div>
+    </div>
+
+    <!-- Botón Principal (Contiene el Total Final sin duplicar arriba) -->
+    <button type="button" id="btn-confirmar-adicionales" class="btn-confirmar-whatsapp" disabled>
+      Agregar al pedido — $ 0
+    </button>
+  </div>
+</div>
+
+<!-- MODAL ESTADO 4: Mapa Interactivo Fullscreen (Leaflet) -->
+<div id="modal-mapa-fullscreen" class="modal-mapa-fullscreen" hidden>
+  <div class="mapa-fullscreen-header">
+    <span class="mapa-fullscreen-titulo">Ubicarme en el mapa</span>
+    <button type="button" id="btn-confirmar-mapa-fullscreen" class="btn-mapa-listo">Listo</button>
+  </div>
+  <div class="mapa-fullscreen-alerta">
+    <p>• Desplazate o hacé zoom en el mapa hasta encontrar tu ubicación.</p>
+    <p>• Hacé click en el mapa para colocar o mover el marcador.</p>
+    <p>• Confirmá tu ubicación haciendo click en el botón "Listo".</p>
+  </div>
+  <div id="mapa-fullscreen-leaflet" class="mapa-fullscreen-body"></div>
+</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="main.js"></script>
 </body>
 
