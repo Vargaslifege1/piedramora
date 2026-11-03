@@ -284,3 +284,39 @@ Con estas respuestas, 1B sería:
 2. Crear el rollback correspondiente.
 3. No ejecutar SQL contra la base del usuario.
 4. Recién después adaptar `main.js` para llamar a la RPC sin romper el envío actual por WhatsApp.
+
+## Estado real al 2026-11-03
+
+### Paso 1B: migraciones 010 y 011 ejecutadas
+
+- Las migraciones `010_fase1_tablas_pedidos.sql` y `011_pedidos_rls_y_ajustes.sql` ya se ejecutaron en la base del usuario y fueron verificadas.
+- Verificación de permisos con `anon`:
+  - `public.pedidos` responde `401`.
+  - `public.clientes` responde `401`.
+  - `public.config_negocio` responde `200`.
+  - `public.zonas_envio` responde `200`.
+
+### Limpieza de ofertas: hecha a mano por el usuario
+
+- Se quitaron manualmente todos los campos cuyo nombre contiene `oferta` (`delivery_oferta`, `mesa_oferta` y `tipoOferta`, con o sin mayúsculas) de los productos que **no** pertenecen a la categoría `promo`.
+- Se aplicó tanto en `data/cartas.json` como en la nube (`public.carta`, fila `id = 1`).
+- Solo quedaron con oferta:
+  - `promo_combo_2_cheeseburger`
+  - `promo_combo_pizza_lomo`
+- Respaldos existentes:
+  - Archivo local: `backup-carta-fase0/cartas-antes-de-ofertas.json`.
+  - Nube: tabla `backups.carta_antes_ofertas`.
+- Commit: `chore: ofertas solo en categoria promo`.
+- **No volver a limpiar ofertas.**
+
+### Migración 012
+
+- `supabase/migrations/012_limpiar_ofertas.sql` queda solo como registro de la limpieza manual.
+- Es idempotente y está marcada como "ya ejecutado a mano".
+- **No ejecutarla** contra la base; no se ejecutó desde el proyecto.
+
+### Pendiente: Paso 1B2 (fechas de oferta para las promos)
+
+- `tipoOferta` hoy es solo una etiqueta visual (`dia` / `semana`); no valida día ni semana.
+- Falta definir y agregar `oferta_desde` y `oferta_hasta` a las promos, y hacer que el cliente respete la vigencia con hora de Argentina.
+- El servidor seguirá siendo la fuente de verdad en el paso 1C.
