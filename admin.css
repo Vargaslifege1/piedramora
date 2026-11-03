@@ -1142,3 +1142,28 @@ p {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== Fase 0: agotado ===== */
+.admin-campo-check {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--admin-borde-fuerte);
+  border-radius: 10px;
+  background: #0c0c0c;
+}
+
+.admin-campo-check input {
+  width: auto;
+  min-width: 18px;
+  height: 18px;
+  accent-color: #e31e24;
+}
+
+.admin-badge-agotado {
+  background: rgba(227, 30, 36, 0.16);
+  color: #ff9a9e;
+  border: 1px solid rgba(227, 30, 36, 0.35);
+}

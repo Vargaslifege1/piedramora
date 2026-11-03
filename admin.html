@@ -30,9 +30,9 @@
       <p class="admin-ayuda">Gestioná categorías, productos, precios, ofertas e imágenes de toda la carta.</p>
 
       <form id="form-login" class="admin-form" autocomplete="on">
-        <label id="admin-email-wrap" class="admin-campo" hidden>
+        <label id="admin-email-wrap" class="admin-campo">
           <span>Email administrador</span>
-          <input id="admin-email" type="email" name="email" placeholder="admin@tudominio.com" autocomplete="username">
+          <input id="admin-email" type="email" name="email" placeholder="admin@tudominio.com" autocomplete="username" required>
         </label>
 
         <label class="admin-campo">
@@ -49,8 +49,9 @@
         <ol>
           <li>Crear un proyecto gratuito en <strong>supabase.com</strong>.</li>
           <li>Ejecutar completo <code>supabase-setup.sql</code> en el SQL Editor. Incluye la tabla, permisos y el bucket de imágenes.</li>
+          <li>Ejecutar en orden las migraciones de <code>supabase/migrations/</code> (000, 001, 002 y 003). Si la nube está vacía, ejecutá 001, publicá la carta local y después 000, 002 y 003.</li>
           <li>En <strong>Authentication</strong>, habilitar Email/Password, crear el usuario administrador y desactivar registros públicos.</li>
-          <li>Completar <code>data/nube.json</code> con <code>supabaseUrl</code>, <code>supabaseAnonKey</code> y el mismo <code>adminEmail</code>.</li>
+          <li>Completar <code>data/nube.json</code> con <code>supabaseUrl</code> y <code>supabaseAnonKey</code>. El email administrador ya no se guarda en el frontend: se valida contra la tabla <code>admins</code>.</li>
           <li>Abrir <code>admin.html</code>, iniciar sesión y tocar <strong>Guardar y publicar</strong> una vez para subir la carta local.</li>
         </ol>
         <p class="admin-nota">Las imágenes se guardan en el bucket público <code>carta-imagenes</code>. Mientras la nube no esté configurada, la web usa <code>data/cartas.json</code> como respaldo.</p>
@@ -178,6 +179,16 @@
               <span>Mesa oferta</span>
               <input id="producto-mesa-oferta" type="number" min="0" step="100" placeholder="10900">
             </label>
+
+            <label class="admin-campo admin-campo-check">
+              <span>Agotado hoy</span>
+              <input id="producto-agotado" type="checkbox">
+            </label>
+
+            <label class="admin-campo admin-campo-check">
+              <span>Hasta nuevo aviso</span>
+              <input id="producto-agotado-permanente" type="checkbox">
+            </label>
           </div>
 
           <div class="admin-form-acciones">
@@ -230,6 +241,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/core/utils.js"></script>
+  <script src="js/core/carta-ids.js"></script>
   <script src="admin.js"></script>
 </body>
 

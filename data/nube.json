@@ -2,6 +2,5 @@
   "supabaseUrl": "https://piyenbyhoqhhgwfckxdp.supabase.co",
   "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpeWVuYnlob3FoaGd3ZmNreGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1MzM4MjQsImV4cCI6MjEwOTEwOTgyNH0.Upt2l3lfHeObgdQF5164vLYFv85KS15Lq9kvKHnslqc",
   "tabla": "carta",
-  "filaId": 1,
-  "adminEmail": "lichivargas2005@gmail.com"
+  "filaId": 1
 }

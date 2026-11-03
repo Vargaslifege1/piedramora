@@ -4569,3 +4569,50 @@ body.confirmacion-abierta {
     transition: none !important;
   }
 }
+
+/* ===== Fase 0: productos agotados ===== */
+.carta-producto-card-nuevo.carta-producto-agotado {
+  position: relative;
+  opacity: 0.82;
+  border-color: rgba(227, 30, 36, 0.28);
+}
+
+.carta-producto-agotado-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.88);
+  border: 1px solid rgba(227, 30, 36, 0.6);
+  color: #ff6b6f;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.btn-agregar-prod.btn-agregar-agotado,
+.btn-agregar-prod:disabled {
+  background: #3a3a3a;
+  color: #9a9a9a;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+}
+
+.checkout-item-no-disponible {
+  border-color: rgba(227, 30, 36, 0.45);
+  background: rgba(227, 30, 36, 0.06);
+}
+
+.checkout-item-aviso {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #ff6b6f;
+}
+
+.linea-config-carrito.linea-config-no-disponible {
+  opacity: 0.72;
+  border-color: rgba(227, 30, 36, 0.35);
+}

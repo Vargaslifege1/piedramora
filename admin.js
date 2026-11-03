@@ -54,6 +54,8 @@
     productoDeliveryOferta: document.getElementById('producto-delivery-oferta'),
     productoMesaOferta: document.getElementById('producto-mesa-oferta'),
     productoTipoOferta: document.getElementById('producto-tipo-oferta'),
+    productoAgotado: document.getElementById('producto-agotado'),
+    productoAgotadoPermanente: document.getElementById('producto-agotado-permanente'),
     btnAgregarProducto: document.getElementById('btn-agregar-producto'),
     btnCancelarProducto: document.getElementById('btn-cancelar-producto'),
     productoEstado: document.getElementById('producto-estado'),
@@ -77,6 +79,7 @@
   let carta = null;
   let categoriaActivaId = null;
   let cambiosPendientes = false;
+  let publicacionLocalRiesgosa = false;
   let guardando = false;
   let subidasPendientes = 0;
   let productosExpandidos = new Set();
@@ -112,20 +115,53 @@
     }
   }
 
+  const MAPA_CATEGORIAS_LEGACY = {
+    promos: 'promo',
+    hamburguesas: 'burger',
+    pizzas: 'pizza',
+    lomitos: 'lomo',
+    milanesas: 'milanesa',
+    barrolucos: 'barroluco',
+    bebidas: 'bebida'
+  };
+
   function normalizarCarta(contenido) {
-    return {
-      categorias: Array.isArray(contenido && contenido.categorias) ? contenido.categorias : [],
-      productos: Array.isArray(contenido && contenido.productos) ? contenido.productos : []
-    };
+    const categoriasFuente = Array.isArray(contenido && contenido.categorias) ? contenido.categorias : [];
+    const productos = Array.isArray(contenido && contenido.productos) ? contenido.productos : [];
+    const mapa = new Map();
+    const usados = new Set();
+    const categorias = [];
+
+    categoriasFuente.forEach(cat => {
+      if (!cat) return;
+      const idAnterior = String(cat.id || '').trim();
+      if (!idAnterior) return;
+      const idNuevo = MAPA_CATEGORIAS_LEGACY[idAnterior] || idAnterior;
+      mapa.set(idAnterior, idNuevo);
+      if (usados.has(idNuevo)) return;
+      usados.add(idNuevo);
+      cat.id = idNuevo;
+      categorias.push(cat);
+    });
+
+    productos.forEach(producto => {
+      if (!producto) return;
+      const categoriaAnterior = String(producto.categoria || '').trim();
+      producto.categoria = mapa.get(categoriaAnterior)
+        || MAPA_CATEGORIAS_LEGACY[categoriaAnterior]
+        || categoriaAnterior;
+    });
+
+    return { categorias, productos };
   }
 
   function asegurarCategoriaPromos() {
     if (!carta) return;
     if (!Array.isArray(carta.categorias)) carta.categorias = [];
-    const existe = carta.categorias.some(cat => cat && cat.id === 'promos');
+    const existe = carta.categorias.some(cat => cat && cat.id === 'promo');
     if (!existe) {
       carta.categorias.unshift({
-        id: 'promos',
+        id: 'promo',
         nombre: 'PROMOS',
         foto: 'assets/categoria-delivery.webp'
       });
@@ -147,13 +183,7 @@
   }
 
   function esRutaImagenSegura(valor) {
-    const ruta = String(valor || '').trim();
-    if (!ruta) return false;
-    if (/^data:image\//i.test(ruta)) return true;
-    if (/^https?:\/\//i.test(ruta)) return true;
-    if (/^\/\//.test(ruta)) return true;
-    if (/^[a-z][a-z0-9+.-]*:/i.test(ruta)) return false;
-    return true;
+    return PM.esRutaImagenSegura(valor);
   }
 
   function rutaImagenCategoria(cat) {
@@ -329,10 +359,18 @@
   async function mostrarPanel(usuario) {
     if (!usuario) return;
 
-    const emailPermitido = (config && config.adminEmail ? config.adminEmail : '').toLowerCase();
-    const emailUsuario = String(usuario.email || '').toLowerCase();
-    if (emailPermitido && emailUsuario !== emailPermitido) {
-      mostrarEstado(el.loginEstado, 'Este usuario no tiene permisos de administrador.', 'error');
+    try {
+      const { data: esAdmin, error } = await cliente.rpc('es_admin');
+      if (error) throw error;
+      if (esAdmin !== true) {
+        mostrarEstado(el.loginEstado, 'Este usuario no tiene permisos de administrador.', 'error');
+        mostrarLogin();
+        if (cliente) await cliente.auth.signOut();
+        return;
+      }
+    } catch (error) {
+      const detalle = error && error.message ? error.message : 'No se pudo verificar el permiso.';
+      mostrarEstado(el.loginEstado, `No se pudo verificar el permiso de administrador: ${detalle}`, 'error');
       mostrarLogin();
       if (cliente) await cliente.auth.signOut();
       return;
@@ -391,7 +429,8 @@
     asegurarCategoriaPromos();
     categoriaActivaId = categoriaValida(activaAnterior)
       ? activaAnterior
-      : (categoriaValida('promos') ? 'promos' : (carta.categorias[0] ? carta.categorias[0].id : null));
+      : (categoriaValida('promo') ? 'promo' : (carta.categorias[0] ? carta.categorias[0].id : null));
+    publicacionLocalRiesgosa = !!errorNube;
     productosExpandidos.clear();
     cambiosPendientes = false;
     cerrarFormularioProducto();
@@ -509,8 +548,13 @@
       const abierto = productosExpandidos.has(id);
       const tipo = tipoOfertaProducto(producto);
       const precios = producto.precios || {};
+      const agotado = PM.productoEstaAgotado(producto);
+      const agotadoPermanente = producto.agotado_hasta_nuevo_aviso === true;
       const ofertaBadge = tipo
         ? `<span class="admin-badge admin-badge-${tipo}">${etiquetaTipoOferta(tipo)}</span>`
+        : '';
+      const agotadoBadge = agotado
+        ? `<span class="admin-badge admin-badge-agotado">${agotadoPermanente ? 'AGOTADO PERMANENTE' : 'AGOTADO HOY'}</span>`
         : '';
 
       return `
@@ -521,6 +565,7 @@
               <div class="admin-prod-titulo-fila">
                 <h3 class="admin-prod-nombre">${escaparHtml(producto.nombre || id)}</h3>
                 ${ofertaBadge}
+                ${agotadoBadge}
               </div>
               <p class="admin-prod-desc">${escaparHtml(producto.descripcion || 'Sin descripción')}</p>
               <p class="admin-prod-precios">Delivery ${formatearPrecio(precios.delivery)} · Mesa ${formatearPrecio(precios.mesa)}</p>
@@ -591,6 +636,16 @@
                 <span>Mesa oferta</span>
                 <input type="number" min="0" step="100" data-campo-producto="mesa_oferta" value="${escaparHtml(producto.mesa_oferta === undefined ? '' : producto.mesa_oferta)}">
               </label>
+
+              <label class="admin-campo admin-campo-check">
+                <span>Agotado hoy</span>
+                <input type="checkbox" data-campo-producto="agotado" ${agotado ? 'checked' : ''}>
+              </label>
+
+              <label class="admin-campo admin-campo-check">
+                <span>Hasta nuevo aviso</span>
+                <input type="checkbox" data-campo-producto="agotado_hasta_nuevo_aviso" ${agotadoPermanente ? 'checked' : ''}>
+              </label>
             </div>
           </div>
         </article>
@@ -637,8 +692,41 @@
       if (desc) desc.textContent = control.value.trim() || 'Sin descripción';
     } else if (campo === 'categoria') {
       if (!categoriaValida(control.value)) return;
+
+      const categoriaAnterior = producto.categoria;
+      const idAnterior = producto.id;
+      const sufijo = idAnterior.startsWith(`${categoriaAnterior}_`)
+        ? idAnterior.slice(categoriaAnterior.length + 1)
+        : idAnterior;
+      const idsOcupados = new Set(
+        carta.productos
+          .filter(otro => otro && otro !== producto)
+          .map(otro => otro.id)
+      );
+      const idNuevo = PM.idUnico(`${control.value}_${sufijo}`, idsOcupados);
+
+      producto.id = idNuevo;
       producto.categoria = control.value;
-      productosExpandidos.add(producto.id);
+
+      if (producto.variaciones && Array.isArray(producto.variaciones.opciones)) {
+        producto.variaciones.opciones.forEach(opcion => {
+          if (opcion && typeof opcion.id === 'string' && opcion.id.startsWith(idAnterior)) {
+            opcion.id = idNuevo + opcion.id.slice(idAnterior.length);
+          }
+        });
+      }
+
+      if (Array.isArray(producto.adicionales)) {
+        producto.adicionales.forEach(adicional => {
+          if (adicional && typeof adicional.id === 'string' && adicional.id.startsWith(idAnterior)) {
+            adicional.id = idNuevo + adicional.id.slice(idAnterior.length);
+          }
+        });
+      }
+
+      productosExpandidos.delete(idAnterior);
+      productosExpandidos.add(idNuevo);
+      tokensUploadProducto.delete(idAnterior);
       marcarCambios();
       renderizarCategorias();
       renderizarDetalleCategoria();
@@ -661,6 +749,39 @@
       const valor = Number(control.value);
       if (control.value === '' || !Number.isFinite(valor) || valor <= 0) delete producto[campo];
       else producto[campo] = valor;
+    } else if (campo === 'agotado') {
+      const activo = !!control.checked;
+      producto.agotado = activo;
+
+      if (activo) {
+        producto.agotado_fecha = PM.hoyArgentina();
+      } else {
+        producto.agotado_fecha = null;
+        producto.agotado_hasta_nuevo_aviso = false;
+      }
+
+      productosExpandidos.add(producto.id);
+      marcarCambios();
+      renderizarCategorias();
+      renderizarDetalleCategoria();
+      return;
+    } else if (campo === 'agotado_hasta_nuevo_aviso') {
+      const permanente = !!control.checked;
+      producto.agotado_hasta_nuevo_aviso = permanente;
+
+      if (permanente) {
+        producto.agotado = true;
+        producto.agotado_fecha = producto.agotado_fecha || PM.hoyArgentina();
+      } else if (producto.agotado === true && producto.agotado_fecha !== PM.hoyArgentina()) {
+        producto.agotado = false;
+        producto.agotado_fecha = null;
+      }
+
+      productosExpandidos.add(producto.id);
+      marcarCambios();
+      renderizarCategorias();
+      renderizarDetalleCategoria();
+      return;
     }
 
     marcarCambios();
@@ -936,8 +1057,20 @@
       return;
     }
 
+    const idsExistentes = new Set(
+      carta.productos
+        .map(producto => producto && producto.id)
+        .filter(Boolean)
+    );
+    const idProducto = PM.generarIdProducto(cat.id, nombre, idsExistentes);
+    const agotado = !!(
+      (el.productoAgotado && el.productoAgotado.checked)
+      || (el.productoAgotadoPermanente && el.productoAgotadoPermanente.checked)
+    );
+    const permanente = !!(el.productoAgotadoPermanente && el.productoAgotadoPermanente.checked);
+
     const producto = {
-      id: `${cat.id === 'promos' ? 'promo' : 'prod'}_${crearSlug(nombre)}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+      id: idProducto,
       categoria: cat.id,
       nombre: nombre,
       foto: fotoNuevaProductoUrl || rutaImagenCategoria(cat),
@@ -945,7 +1078,10 @@
       precios: {
         delivery: delivery,
         mesa: mesa
-      }
+      },
+      agotado: agotado,
+      agotado_fecha: agotado ? PM.hoyArgentina() : null,
+      agotado_hasta_nuevo_aviso: agotado ? permanente : false
     };
 
     if (descripcion) producto.descripcion = descripcion;
@@ -979,21 +1115,15 @@
   }
 
   function crearSlug(texto) {
-    return String(texto || 'producto')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .slice(0, 40) || 'producto';
+    return (PM.slugify(texto).slice(0, 40) || 'producto');
   }
 
   function crearIdCategoriaUnico(nombre) {
-    const base = crearSlug(nombre).replace(/_/g, '-').slice(0, 32) || 'categoria';
+    const base = (PM.slugify(nombre).slice(0, 32) || 'categoria');
     let id = base;
     let contador = 2;
     while (categoriaValida(id)) {
-      id = `${base}-${contador}`;
+      id = `${base}_${contador}`;
       contador += 1;
     }
     return id;
@@ -1151,6 +1281,7 @@
     const categorias = new Set();
     for (const cat of carta.categorias) {
       if (!cat || !String(cat.id || '').trim()) return 'Hay una categoría sin ID interno.';
+      if (!PM.validarId(cat.id)) return `La categoría "${cat.nombre || cat.id}" tiene un ID inválido. Usá minúsculas, números y guiones bajos.`;
       if (categorias.has(cat.id)) return `La categoría "${cat.id}" está duplicada.`;
       categorias.add(cat.id);
     }
@@ -1161,10 +1292,12 @@
       const id = String(producto.id || '').trim();
       const nombre = String(producto.nombre || '').trim();
       if (!id) return 'Hay un producto sin ID interno.';
+      if (!PM.validarId(id)) return `El producto "${nombre || id}" tiene un ID inválido. Usá minúsculas, números y guiones bajos.`;
       if (ids.has(id)) return `El ID "${id}" está duplicado.`;
       ids.add(id);
       if (!nombre) return 'Todos los productos necesitan un nombre.';
       if (!categorias.has(producto.categoria)) return `"${nombre}" tiene una categoría inválida.`;
+      if (!id.startsWith(`${producto.categoria}_`)) return `El ID "${id}" debe empezar con "${producto.categoria}_".`;
     }
 
     return '';
@@ -1222,6 +1355,13 @@
       if (!Array.isArray(producto.sucursales) || producto.sucursales.length === 0) {
         producto.sucursales = SUCURSALES_POR_DEFECTO.slice();
       }
+
+      PM.normalizarAgotado(producto);
+      if (typeof producto.agotado !== 'boolean') producto.agotado = false;
+      if (producto.agotado_fecha === undefined) producto.agotado_fecha = null;
+      if (typeof producto.agotado_hasta_nuevo_aviso !== 'boolean') {
+        producto.agotado_hasta_nuevo_aviso = false;
+      }
     });
   }
 
@@ -1244,6 +1384,16 @@
       return;
     }
 
+    if (publicacionLocalRiesgosa) {
+      const confirmado = window.confirm(
+        'No se pudo leer la carta desde Supabase. Si publicás ahora, podrías pisar cambios hechos en otro dispositivo. ¿Publicar igual la copia local?'
+      );
+      if (!confirmado) {
+        mostrarEstado(el.estado, 'Publicación cancelada.', 'pendiente');
+        return;
+      }
+    }
+
     normalizarCartaParaGuardar();
     guardando = true;
     actualizarBotonGuardar();
@@ -1254,20 +1404,20 @@
         .from(tablaCarta())
         .upsert({
           id: filaCarta(),
-          contenido: carta,
-          updated_at: new Date().toISOString()
+          contenido: carta
         }, { onConflict: 'id' });
 
       if (error) throw error;
 
       cambiosPendientes = false;
+      publicacionLocalRiesgosa = false;
       renderizarTodo();
       mostrarEstado(el.estado, 'Guardado y publicado en tiempo real', 'ok');
       mostrarAviso('');
     } catch (error) {
       const mensaje = error && error.message ? error.message : 'Error desconocido';
       mostrarEstado(el.estado, `No se pudo guardar: ${mensaje}`, 'error');
-      mostrarAviso('Verificá que hayas ejecutado supabase-setup.sql, que el email esté en la tabla admins y que la sesión siga activa.', 'error');
+      mostrarAviso('Verificá que hayas ejecutado las migraciones 001 y 002, que el email esté en la tabla admins y que la sesión siga activa.', 'error');
     } finally {
       guardando = false;
       actualizarBotonGuardar();
@@ -1295,7 +1445,7 @@
       return;
     }
 
-    const email = (config.adminEmail || el.emailInput.value).trim();
+    const email = el.emailInput.value.trim();
     const password = el.passwordInput.value;
 
     if (!email || !password) {
@@ -1521,14 +1671,8 @@
       el.configPendiente.open = !configOk;
     }
 
-    if (config && config.adminEmail) {
-      el.emailWrap.hidden = true;
-      el.emailInput.value = config.adminEmail;
-      el.emailInput.required = false;
-    } else {
-      el.emailWrap.hidden = false;
-      el.emailInput.required = true;
-    }
+    if (el.emailWrap) el.emailWrap.hidden = false;
+    if (el.emailInput) el.emailInput.required = true;
 
     if (!configOk) {
       mostrarEstado(el.loginEstado, 'Falta configurar data/nube.json para conectar la base de datos.', 'error');

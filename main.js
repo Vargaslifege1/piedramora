@@ -72,7 +72,7 @@ function obtenerIconoExtra(nombre) {
   return '➕';
 }
 
-const CATEGORIAS_SOLO_PAN = new Set(['lomitos', 'milanesas']);
+const CATEGORIAS_SOLO_PAN = new Set(['lomo', 'milanesa']);
 const OPCIONES_PAN_PREDETERMINADAS = [
   { id: 'pan_frances', nombre: 'Pan francés', precio: 0 },
   { id: 'pan_arabe', nombre: 'Pan árabe', precio: 0 }
@@ -83,11 +83,11 @@ function obtenerCategoriaId(prod) {
 }
 
 function esCategoriaPizza(prod) {
-  return obtenerCategoriaId(prod) === 'pizzas';
+  return obtenerCategoriaId(prod) === 'pizza';
 }
 
 function esCategoriaPromo(prod) {
-  return obtenerCategoriaId(prod) === 'promos';
+  return obtenerCategoriaId(prod) === 'promo';
 }
 
 function categoriaRequiereSoloPan(prod) {
@@ -108,7 +108,10 @@ function obtenerVariacionesModal(prod) {
     obligatorio: true,
     opciones: opcionesPan.length >= 2
       ? opcionesPan
-      : OPCIONES_PAN_PREDETERMINADAS.map(opt => ({ ...opt }))
+      : OPCIONES_PAN_PREDETERMINADAS.map(opt => ({
+        ...opt,
+        id: PM.generarIdOpcion(prod.id, opt.id)
+      }))
   };
 }
 
@@ -156,25 +159,30 @@ function trackearClicCarta(tipoBoton, sucursalId, sucursalNombre, extra = {}) {
 }
 
 function atributoTracking(tipoBoton, sucursal) {
-  return `onclick="trackearClic('${tipoBoton}', SUCURSALES['${sucursal.id}'])"`;
+  const tipo = PM.escaparHtml(JSON.stringify(String(tipoBoton)));
+  const id = PM.escaparHtml(JSON.stringify(String(sucursal.id)));
+  return `onclick="trackearClic(${tipo}, SUCURSALES[${id}])"`;
 }
 
 /* ===== Generación de botones ===== */
 
 function crearBoton({ href, clase = '', icono, texto, tracking }) {
+  const hrefSeguro = PM.urlExternaSegura(href, '#');
   return `
-    <a href="${href}" target="_blank" rel="noopener noreferrer" class="btn-pedido ${clase}" ${tracking}>
+    <a href="${PM.escaparHtml(hrefSeguro)}" target="_blank" rel="noopener noreferrer" class="btn-pedido ${clase}" ${tracking}>
       ${icono}
-      <span>${texto}</span>
+      <span>${PM.escaparHtml(texto)}</span>
     </a>`;
 }
 
 function crearBotonesPedido(botones, sucursal) {
   const piezas = [];
+  botones = botones || {};
 
-  if (botones.whatsapp) {
+  const whatsapp = String(botones.whatsapp || '').replace(/\D/g, '');
+  if (whatsapp) {
     piezas.push(crearBoton({
-      href: `https://wa.me/${botones.whatsapp}?text=Hola!%20Quiero%20hacer%20un%20pedido`,
+      href: `https://wa.me/${whatsapp}?text=Hola!%20Quiero%20hacer%20un%20pedido`,
       clase: 'btn-whatsapp',
       icono: ICONOS.whatsapp,
       texto: 'Pedir por WhatsApp',
@@ -191,9 +199,10 @@ function crearBotonesPedido(botones, sucursal) {
     }));
   }
 
-  if (botones.telefono) {
+  const telefono = String(botones.telefono || '').replace(/[^\d+]/g, '');
+  if (telefono) {
     piezas.push(`
-      <a href="tel:${botones.telefono}" class="btn-pedido" ${atributoTracking('telefono', sucursal)}>
+      <a href="tel:${PM.escaparHtml(telefono)}" class="btn-pedido" ${atributoTracking('telefono', sucursal)}>
         ${ICONOS.telefono}
         <span>Llamar por teléfono</span>
       </a>`);
@@ -383,13 +392,7 @@ function calcularTotalesPedido(subtotal, pago = obtenerPagoSeleccionado()) {
 }
 
 function esRutaImagenSegura(valor) {
-  const ruta = String(valor || '').trim();
-  if (!ruta) return false;
-  if (/^data:image\//i.test(ruta)) return true;
-  if (/^https?:\/\//i.test(ruta)) return true;
-  if (/^\/\//.test(ruta)) return true;
-  if (/^[a-z][a-z0-9+.-]*:/i.test(ruta)) return false;
-  return true;
+  return PM.esRutaImagenSegura(valor);
 }
 
 function obtenerRutaImagenProducto(prod) {
@@ -399,10 +402,41 @@ function obtenerRutaImagenProducto(prod) {
 
 function normalizarDatosCarta(datos) {
   const fuente = (datos && datos.carta) ? datos.carta : (datos || {});
-  return {
-    categorias: Array.isArray(fuente.categorias) ? fuente.categorias : [],
-    productos: Array.isArray(fuente.productos) ? fuente.productos : []
+  const mapaCategorias = {
+    promos: 'promo',
+    hamburguesas: 'burger',
+    pizzas: 'pizza',
+    lomitos: 'lomo',
+    milanesas: 'milanesa',
+    barrolucos: 'barroluco',
+    bebidas: 'bebida'
   };
+
+  const mapa = new Map();
+  const usados = new Set();
+  const categorias = [];
+
+  (Array.isArray(fuente.categorias) ? fuente.categorias : []).forEach(cat => {
+    if (!cat || !cat.id) return;
+    const idAnterior = String(cat.id);
+    const idNuevo = mapaCategorias[idAnterior] || idAnterior;
+    mapa.set(idAnterior, idNuevo);
+    if (usados.has(idNuevo)) return;
+    usados.add(idNuevo);
+    cat.id = idNuevo;
+    categorias.push(cat);
+  });
+
+  const productos = (Array.isArray(fuente.productos) ? fuente.productos : []).map(producto => {
+    if (!producto) return producto;
+    const categoriaAnterior = String(producto.categoria || '');
+    producto.categoria = mapa.get(categoriaAnterior)
+      || mapaCategorias[categoriaAnterior]
+      || categoriaAnterior;
+    return producto;
+  });
+
+  return { categorias, productos };
 }
 
 function cargarConfigNube() {
@@ -581,20 +615,30 @@ function precargarCartas() {
 /* ===== Tarjetas de Sucursal ===== */
 
 function crearTarjetaSucursal(sucursal) {
-  const urlMaps = sucursal.maps_url || `https://www.google.com/maps/search/?api=1&query=${sucursal.lat},${sucursal.lng}`;
+  const lat = Number(sucursal.lat);
+  const lng = Number(sucursal.lng);
+  const mapsFallback = Number.isFinite(lat) && Number.isFinite(lng)
+    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+    : 'https://www.google.com/maps';
+  const urlMaps = PM.urlExternaSegura(sucursal.maps_url, mapsFallback);
+  const foto = PM.urlImagenSegura(sucursal.foto, 'assets/logo.webp');
+  const id = PM.escaparHtml(sucursal.id);
+  const nombre = PM.escaparHtml(sucursal.nombre);
+  const direccion = PM.escaparHtml(sucursal.direccion);
+  const horarioTexto = PM.escaparHtml(sucursal.horarioTexto);
 
   return `
-    <div class="sucursal-card reveal" data-sucursal="${sucursal.id}" data-lat="${sucursal.lat}" data-lng="${sucursal.lng}">
+    <div class="sucursal-card reveal" data-sucursal="${id}" data-lat="${Number.isFinite(lat) ? lat : ''}" data-lng="${Number.isFinite(lng) ? lng : ''}">
       <span class="badge-cercana" hidden>
         ${ICONO_ESTRELLA}
         MÁS CERCA DE VOS
       </span>
 
       <div class="sucursal-foto-wrap">
-        <img src="${sucursal.foto}" alt="Sucursal ${sucursal.nombre}" class="sucursal-foto" loading="lazy" decoding="async">
+        <img src="${PM.escaparHtml(foto)}" alt="Sucursal ${nombre}" class="sucursal-foto" loading="lazy" decoding="async">
         <div class="sucursal-foto-degradado"></div>
         <div class="sucursal-foto-titulo">
-          <h3>${sucursal.nombre}</h3>
+          <h3>${nombre}</h3>
           <span class="estado-badge" data-estado aria-live="polite">
             ${ICONO_PUNTO}
             <span data-estado-texto>...</span>
@@ -605,12 +649,12 @@ function crearTarjetaSucursal(sucursal) {
       <div class="sucursal-info">
         <p class="sucursal-direccion">
           ${ICONO_UBICACION}
-          ${sucursal.direccion}
+          ${direccion}
         </p>
 
         <p class="sucursal-horario">
           ${ICONO_RELOJ}
-          ${sucursal.horarioTexto}
+          ${horarioTexto}
         </p>
 
         <p class="sucursal-distancia" data-distancia hidden>
@@ -619,9 +663,9 @@ function crearTarjetaSucursal(sucursal) {
         </p>
 
         <div class="botones-pedido">
-          <button type="button" class="btn-pedido btn-ver-carta" data-accion="ver-carta" data-sucursal-id="${sucursal.id}">Ver carta</button>
+          <button type="button" class="btn-pedido btn-ver-carta" data-accion="ver-carta" data-sucursal-id="${id}">Ver carta</button>
           ${crearBotonesPedido(sucursal.botones, sucursal)}
-          <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="btn-pedido btn-maps" ${atributoTracking('maps', sucursal)}>
+          <a href="${PM.escaparHtml(urlMaps)}" target="_blank" rel="noopener noreferrer" class="btn-pedido btn-maps" ${atributoTracking('maps', sucursal)}>
             ${ICONOS.maps}
             <span>Abrir en Google Maps</span>
           </a>
@@ -1322,6 +1366,10 @@ function eliminarLineaDelCarrito(lineaId) {
 function modificarCantidadLinea(lineaId, cambio) {
   const index = CARRITO.findIndex(i => i.id === lineaId);
   if (index > -1) {
+    if (cambio > 0 && CARRITO[index].noDisponible) {
+      alert('Este producto ya no está disponible.');
+      return;
+    }
     CARRITO[index].cantidad += cambio;
     if (CARRITO[index].cantidad <= 0) {
       CARRITO.splice(index, 1);
@@ -1344,15 +1392,80 @@ function actualizarVistaCarrito() {
 
 function recalcularPreciosCarrito() {
   if (!CARRITO.length) return;
+
+  const hoy = PM.hoyArgentina();
+
   CARRITO.forEach((item) => {
     const prod = CARTAS_UNIFICADAS.productos.find(p => p.id === item.productoBaseId);
-    if (!prod) return;
-    let precio = obtenerPrecioProducto(prod, cartaActualSucursalId);
-    if (item.variacion) precio += Number(item.variacion.precio) || 0;
-    if (Array.isArray(item.adicionalesLista)) {
-      precio += item.adicionalesLista.reduce((acc, adicional) => acc + (Number(adicional.precio) || 0), 0);
+    item.noDisponible = false;
+    item.motivoNoDisponible = '';
+
+    if (!prod) {
+      item.noDisponible = true;
+      item.motivoNoDisponible = 'Producto eliminado de la carta';
+      return;
     }
+
+    if (PM.productoEstaAgotado(prod, hoy)) {
+      item.noDisponible = true;
+      item.motivoNoDisponible = 'Producto agotado';
+    }
+
+    item.nombre = prod.nombre || item.nombre;
+    item.categoriaId = prod.categoria || item.categoriaId;
+
+    let precio = obtenerPrecioProducto(prod, cartaActualSucursalId);
+
+    if (item.variacion) {
+      const variaciones = obtenerVariacionesModal(prod);
+      const opciones = Array.isArray(variaciones && variaciones.opciones)
+        ? variaciones.opciones
+        : [];
+      const opcionActual = opciones.find(op => op.id === item.variacion.id);
+
+      if (opcionActual) {
+        item.variacion = {
+          id: opcionActual.id,
+          nombre: opcionActual.nombre,
+          precio: Number(opcionActual.precio) || 0
+        };
+        precio += item.variacion.precio;
+      } else {
+        item.noDisponible = true;
+        item.motivoNoDisponible = item.motivoNoDisponible || 'La opción elegida ya no está disponible';
+      }
+    }
+
+    const adicionalesActuales = Array.isArray(prod.adicionales) ? prod.adicionales : [];
+    const adicionalesLista = Array.isArray(item.adicionalesLista) ? item.adicionalesLista : [];
+    const adicionalesActualizados = [];
+
+    adicionalesLista.forEach((adicional) => {
+      const adicionalActual = adicionalesActuales.find(a => a.id === adicional.id);
+
+      if (!adicionalActual) {
+        item.noDisponible = true;
+        item.motivoNoDisponible = item.motivoNoDisponible
+          || `El adicional "${adicional.nombre || 'elegido'}" ya no está disponible`;
+        adicionalesActualizados.push({ ...adicional, noDisponible: true });
+        return;
+      }
+
+      const actualizado = {
+        id: adicionalActual.id,
+        nombre: adicionalActual.nombre,
+        precio: Number(adicionalActual.precio) || 0
+      };
+      adicionalesActualizados.push(actualizado);
+      precio += actualizado.precio;
+    });
+
+    item.adicionalesLista = adicionalesActualizados;
+    item.detallesExtras = adicionalesActualizados.map(a => a.nombre);
     item.precio = precio;
+
+    const idsAdicionales = adicionalesActualizados.map(a => a.id).sort().join(',');
+    item.claveConfig = `${prod.id}|${item.variacion ? item.variacion.id : 'base'}|${idsAdicionales}`;
   });
 }
 
@@ -1415,8 +1528,10 @@ function actualizarBotonFlotanteWhatsapp() {
       cartaWhatsapp.rel = 'noopener noreferrer';
       cartaWhatsapp.href = construirLinkWhatsappCarta(cartaActualSucursalId);
       const sucursal = SUCURSALES[cartaActualSucursalId];
-      const nom = sucursal ? String(sucursal.nombre).replace(/'/g, "\\'") : '';
-      cartaWhatsapp.setAttribute('onclick', `trackearClicCarta('whatsapp_carta', '${cartaActualSucursalId}', '${nom}', {})`);
+      cartaWhatsapp.removeAttribute('onclick');
+      cartaWhatsapp.onclick = () => {
+        trackearClicCarta('whatsapp_carta', cartaActualSucursalId, sucursal ? sucursal.nombre : '', {});
+      };
     }
     cartaWhatsapp.style.backgroundColor = '';
     cartaWhatsapp.classList.add('carta-whatsapp--vacio');
@@ -1436,6 +1551,11 @@ function alHacerClicAgregar(productoId) {
   if (!cartaPermitePedidos()) return;
   const prodObj = CARTAS_UNIFICADAS.productos.find(p => p.id === productoId);
   if (!prodObj) return;
+
+  if (PM.productoEstaAgotado(prodObj)) {
+    alert('Este producto está agotado.');
+    return;
+  }
 
   if (productoPermitePersonalizacion(prodObj)) {
     abrirModalPersonalizacion(prodObj);
@@ -1519,8 +1639,8 @@ function abrirModalPersonalizacion(prod) {
     wrap.className = 'modal-seccion-opciones';
 
     const tituloTexto = variaciones.titulo || 'Elegí una opción';
-    const esBurger = obtenerCategoriaId(prod) === 'hamburguesas';
-    let html = `<h4 class="seccion-opciones-titulo">${tituloTexto} ${variaciones.obligatorio ? '<span class="requerido">*</span>' : ''}</h4>`;
+    const esBurger = obtenerCategoriaId(prod) === 'burger';
+    let html = `<h4 class="seccion-opciones-titulo">${PM.escaparHtml(tituloTexto)} ${variaciones.obligatorio ? '<span class="requerido">*</span>' : ''}</h4>`;
     html += `<div class="variaciones-grid-horizontal">`;
 
     variaciones.opciones.forEach((opt) => {
@@ -1535,10 +1655,10 @@ function abrirModalPersonalizacion(prod) {
 
       html += `
         <label class="variacion-card-pill">
-          <input type="radio" name="variacion_opcion" value="${opt.id}">
+          <input type="radio" name="variacion_opcion" value="${PM.escaparHtml(opt.id)}">
           <div class="variacion-pill-content">
             ${medNumero ? `<span class="variacion-badge-medallon">${medNumero}</span>` : ''}
-            <span class="variacion-pill-nombre">${nombreOpt}</span>
+            <span class="variacion-pill-nombre">${PM.escaparHtml(nombreOpt)}</span>
             <span class="variacion-pill-precio">${Number(opt.precio) > 0 ? `+ ${formatearPrecioAR(opt.precio)}` : 'Incluido'}</span>
           </div>
         </label>
@@ -1564,10 +1684,10 @@ function abrirModalPersonalizacion(prod) {
       const icono = obtenerIconoExtra(add.nombre);
       html += `
         <label class="opcion-card opcion-card-checkbox">
-          <input type="checkbox" value="${add.id}">
+          <input type="checkbox" value="${PM.escaparHtml(add.id)}">
           <span class="opcion-check-indicator" aria-hidden="true"></span>
           <div class="opcion-card-content">
-            <span class="opcion-nombre"><span class="opcion-micro-icono" aria-hidden="true">${icono}</span> ${add.nombre}</span>
+            <span class="opcion-nombre"><span class="opcion-micro-icono" aria-hidden="true">${icono}</span> ${PM.escaparHtml(add.nombre)}</span>
             <span class="opcion-precio">+ ${formatearPrecioAR(add.precio)}</span>
           </div>
         </label>
@@ -1760,6 +1880,7 @@ function crearSelectorCantidadMini(linea) {
   btnMas.className = 'mini-cantidad-btn';
   btnMas.textContent = '+';
   btnMas.setAttribute('aria-label', 'Sumar una unidad');
+  btnMas.disabled = linea.noDisponible === true;
   btnMas.addEventListener('click', () => modificarCantidadLinea(linea.id, 1));
 
   wrap.append(btnMenos, valor, btnMas);
@@ -1780,6 +1901,7 @@ function crearBotonEliminarLinea(linea, clase = 'btn-eliminar-linea') {
 function crearLineaCarrito(linea) {
   const wrap = document.createElement('div');
   wrap.className = 'linea-config-carrito';
+  if (linea.noDisponible) wrap.classList.add('linea-config-no-disponible');
   wrap.dataset.lineaId = linea.id;
 
   const especificaciones = obtenerEspecificacionesLinea(linea);
@@ -1819,12 +1941,14 @@ function renderProductosCategoria(categoria) {
   productos.forEach(prod => {
     const esOferta = productoTieneOferta(prod);
     const tipoOferta = obtenerTipoOfertaProducto(prod);
+    const agotado = PM.productoEstaAgotado(prod);
     const card = document.createElement('article');
     card.className = 'carta-producto-card-nuevo';
     if (esOferta) {
       card.classList.add('carta-producto-en-oferta');
       if (tipoOferta) card.classList.add(`carta-oferta-${tipoOferta}`);
     }
+    if (agotado) card.classList.add('carta-producto-agotado');
 
     const fotoWrap = document.createElement('div');
     fotoWrap.className = 'carta-producto-foto-wrap-nuevo';
@@ -1898,8 +2022,14 @@ function renderProductosCategoria(categoria) {
         const btnAgregar = document.createElement('button');
         btnAgregar.type = 'button';
         btnAgregar.className = 'btn-agregar-prod';
-        btnAgregar.textContent = '+ Agregar';
-        btnAgregar.addEventListener('click', () => alHacerClicAgregar(prod.id));
+        if (agotado) {
+          btnAgregar.disabled = true;
+          btnAgregar.classList.add('btn-agregar-agotado');
+          btnAgregar.textContent = 'Agotado';
+        } else {
+          btnAgregar.textContent = '+ Agregar';
+          btnAgregar.addEventListener('click', () => alHacerClicAgregar(prod.id));
+        }
         contenedorControles.appendChild(btnAgregar);
       } else {
         const lineasWrap = document.createElement('div');
@@ -1910,7 +2040,7 @@ function renderProductosCategoria(categoria) {
           lineasWrap.appendChild(crearLineaCarrito(linea));
         });
 
-        if (productoPermitePersonalizacion(prod)) {
+        if (productoPermitePersonalizacion(prod) && !agotado) {
           const btnOtra = document.createElement('button');
           btnOtra.type = 'button';
           btnOtra.className = 'btn-otra-combinacion';
@@ -1938,6 +2068,13 @@ function renderProductosCategoria(categoria) {
       card.appendChild(badgeOferta);
     }
 
+    if (agotado) {
+      const badgeAgotado = document.createElement('span');
+      badgeAgotado.className = 'carta-producto-agotado-badge';
+      badgeAgotado.textContent = 'AGOTADO';
+      card.appendChild(badgeAgotado);
+    }
+
     cartaProductosLista.appendChild(card);
   });
 }
@@ -1953,6 +2090,7 @@ function abrirModalCheckout() {
 
   sincronizarCheckoutConModalidad();
   actualizarEtiquetasPago();
+  recalcularPreciosCarrito();
   renderizarListaCheckout();
 
   overlay.hidden = false;
@@ -2078,6 +2216,14 @@ function renderizarListaCheckout() {
       extras.className = 'checkout-item-extras';
       extras.textContent = especificaciones.join(' · ');
       info.appendChild(extras);
+    }
+
+    if (item.noDisponible) {
+      fila.classList.add('checkout-item-no-disponible');
+      const aviso = document.createElement('span');
+      aviso.className = 'checkout-item-aviso';
+      aviso.textContent = item.motivoNoDisponible || 'Producto no disponible';
+      info.appendChild(aviso);
     }
 
     const acciones = document.createElement('div');
@@ -2597,6 +2743,14 @@ document.getElementById('checkout-form')?.addEventListener('submit', (e) => {
     return;
   }
 
+  recalcularPreciosCarrito();
+  const itemsNoDisponibles = CARRITO.filter(item => item.noDisponible);
+  if (itemsNoDisponibles.length > 0) {
+    alert('Hay productos o adicionales que ya no están disponibles. Revisá el pedido antes de continuar.');
+    renderizarListaCheckout();
+    return;
+  }
+
   const nombre = validarNombreCliente();
   if (!nombre) return;
 
@@ -2745,13 +2899,13 @@ function renderCategoriasHoriz() {
 }
 
 const CATEGORIA_FONDO = {
-  promos: 'assets/categoria-delivery.webp',
-  hamburguesas: 'assets/menu-hamburguesas.webp',
-  pizzas: 'assets/menu-pizzas.webp',
-  lomitos: 'assets/menu-lomitos.webp',
-  milanesas: 'assets/menu-milanesas.webp',
-  barrolucos: 'assets/menu-barrolucos.webp',
-  bebidas: 'assets/bebidas.jpg'
+  promo: 'assets/categoria-delivery.webp',
+  burger: 'assets/menu-hamburguesas.webp',
+  pizza: 'assets/menu-pizzas.webp',
+  lomo: 'assets/menu-lomitos.webp',
+  milanesa: 'assets/menu-milanesas.webp',
+  barroluco: 'assets/menu-barrolucos.webp',
+  bebida: 'assets/bebidas.jpg'
 };
 
 function getFondoCategoria(cat) {
@@ -2803,7 +2957,7 @@ function renderCategoriasVertical() {
           🔥 ¡OFERTAS!
         </span>` : ''}
       <div class="carta-categoria-card-fondo-contenido">
-        <span class="carta-categoria-card-fondo-nombre">${cat.nombre}</span>
+        <span class="carta-categoria-card-fondo-nombre">${PM.escaparHtml(cat.nombre)}</span>
       </div>
       <span class="carta-categoria-card-fondo-flecha">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

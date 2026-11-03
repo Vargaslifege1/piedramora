@@ -1,0 +1,649 @@
+{
+  "categorias": [
+    {
+      "id": "promos",
+      "nombre": "PROMOS",
+      "foto": "assets/categoria-delivery.webp"
+    },
+    {
+      "id": "hamburguesas",
+      "nombre": "BURGERS",
+      "foto": "assets/menu-hamburguesas.webp"
+    },
+    {
+      "id": "pizzas",
+      "nombre": "PIZZAS",
+      "foto": "assets/menu-pizzas.webp"
+    },
+    {
+      "id": "lomitos",
+      "nombre": "LOMITOS",
+      "foto": "assets/menu-lomitos.webp"
+    },
+    {
+      "id": "milanesas",
+      "nombre": "MILANESAS",
+      "foto": "assets/menu-milanesas.webp"
+    },
+    {
+      "id": "barrolucos",
+      "nombre": "BARROLUCOS",
+      "foto": "assets/menu-barrolucos.webp"
+    },
+    {
+      "id": "bebidas",
+      "nombre": "BEBIDAS",
+      "foto": "assets/bebidas.jpg"
+    }
+  ],
+  "productos": [
+    {
+      "id": "promo_combo_2_cheeseburger",
+      "categoria": "promos",
+      "nombre": "COMBO 2 CHEESEBURGER",
+      "descripcion": "2 Cheeseburgers simples + papas fritas grandes + gaseosa 1.5L",
+      "foto": "assets/productos/burguers/cheese.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 24000,
+        "mesa": 27000
+      },
+      "tipoOferta": "semana",
+      "delivery_oferta": 21900,
+      "mesa_oferta": 24500
+    },
+    {
+      "id": "promo_combo_pizza_lomo",
+      "categoria": "promos",
+      "nombre": "COMBO PIZZA + LOMO",
+      "descripcion": "Pizza muzzarella + Lomo común + gaseosa 1.5L",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 32000,
+        "mesa": 35500
+      },
+      "tipoOferta": "dia",
+      "delivery_oferta": 28900,
+      "mesa_oferta": 32000
+    },
+    {
+      "id": "burger_comun",
+      "categoria": "hamburguesas",
+      "nombre": "BURGER COMUN",
+      "descripcion": "Pan de papa, medallón de carne, lechuga, tomate, salsa mora y papas fritas",
+      "foto": "assets/productos/burguers/burguer-comun.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 11000,
+        "mesa": 13000
+      },
+      "tipoOferta": "dia",
+      "delivery_oferta": 7900,
+      "mesa_oferta": 9000,
+      "variaciones": {
+        "titulo": "¿COMO LA DESEAS?",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "simple", "nombre": "SIMPLE", "precio": 0 },
+          { "id": "doble", "nombre": "DOBLE", "precio": 2000 },
+          { "id": "triple", "nombre": "TRIPLE", "precio": 3500 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_queso", "nombre": "Queso Cheddar Extra", "precio": 1500 },
+        { "id": "extra_panceta", "nombre": "Panceta Crispy Extra", "precio": 1500 },
+        { "id": "extra_huevo", "nombre": "Huevo Frito Extra", "precio": 1000 },
+        { "id": "extra_carne", "nombre": "Medallón de Carne Extra", "precio": 3000 },
+        { "id": "papas_extra", "nombre": "Porción de Papas Extra", "precio": 2000 }
+      ]
+    },
+    {
+      "id": "cheeseburger",
+      "categoria": "hamburguesas",
+      "nombre": "CHEESEBURGER",
+      "descripcion": "Pan de papa, medallón de carne, queso cheddar y papas fritas",
+      "foto": "assets/productos/burguers/cheese.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 13000,
+        "mesa": 15000
+      },
+      "tipoOferta": "dia",
+      "delivery_oferta": 8700,
+      "mesa_oferta": 9000,
+      "variaciones": {
+        "titulo": "¿COMO LA DESEAS?",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "simple", "nombre": "SIMPLE", "precio": 0 },
+          { "id": "doble", "nombre": "DOBLE", "precio": 2000 },
+          { "id": "triple", "nombre": "TRIPLE", "precio": 3500 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_queso", "nombre": "Queso Cheddar Extra", "precio": 1500 },
+        { "id": "extra_panceta", "nombre": "Panceta Crispy Extra", "precio": 1500 },
+        { "id": "extra_huevo", "nombre": "Huevo Frito Extra", "precio": 1000 },
+        { "id": "extra_carne", "nombre": "Medallón de Carne Extra", "precio": 3000 },
+        { "id": "papas_extra", "nombre": "Porción de Papas Extra", "precio": 2000 }
+      ]
+    },
+    {
+      "id": "burger_especial",
+      "categoria": "hamburguesas",
+      "nombre": "BURGER ESPECIAL",
+      "descripcion": "Pan de papa, medallón de carne, queso tybo, lechuga, tomate, jamón, huevo y papas fritas",
+      "foto": "assets/productos/burguers/burger-especial.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 15000,
+        "mesa": 17000
+      },
+      "variaciones": {
+        "titulo": "¿COMO LA DESEAS?",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "simple", "nombre": "SIMPLE", "precio": 0 },
+          { "id": "doble", "nombre": "DOBLE", "precio": 2000 },
+          { "id": "triple", "nombre": "TRIPLE", "precio": 3500 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_queso", "nombre": "Queso Cheddar Extra", "precio": 1500 },
+        { "id": "extra_panceta", "nombre": "Panceta Crispy Extra", "precio": 1500 },
+        { "id": "extra_huevo", "nombre": "Huevo Frito Extra", "precio": 1000 },
+        { "id": "extra_carne", "nombre": "Medallón de Carne Extra", "precio": 3000 },
+        { "id": "papas_extra", "nombre": "Porción de Papas Extra", "precio": 2000 }
+      ]
+    },
+    {
+      "id": "blue_bacon",
+      "categoria": "hamburguesas",
+      "nombre": "BLUE BACON",
+      "descripcion": "Pan de papa, medallón de carne, queso azul, queso cheddar, bacon, cebolla caramelizada, salsa mora y papas fritas",
+      "foto": "assets/productos/burguers/blue bacon.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 20000,
+        "mesa": 22000
+      },
+      "variaciones": {
+        "titulo": "¿COMO LA DESEAS?",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "simple", "nombre": "SIMPLE", "precio": 0 },
+          { "id": "doble", "nombre": "DOBLE", "precio": 2000 },
+          { "id": "triple", "nombre": "TRIPLE", "precio": 3500 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_queso", "nombre": "Queso Cheddar Extra", "precio": 1500 },
+        { "id": "extra_panceta", "nombre": "Panceta Crispy Extra", "precio": 1500 },
+        { "id": "extra_huevo", "nombre": "Huevo Frito Extra", "precio": 1000 },
+        { "id": "extra_carne", "nombre": "Medallón de Carne Extra", "precio": 3000 },
+        { "id": "papas_extra", "nombre": "Porción de Papas Extra", "precio": 2000 }
+      ]
+    },
+    {
+      "id": "burger_americana",
+      "categoria": "hamburguesas",
+      "nombre": "BURGER AMERICANA",
+      "descripcion": "Pan de papa, medallón de carne, queso cheddar, cebolla morada, bacon, tomate, salsa mora y papas fritas",
+      "foto": "assets/productos/burguers/americana.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 15000,
+        "mesa": 17000
+      },
+      "variaciones": {
+        "titulo": "¿COMO LA DESEAS?",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "simple", "nombre": "SIMPLE", "precio": 0 },
+          { "id": "doble", "nombre": "DOBLE", "precio": 2000 },
+          { "id": "triple", "nombre": "TRIPLE", "precio": 3500 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_queso", "nombre": "Queso Cheddar Extra", "precio": 1500 },
+        { "id": "extra_panceta", "nombre": "Panceta Crispy Extra", "precio": 1500 },
+        { "id": "extra_huevo", "nombre": "Huevo Frito Extra", "precio": 1000 },
+        { "id": "extra_carne", "nombre": "Medallón de Carne Extra", "precio": 3000 },
+        { "id": "papas_extra", "nombre": "Porción de Papas Extra", "precio": 2000 }
+      ]
+    },
+    {
+      "id": "lomo_comun",
+      "categoria": "lomitos",
+      "nombre": "LOMO COMUN",
+      "descripcion": "Bife de carne, lechuga, tomate y papas fritas",
+      "foto": "assets/productos/lomitos/COMUN.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 14000,
+        "mesa": 16000
+      },
+      "tipoOferta": "semana",
+      "delivery_oferta": 9900,
+      "mesa_oferta": 11000,
+      "variaciones": {
+        "titulo": "Elegí el tipo de pan",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "pan_frances", "nombre": "Pan Francés", "precio": 0 },
+          { "id": "pan_arabe", "nombre": "Pan Árabe", "precio": 0 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_carne", "nombre": "Bife de Carne Extra", "precio": 3000 },
+        { "id": "extra_queso", "nombre": "Queso Extra", "precio": 1000 },
+        { "id": "extra_huevo", "nombre": "Huevo Frito Extra", "precio": 1000 },
+        { "id": "extra_panceta", "nombre": "Bacon Extra", "precio": 1000 }
+      ]
+    },
+    {
+      "id": "lomo_especial",
+      "categoria": "lomitos",
+      "nombre": "LOMO ESPECIAL",
+      "descripcion": "Bife de carne, queso, lechuga, tomate, jamón, huevo y papas fritas",
+      "foto": "assets/productos/lomitos/ESPECIAL.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 16000,
+        "mesa": 18000
+      },
+      "variaciones": {
+        "titulo": "Elegí el tipo de pan",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "pan_frances", "nombre": "Pan Francés", "precio": 0 },
+          { "id": "pan_arabe", "nombre": "Pan Árabe", "precio": 0 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_carne", "nombre": "Bife de Carne Extra", "precio": 3000 },
+        { "id": "extra_queso", "nombre": "Queso Extra", "precio": 1000 },
+        { "id": "extra_huevo", "nombre": "Huevo Frito Extra", "precio": 1000 },
+        { "id": "extra_panceta", "nombre": "Bacon Extra", "precio": 1000 }
+      ]
+    },
+    {
+      "id": "lomo_americano",
+      "categoria": "lomitos",
+      "nombre": "LOMO AMERICANO",
+      "descripcion": "Bife de carne, queso cheddar, bacon, cebolla morada, salsa mora y papas fritas",
+      "foto": "assets/productos/lomitos/americano.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 18000,
+        "mesa": 20000
+      },
+      "variaciones": {
+        "titulo": "Elegí el tipo de pan",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "pan_frances", "nombre": "Pan Francés", "precio": 0 },
+          { "id": "pan_arabe", "nombre": "Pan Árabe", "precio": 0 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_carne", "nombre": "Bife de Carne Extra", "precio": 3000 },
+        { "id": "extra_queso", "nombre": "Queso Cheddar Extra", "precio": 1000 },
+        { "id": "extra_huevo", "nombre": "Huevo Frito Extra", "precio": 1000 },
+        { "id": "extra_panceta", "nombre": "Bacon Extra", "precio": 1000 }
+      ]
+    },
+    {
+      "id": "milanesa_comun",
+      "categoria": "milanesas",
+      "nombre": "MILANESAS COMUN",
+      "descripcion": "Milanesa de carne, lechuga, tomate y papas fritas",
+      "foto": "assets/productos/milanesas/mila comun.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 14000,
+        "mesa": 16000
+      },
+      "variaciones": {
+        "titulo": "Elegí el tipo de pan",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "pan_frances", "nombre": "Pan Francés", "precio": 0 },
+          { "id": "pan_arabe", "nombre": "Pan Árabe", "precio": 0 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_queso", "nombre": "Queso Extra", "precio": 1000 },
+        { "id": "extra_huevo", "nombre": "Huevo Extra", "precio": 1000 }
+      ]
+    },
+    {
+      "id": "milanesa_especial",
+      "categoria": "milanesas",
+      "nombre": "MILANESAS ESPECIAL",
+      "descripcion": "Milanesa de carne, queso, lechuga, tomate, jamón, huevo y papas fritas",
+      "foto": "assets/productos/milanesas/mila especial.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 16000,
+        "mesa": 18000
+      },
+      "variaciones": {
+        "titulo": "Elegí el tipo de pan",
+        "obligatorio": true,
+        "opciones": [
+          { "id": "pan_frances", "nombre": "Pan Francés", "precio": 0 },
+          { "id": "pan_arabe", "nombre": "Pan Árabe", "precio": 0 }
+        ]
+      },
+      "adicionales": [
+        { "id": "extra_queso", "nombre": "Queso Extra", "precio": 1000 },
+        { "id": "extra_huevo", "nombre": "Huevo Extra", "precio": 1000 }
+      ]
+    },
+    {
+      "id": "barroluco_pietro",
+      "categoria": "barrolucos",
+      "nombre": "PIETRO",
+      "descripcion": "Carne, bacon, lechuga, tomate, huevo y papas fritas",
+      "foto": "assets/productos/barrolucos/barroluco pietro.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 19000,
+        "mesa": 21000
+      }
+    },
+    {
+      "id": "barroluco_especial",
+      "categoria": "barrolucos",
+      "nombre": "BARROLUCO ESPECIAL DE LA CASA",
+      "descripcion": "Carne, lechuga, tomate, huevo, bacon, cebolla morada y papas fritas",
+      "foto": "assets/productos/barrolucos/barroluco casa.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 19000,
+        "mesa": 21000
+      }
+    },
+    {
+      "id": "pizza_muzzarella",
+      "categoria": "pizzas",
+      "nombre": "MUZZARELLA",
+      "descripcion": "Salsa de tomate, muzzarella, huevo, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 13500,
+        "mesa": 15500
+      },
+      "tipoOferta": "semana",
+      "delivery_oferta": 9900,
+      "mesa_oferta": 11500
+    },
+    {
+      "id": "pizza_especial",
+      "categoria": "pizzas",
+      "nombre": "ESPECIAL",
+      "descripcion": "Salsa de tomate, muzzarella, jamón, huevo, morrones glaseados, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 16000,
+        "mesa": 18000
+      }
+    },
+    {
+      "id": "pizza_especial_anchoas",
+      "categoria": "pizzas",
+      "nombre": "ESPECIAL CON ANCHOAS",
+      "descripcion": "Salsa de tomate, jamón, muzzarella, anchoas, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["intendente-lascano"],
+      "precios": {
+        "delivery": 20000,
+        "mesa": 22000
+      }
+    },
+    {
+      "id": "pizza_napolitana",
+      "categoria": "pizzas",
+      "nombre": "NAPOLITANA",
+      "descripcion": "Salsa de tomate, muzzarella, rodajas de tomate, huevo rallado, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 16000,
+        "mesa": 18000
+      }
+    },
+    {
+      "id": "pizza_napolitana_albahaca",
+      "categoria": "pizzas",
+      "nombre": "NAPOLITANA CON ALBAHACA",
+      "descripcion": "Salsa de tomate, muzzarella, rodajas de tomate, albahaca, aceite de oliva y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["intendente-lascano"],
+      "precios": {
+        "delivery": 17500,
+        "mesa": 19500
+      }
+    },
+    {
+      "id": "pizza_caprese",
+      "categoria": "pizzas",
+      "nombre": "CAPRESE",
+      "descripcion": "Salsa de tomate, muzzarella, rodajas de tomate, albahaca seca, aceite de oliva y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["intendente-lascano"],
+      "precios": {
+        "delivery": 19000,
+        "mesa": 21000
+      }
+    },
+    {
+      "id": "pizza_fugazzeta",
+      "categoria": "pizzas",
+      "nombre": "FUGAZZETA",
+      "descripcion": "Muzzarella, cebolla salteada, ají, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 16000,
+        "mesa": 18000
+      }
+    },
+    {
+      "id": "pizza_fugazzeta_roquefort",
+      "categoria": "pizzas",
+      "nombre": "FUGAZZETA CON ROQUEFORT",
+      "descripcion": "Muzzarella, cebolla salteada, queso azul, ají, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["intendente-lascano"],
+      "precios": {
+        "delivery": 18500,
+        "mesa": 20500
+      }
+    },
+    {
+      "id": "pizza_fugazzeta_provolone",
+      "categoria": "pizzas",
+      "nombre": "FUGAZZETA CON PROVOLONE",
+      "descripcion": "Muzzarella, cebolla salteada, provolone, ají, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 18500,
+        "mesa": 20500
+      }
+    },
+    {
+      "id": "pizza_calabresa",
+      "categoria": "pizzas",
+      "nombre": "CALABRESA",
+      "descripcion": "Salsa de tomate, muzzarella, calabresa y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 19000,
+        "mesa": 21000
+      }
+    },
+    {
+      "id": "pizza_pollo",
+      "categoria": "pizzas",
+      "nombre": "POLLO",
+      "descripcion": "Salsa de tomate, muzzarella y escabeche de pollo.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 20000,
+        "mesa": 22000
+      }
+    },
+    {
+      "id": "pizza_palmito_golf",
+      "categoria": "pizzas",
+      "nombre": "PALMITO CON SALSA GOLF",
+      "descripcion": "Salsa de tomate, muzzarella, palmitos, morrones glaseados, salsa golf, huevo y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 22000,
+        "mesa": 24000
+      }
+    },
+    {
+      "id": "pizza_palmito_roquefort",
+      "categoria": "pizzas",
+      "nombre": "PALMITO CON ROQUEFORT",
+      "descripcion": "Salsa de tomate, muzzarella, palmitos, cebolla de verdeo, queso azul y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["intendente-lascano"],
+      "precios": {
+        "delivery": 22000,
+        "mesa": 24000
+      }
+    },
+    {
+      "id": "pizza_roquefort",
+      "categoria": "pizzas",
+      "nombre": "ROQUEFORT",
+      "descripcion": "Salsa de tomate, muzzarella, queso azul y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 18000,
+        "mesa": 20000
+      }
+    },
+    {
+      "id": "pizza_tropical",
+      "categoria": "pizzas",
+      "nombre": "TROPICAL",
+      "descripcion": "Salsa de tomate, muzzarella, jamón, rodajas de ananá, azúcar rubia, cerezas y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 22000,
+        "mesa": 24000
+      }
+    },
+    {
+      "id": "pizza_argentina",
+      "categoria": "pizzas",
+      "nombre": "ARGENTINA",
+      "descripcion": "Salsa de tomate, muzzarella, papas fritas, huevos a la plancha y mix de aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 20000,
+        "mesa": 22000
+      }
+    },
+    {
+      "id": "pizza_choclo",
+      "categoria": "pizzas",
+      "nombre": "CHOCLO",
+      "descripcion": "Salsa de tomate, muzzarella, choclo amarillo cremoso, morrones glaseados y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["intendente-lascano"],
+      "precios": {
+        "delivery": 18000,
+        "mesa": 20000
+      }
+    },
+    {
+      "id": "pizza_cuatro_quesos",
+      "categoria": "pizzas",
+      "nombre": "CUATRO QUESOS",
+      "descripcion": "Salsa de tomate, muzzarella, queso provolone, roquefort, reggianito y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["intendente-lascano"],
+      "precios": {
+        "delivery": 22000,
+        "mesa": 24000
+      }
+    },
+    {
+      "id": "pizza_rucula",
+      "categoria": "pizzas",
+      "nombre": "RUCULA",
+      "descripcion": "Salsa de tomate, muzzarella, jamón crudo, rúcula, queso reggianito y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 22000,
+        "mesa": 24000
+      }
+    },
+    {
+      "id": "pizza_ternera",
+      "categoria": "pizzas",
+      "nombre": "TERNERA",
+      "descripcion": "Salsa de tomate, muzzarella, ternera, morrones glaseados, huevo, ají, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 22000,
+        "mesa": 24000
+      }
+    },
+    {
+      "id": "pizza_americana",
+      "categoria": "pizzas",
+      "nombre": "AMERICANA",
+      "descripcion": "Salsa de tomate, muzzarella, jamón crudo, huevos a la plancha y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": ["intendente-lascano"],
+      "precios": {
+        "delivery": 22000,
+        "mesa": 24000
+      }
+    },
+    {
+      "id": "bebida_agua",
+      "categoria": "bebidas",
+      "nombre": "AGUA MINERAL",
+      "descripcion": "500ml",
+      "foto": "assets/bebidas.jpg",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 1500,
+        "mesa": 3500
+      }
+    },
+    {
+      "id": "bebida_gaseosa",
+      "categoria": "bebidas",
+      "nombre": "GASEOSA",
+      "descripcion": "500ml / 1.5L",
+      "foto": "assets/bebidas.jpg",
+      "sucursales": ["maestro-quiroga", "intendente-lascano"],
+      "precios": {
+        "delivery": 2000,
+        "mesa": 4000
+      }
+    }
+  ]
+}
