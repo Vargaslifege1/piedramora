@@ -54,8 +54,6 @@
     productoDeliveryOferta: document.getElementById('producto-delivery-oferta'),
     productoMesaOferta: document.getElementById('producto-mesa-oferta'),
     productoTipoOferta: document.getElementById('producto-tipo-oferta'),
-    productoOfertaDesde: document.getElementById('producto-oferta-desde'),
-    productoOfertaHasta: document.getElementById('producto-oferta-hasta'),
     productoLimpiarFechasOferta: document.getElementById('producto-limpiar-fechas-oferta'),
     productoOfertaCampos: document.querySelectorAll('.admin-campo-oferta'),
     productoAgotado: document.getElementById('producto-agotado'),
@@ -239,6 +237,237 @@
 
   function productoConDatosOferta(producto) {
     return precioOfertaValido(producto) || !!(producto && (producto.oferta_desde || producto.oferta_hasta));
+  }
+
+  function dosDigitos(numero) {
+    return String(numero).padStart(2, '0');
+  }
+
+  function partesArgentina(ms) {
+    const fecha = new Date((ms == null ? Date.now() : ms) - 3 * 60 * 60 * 1000);
+    return {
+      year: fecha.getUTCFullYear(),
+      month: fecha.getUTCMonth() + 1,
+      day: fecha.getUTCDate(),
+      weekday: fecha.getUTCDay(),
+      hour: fecha.getUTCHours(),
+      minute: fecha.getUTCMinutes()
+    };
+  }
+
+  function isoArgentinaConDias(dias, hora, minuto) {
+    const fecha = new Date((Date.now() - 3 * 60 * 60 * 1000) + dias * 24 * 60 * 60 * 1000);
+    return `${fecha.getUTCFullYear()}-${dosDigitos(fecha.getUTCMonth() + 1)}-${dosDigitos(fecha.getUTCDate())}T${dosDigitos(hora)}:${dosDigitos(minuto)}:00-03:00`;
+  }
+
+  function isoRapidoOferta(campo, accion) {
+    if (accion === 'ninguna') return '';
+
+    if (campo === 'hasta') {
+      if (accion === 'hoy') return isoArgentinaConDias(0, 23, 59);
+      if (accion === 'manana') return isoArgentinaConDias(1, 23, 59);
+      if (accion === 'siete') return isoArgentinaConDias(7, 23, 59);
+      if (accion === 'finde') {
+        const weekday = partesArgentina().weekday;
+        const dias = weekday === 0 ? 0 : 7 - weekday;
+        return isoArgentinaConDias(dias, 23, 59);
+      }
+      return '';
+    }
+
+    if (accion === 'ahora') {
+      const ahora = partesArgentina();
+      return isoArgentinaConDias(0, ahora.hour, ahora.minute);
+    }
+    if (accion === 'manana') return isoArgentinaConDias(1, 0, 0);
+    return '';
+  }
+
+  function textoResumenOferta(campo, valorIso) {
+    if (!valorIso) {
+      return campo === 'hasta' ? 'Sin fecha de fin' : 'Sin fecha de inicio';
+    }
+
+    const ms = PM.parseFechaOferta(valorIso);
+    if (ms === null) return 'Fecha inválida';
+
+    const fecha = PM.fechaOfertaLarga(valorIso);
+    const hora = PM.horaOfertaCorta(valorIso);
+
+    if (campo === 'hasta') {
+      if (ms < Date.now()) return `Vencida el ${fecha} a las ${hora} (hora de Argentina)`;
+      return `Vence el ${fecha} a las ${hora} (hora de Argentina)`;
+    }
+
+    return `Empieza el ${fecha} a las ${hora} (hora de Argentina)`;
+  }
+
+  function opcionesHoraOferta(seleccionada) {
+    const valores = [];
+    for (let hora = 0; hora < 24; hora += 1) {
+      valores.push(`${dosDigitos(hora)}:00`);
+      valores.push(`${dosDigitos(hora)}:30`);
+    }
+    if (!valores.includes('23:59')) valores.push('23:59');
+
+    return valores.map(valor => {
+      const seleccion = valor === seleccionada ? ' selected' : '';
+      return `<option value="${valor}"${seleccion}>${valor}</option>`;
+    }).join('');
+  }
+
+  function asegurarOpcionHora(select, hora) {
+    if (!select || !hora) return;
+    if (!Array.from(select.options).some(opcion => opcion.value === hora)) {
+      const opcion = document.createElement('option');
+      opcion.value = hora;
+      opcion.textContent = hora;
+      select.appendChild(opcion);
+    }
+    select.value = hora;
+  }
+
+  function htmlControlOferta(campo, valorIso, idProducto) {
+    const valor = valorIso || '';
+    const paraInput = PM.fechaOfertaParaInput(valor);
+    const fecha = paraInput ? paraInput.slice(0, 10) : '';
+    const horaPorDefecto = campo === 'hasta' ? '23:59' : '00:00';
+    const hora = paraInput ? paraInput.slice(11, 16) : horaPorDefecto;
+    const ambito = idProducto ? `data-id="${escaparHtml(idProducto)}"` : 'data-oferta-nuevo="1"';
+
+    const botones = campo === 'hasta'
+      ? [
+        ['hoy', 'Hoy 23:59'],
+        ['manana', 'Mañana 23:59'],
+        ['siete', 'En 7 días'],
+        ['finde', 'Fin de semana (domingo 23:59)'],
+        ['ninguna', 'Sin fecha de fin']
+      ]
+      : [
+        ['ahora', 'Ahora'],
+        ['manana', 'Mañana 00:00'],
+        ['ninguna', 'Sin fecha de inicio']
+      ];
+
+    return `
+      <div class="admin-oferta-control" data-oferta-control="${campo}" ${ambito}>
+        <input type="hidden" data-oferta-valor="${campo}" value="${escaparHtml(valor)}">
+        <div class="admin-oferta-rapidos">
+          ${botones.map(([accion, texto]) => `<button type="button" class="admin-oferta-rapido" data-accion="oferta-rapida" data-oferta-campo="${campo}" data-oferta-rapida="${accion}">${texto}</button>`).join('')}
+        </div>
+        <div class="admin-oferta-custom">
+          <label class="admin-oferta-custom-item">
+            <span>Fecha</span>
+            <input type="date" data-oferta-fecha="${campo}" value="${escaparHtml(fecha)}">
+          </label>
+          <label class="admin-oferta-custom-item">
+            <span>Hora</span>
+            <select data-oferta-hora="${campo}">${opcionesHoraOferta(hora)}</select>
+          </label>
+        </div>
+        <p class="admin-oferta-resumen" data-oferta-resumen="${campo}">${escaparHtml(textoResumenOferta(campo, valor))}</p>
+      </div>
+    `;
+  }
+
+  function fijarValorOfertaControl(control, valorIso) {
+    if (!control) return;
+    const campo = control.dataset.ofertaControl;
+    const valor = valorIso || '';
+    const paraInput = PM.fechaOfertaParaInput(valor);
+    const horaPorDefecto = campo === 'hasta' ? '23:59' : '00:00';
+
+    const oculto = control.querySelector('[data-oferta-valor]');
+    if (oculto) oculto.value = valor;
+
+    const fecha = control.querySelector('[data-oferta-fecha]');
+    if (fecha) fecha.value = paraInput ? paraInput.slice(0, 10) : '';
+
+    const hora = control.querySelector('[data-oferta-hora]');
+    if (hora) asegurarOpcionHora(hora, paraInput ? paraInput.slice(11, 16) : horaPorDefecto);
+
+    const resumen = control.querySelector('[data-oferta-resumen]');
+    if (resumen) resumen.textContent = textoResumenOferta(campo, valor);
+  }
+
+  function valorOfertaDesdeControles(control) {
+    if (!control) return '';
+    const campo = control.dataset.ofertaControl;
+    const fecha = control.querySelector('[data-oferta-fecha]');
+    const hora = control.querySelector('[data-oferta-hora]');
+    if (!fecha || !fecha.value) return '';
+
+    const partes = fecha.value.split('-');
+    if (partes.length !== 3) return '';
+    const horaFinal = (hora && hora.value) || (campo === 'hasta' ? '23:59' : '00:00');
+    return `${partes[0]}-${partes[1]}-${partes[2]}T${horaFinal}:00-03:00`;
+  }
+
+  function contextoControlOferta(control) {
+    if (!control) return null;
+
+    const card = control.closest('.admin-producto');
+    if (card) {
+      const producto = buscarProducto(card.dataset.id);
+      return producto ? { producto, card } : null;
+    }
+
+    if (control.closest('#form-producto')) return { nuevo: true };
+    return null;
+  }
+
+  function aplicarValorOfertaContexto(contexto, campo, valor) {
+    if (!contexto || !contexto.producto) return;
+    const clave = `oferta_${campo}`;
+    if (valor) contexto.producto[clave] = valor;
+    else delete contexto.producto[clave];
+    actualizarResumenOferta(contexto.card, contexto.producto);
+    marcarCambios();
+  }
+
+  function manejarClickOferta(evento) {
+    const boton = evento.target.closest('[data-accion="oferta-rapida"]');
+    if (!boton) return;
+
+    const control = boton.closest('[data-oferta-control]');
+    if (!control) return;
+
+    evento.preventDefault();
+    const campo = control.dataset.ofertaControl;
+    const valor = isoRapidoOferta(campo, boton.dataset.ofertaRapida);
+    fijarValorOfertaControl(control, valor);
+    aplicarValorOfertaContexto(contextoControlOferta(control), campo, valor);
+  }
+
+  function manejarCambioOferta(evento) {
+    const entrada = evento.target.closest('[data-oferta-fecha], [data-oferta-hora]');
+    if (!entrada) return;
+
+    const control = entrada.closest('[data-oferta-control]');
+    if (!control) return;
+
+    const campo = control.dataset.ofertaControl;
+    const fecha = control.querySelector('[data-oferta-fecha]');
+    const hora = control.querySelector('[data-oferta-hora]');
+
+    if (!fecha || !fecha.value) {
+      if (entrada.matches('[data-oferta-hora]')) {
+        const hoy = partesArgentina();
+        fecha.value = `${hoy.year}-${dosDigitos(hoy.month)}-${dosDigitos(hoy.day)}`;
+      } else {
+        fijarValorOfertaControl(control, '');
+        aplicarValorOfertaContexto(contextoControlOferta(control), campo, '');
+        return;
+      }
+    }
+
+    if (hora && !hora.value) {
+      hora.value = campo === 'hasta' ? '23:59' : '00:00';
+    }
+
+    const valor = valorOfertaDesdeControles(control);
+    fijarValorOfertaControl(control, valor);
+    aplicarValorOfertaContexto(contextoControlOferta(control), campo, valor);
   }
 
   function productosDeCategoria(id) {
@@ -676,20 +905,20 @@
                 <input type="number" min="0" step="100" data-campo-producto="mesa_oferta" value="${escaparHtml(producto.mesa_oferta === undefined ? '' : producto.mesa_oferta)}">
               </label>
 
-              <label class="admin-campo">
+              <div class="admin-campo admin-campo-oferta-fechas">
                 <span>Oferta desde</span>
-                <input type="datetime-local" data-campo-producto="oferta_desde" value="${escaparHtml(PM.fechaOfertaParaInput(producto.oferta_desde))}">
-              </label>
+                ${htmlControlOferta('desde', producto.oferta_desde, id)}
+              </div>
 
-              <label class="admin-campo">
+              <div class="admin-campo admin-campo-oferta-fechas">
                 <span>Oferta hasta</span>
-                <input type="datetime-local" data-campo-producto="oferta_hasta" value="${escaparHtml(PM.fechaOfertaParaInput(producto.oferta_hasta))}">
-              </label>
+                ${htmlControlOferta('hasta', producto.oferta_hasta, id)}
+              </div>
 
-              <label class="admin-campo admin-campo-check">
+              <div class="admin-campo admin-campo-oferta-limpiar">
                 <span>Fechas de oferta</span>
-                <button type="button" class="btn-secundario" data-accion="limpiar-fechas-oferta" data-id="${escaparHtml(id)}">Limpiar fechas</button>
-              </label>
+                <button type="button" class="btn-secundario" data-accion="limpiar-fechas-oferta" data-id="${escaparHtml(id)}">Limpiar ambas fechas</button>
+              </div>
               ` : ''}
 
               <label class="admin-campo admin-campo-check">
@@ -839,11 +1068,6 @@
       if (control.value === '' || !Number.isFinite(valor) || valor <= 0) delete producto[campo];
       else producto[campo] = valor;
       actualizarResumenOferta(contenedor, producto);
-    } else if (campo === 'oferta_desde' || campo === 'oferta_hasta') {
-      const iso = PM.inputOfertaAIso(control.value);
-      if (!iso) delete producto[campo];
-      else producto[campo] = iso;
-      actualizarResumenOferta(contenedor, producto);
     } else if (campo === 'agotado') {
       const activo = !!control.checked;
       producto.agotado = activo;
@@ -891,8 +1115,8 @@
 
     const card = buscarTarjetaProducto(id);
     if (card) {
-      card.querySelectorAll('[data-campo-producto="oferta_desde"], [data-campo-producto="oferta_hasta"]').forEach(input => {
-        input.value = '';
+      card.querySelectorAll('[data-oferta-control]').forEach(control => {
+        fijarValorOfertaControl(control, '');
       });
       actualizarResumenOferta(card, producto);
     }
@@ -1058,6 +1282,12 @@
     if (el.productoOfertaCampos) {
       el.productoOfertaCampos.forEach(campo => { campo.hidden = cat.id !== 'promo'; });
     }
+    if (el.formProducto) {
+      const phDesde = el.formProducto.querySelector('[data-oferta-placeholder="desde"]');
+      const phHasta = el.formProducto.querySelector('[data-oferta-placeholder="hasta"]');
+      if (phDesde) phDesde.innerHTML = htmlControlOferta('desde', '', null);
+      if (phHasta) phHasta.innerHTML = htmlControlOferta('hasta', '', null);
+    }
     if (el.productoFotoFile) el.productoFotoFile.value = '';
     if (el.productoFotoPreview) {
       el.productoFotoPreview.dataset.fallback = '';
@@ -1163,8 +1393,10 @@
     const tipoOfertaNueva = el.productoTipoOferta && el.productoTipoOferta.value === 'semana' ? 'semana' : 'dia';
     const ofertaDeliveryTexto = esPromo && el.productoDeliveryOferta ? el.productoDeliveryOferta.value.trim() : '';
     const ofertaMesaTexto = esPromo && el.productoMesaOferta ? el.productoMesaOferta.value.trim() : '';
-    const ofertaDesde = esPromo && el.productoOfertaDesde ? PM.inputOfertaAIso(el.productoOfertaDesde.value) : '';
-    const ofertaHasta = esPromo && el.productoOfertaHasta ? PM.inputOfertaAIso(el.productoOfertaHasta.value) : '';
+    const controlDesde = el.formProducto ? el.formProducto.querySelector('[data-oferta-control="desde"]') : null;
+    const controlHasta = el.formProducto ? el.formProducto.querySelector('[data-oferta-control="hasta"]') : null;
+    const ofertaDesde = esPromo && controlDesde ? (controlDesde.querySelector('[data-oferta-valor]') || {}).value || '' : '';
+    const ofertaHasta = esPromo && controlHasta ? (controlHasta.querySelector('[data-oferta-valor]') || {}).value || '' : '';
 
     if (!nombre) {
       mostrarEstado(el.productoEstado, 'Escribí un nombre para el producto.', 'error');
@@ -1690,10 +1922,16 @@
     if (el.formProducto) el.formProducto.addEventListener('submit', agregarProducto);
     if (el.productoLimpiarFechasOferta) {
       el.productoLimpiarFechasOferta.addEventListener('click', () => {
-        if (el.productoOfertaDesde) el.productoOfertaDesde.value = '';
-        if (el.productoOfertaHasta) el.productoOfertaHasta.value = '';
+        if (!el.formProducto) return;
+        el.formProducto.querySelectorAll('[data-oferta-control]').forEach(control => {
+          fijarValorOfertaControl(control, '');
+        });
       });
     }
+
+    document.addEventListener('click', manejarClickOferta);
+    document.addEventListener('input', manejarCambioOferta);
+    document.addEventListener('change', manejarCambioOferta);
 
     if (el.btnSubirProducto) {
       el.btnSubirProducto.addEventListener('click', () => abrirSelectorArchivo(el.productoFotoFile));

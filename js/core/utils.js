@@ -97,6 +97,45 @@
     return `${obtener('day')}/${obtener('month')}`;
   }
 
+  function fechaOfertaLarga(valor) {
+    const ms = parseFechaOferta(valor);
+    if (ms === null) return '';
+
+    const partes = new Intl.DateTimeFormat('es-AR', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit'
+    }).formatToParts(new Date(ms));
+
+    const obtener = (tipo) => {
+      const parte = partes.find(item => item.type === tipo);
+      return parte ? parte.value : '';
+    };
+
+    const dia = Number(obtener('day')) || obtener('day');
+    return `${obtener('weekday')} ${dia}/${obtener('month')}`;
+  }
+
+  function horaOfertaCorta(valor) {
+    const ms = parseFechaOferta(valor);
+    if (ms === null) return '';
+
+    const partes = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).formatToParts(new Date(ms));
+
+    const obtener = (tipo) => {
+      const parte = partes.find(item => item.type === tipo);
+      return parte ? parte.value : '';
+    };
+
+    return `${obtener('hour')}:${obtener('minute')}`;
+  }
+
   function fechaOfertaParaInput(valor) {
     const ms = parseFechaOferta(valor);
     if (ms === null) return '';
@@ -172,6 +211,8 @@
   PM.parseFechaOferta = parseFechaOferta;
   PM.ofertaVigente = ofertaVigente;
   PM.fechaOfertaCorta = fechaOfertaCorta;
+  PM.fechaOfertaLarga = fechaOfertaLarga;
+  PM.horaOfertaCorta = horaOfertaCorta;
   PM.fechaOfertaParaInput = fechaOfertaParaInput;
   PM.inputOfertaAIso = inputOfertaAIso;
 })(window);
