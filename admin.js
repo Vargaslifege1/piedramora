@@ -53,6 +53,7 @@
     productoMesa: document.getElementById('producto-mesa'),
     productoDeliveryOferta: document.getElementById('producto-delivery-oferta'),
     productoMesaOferta: document.getElementById('producto-mesa-oferta'),
+    productoTipoOferta: document.getElementById('producto-tipo-oferta'),
     productoOfertaDesde: document.getElementById('producto-oferta-desde'),
     productoOfertaHasta: document.getElementById('producto-oferta-hasta'),
     productoLimpiarFechasOferta: document.getElementById('producto-limpiar-fechas-oferta'),
@@ -199,6 +200,14 @@
     if (esRutaImagenSegura(foto)) return foto;
     const cat = categoriaPorId(producto && producto.categoria);
     return cat ? rutaImagenCategoria(cat) : 'assets/logo.webp';
+  }
+
+  function tipoOfertaProducto(producto) {
+    return producto && producto.tipoOferta === 'semana' ? 'semana' : 'dia';
+  }
+
+  function etiquetaTipoOferta(tipo) {
+    return tipo === 'semana' ? 'Oferta de la semana' : 'Oferta del día';
   }
 
   function precioOfertaValido(producto) {
@@ -569,12 +578,15 @@
       const id = producto.id;
       const abierto = productosExpandidos.has(id);
       const esPromo = producto.categoria === 'promo';
+      const tipo = tipoOfertaProducto(producto);
       const oferta = estadoOfertaProducto(producto);
       const precios = producto.precios || {};
       const agotado = PM.productoEstaAgotado(producto);
       const agotadoPermanente = producto.agotado_hasta_nuevo_aviso === true;
       const ofertaBadge = oferta.tiene
-        ? `<span class="admin-badge ${oferta.vencida ? 'admin-badge-oferta-vencida' : 'admin-badge-oferta'}">${oferta.vencida ? 'OFERTA VENCIDA' : 'OFERTA'}</span>`
+        ? (oferta.vencida
+          ? '<span class="admin-badge admin-badge-oferta-vencida">OFERTA VENCIDA</span>'
+          : `<span class="admin-badge admin-badge-${tipo}">${etiquetaTipoOferta(tipo)}</span>`)
         : '';
       const agotadoBadge = agotado
         ? `<span class="admin-badge admin-badge-agotado">${agotadoPermanente ? 'AGOTADO PERMANENTE' : 'AGOTADO HOY'}</span>`
@@ -646,6 +658,14 @@
               </label>
 
               ${esPromo ? `
+              <label class="admin-campo">
+                <span>Estilo del cartel</span>
+                <select data-campo-producto="tipoOferta">
+                  <option value="dia"${tipo === 'dia' ? ' selected' : ''}>Del día</option>
+                  <option value="semana"${tipo === 'semana' ? ' selected' : ''}>De la semana</option>
+                </select>
+              </label>
+
               <label class="admin-campo">
                 <span>Delivery oferta</span>
                 <input type="number" min="0" step="100" data-campo-producto="delivery_oferta" value="${escaparHtml(producto.delivery_oferta === undefined ? '' : producto.delivery_oferta)}">
@@ -808,6 +828,12 @@
       if (control.value === '' || !Number.isFinite(valor) || valor < 0) delete producto.precios[campo];
       else producto.precios[campo] = valor;
       actualizarResumenPrecios(contenedor, producto);
+    } else if (campo === 'tipoOferta') {
+      producto.tipoOferta = control.value === 'semana' ? 'semana' : 'dia';
+      marcarCambios();
+      renderizarCategorias();
+      renderizarDetalleCategoria();
+      return;
     } else if (campo === 'delivery_oferta' || campo === 'mesa_oferta') {
       const valor = Number(control.value);
       if (control.value === '' || !Number.isFinite(valor) || valor <= 0) delete producto[campo];
@@ -1134,6 +1160,7 @@
     const delivery = Number(el.productoDelivery.value);
     const mesa = Number(el.productoMesa.value);
     const esPromo = cat.id === 'promo';
+    const tipoOfertaNueva = el.productoTipoOferta && el.productoTipoOferta.value === 'semana' ? 'semana' : 'dia';
     const ofertaDeliveryTexto = esPromo && el.productoDeliveryOferta ? el.productoDeliveryOferta.value.trim() : '';
     const ofertaMesaTexto = esPromo && el.productoMesaOferta ? el.productoMesaOferta.value.trim() : '';
     const ofertaDesde = esPromo && el.productoOfertaDesde ? PM.inputOfertaAIso(el.productoOfertaDesde.value) : '';
@@ -1177,6 +1204,7 @@
     };
 
     if (descripcion) producto.descripcion = descripcion;
+    if (esPromo) producto.tipoOferta = tipoOfertaNueva;
 
     const hayPrecioOferta = ofertaDeliveryTexto !== '' || ofertaMesaTexto !== '';
 
@@ -1457,6 +1485,10 @@
         delete producto.oferta_desde;
         delete producto.oferta_hasta;
       } else {
+        if (producto.tipoOferta !== 'dia' && producto.tipoOferta !== 'semana') {
+          producto.tipoOferta = 'dia';
+        }
+
         const tienePrecioOferta = producto.delivery_oferta !== undefined || producto.mesa_oferta !== undefined;
 
         if (tienePrecioOferta) {

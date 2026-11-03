@@ -9,7 +9,6 @@ const PATRON_ID = /^[a-z0-9_]+$/;
 const PATRON_FECHA_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}-03:00$/;
 
 const errores = [];
-const avisos = [];
 
 function error(mensaje) {
   errores.push(mensaje);
@@ -149,8 +148,8 @@ if (Array.isArray(carta.productos)) {
       }
     }
 
-    if (producto.tipoOferta !== undefined) {
-      avisos.push(`Producto "${id}": "tipoOferta" está presente pero ya no se usa (se ignora).`);
+    if (producto.tipoOferta !== undefined && producto.tipoOferta !== 'dia' && producto.tipoOferta !== 'semana') {
+      error(`Producto "${id}": tipoOferta debe ser "dia" o "semana".`);
     }
   });
 }
@@ -160,11 +159,6 @@ if (errores.length === 0) {
 } else {
   console.error(`Se encontraron ${errores.length} problema(s):`);
   errores.forEach(mensaje => console.error(`- ${mensaje}`));
-}
-
-if (avisos.length > 0) {
-  console.log('\nAvisos:');
-  avisos.forEach(mensaje => console.log(`- ${mensaje}`));
 }
 
 process.exit(errores.length === 0 ? 0 : 1);
