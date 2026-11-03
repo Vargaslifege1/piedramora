@@ -1290,8 +1290,7 @@ function obtenerPrecioRegularProducto(prod) {
 function obtenerPrecioOfertaProducto(prod) {
   if (!prod) return null;
 
-  const tipo = String(prod.tipoOferta || '').toLowerCase();
-  if (tipo !== 'dia' && tipo !== 'semana' && prod.enOferta !== true) return null;
+  if (!PM.ofertaVigente(prod)) return null;
 
   const clave = cartaModalidadSeleccionada === 'mesa' ? 'mesa' : 'delivery';
   let valor = prod[`${clave}_oferta`];
@@ -1325,12 +1324,6 @@ function productoTieneOferta(prod) {
   return obtenerPrecioOfertaProducto(prod) !== null;
 }
 
-function obtenerTipoOfertaProducto(prod) {
-  if (!productoTieneOferta(prod)) return null;
-  const tipo = String(prod.tipoOferta || '').toLowerCase();
-  return tipo === 'semana' ? 'semana' : 'dia';
-}
-
 function obtenerPrecioProducto(prod, sucursalId) {
   const precioOferta = obtenerPrecioOfertaProducto(prod);
   if (precioOferta !== null) return precioOferta;
@@ -1338,9 +1331,8 @@ function obtenerPrecioProducto(prod, sucursalId) {
 }
 
 function obtenerEtiquetaOferta(prod) {
-  const tipo = obtenerTipoOfertaProducto(prod);
-  if (tipo === 'semana') return '🔥 OFERTA DE LA SEMANA';
-  return '⚡ OFERTA DEL DÍA';
+  const hasta = PM.fechaOfertaCorta(prod && prod.oferta_hasta);
+  return hasta ? `OFERTA · Hasta el ${hasta}` : 'OFERTA';
 }
 
 /* ===== LÓGICA DE CARRITO ===== */
@@ -1614,8 +1606,6 @@ function abrirModalPersonalizacion(prod) {
     if (productoTieneOferta(prod)) {
       const notaOferta = document.createElement('span');
       notaOferta.className = 'adicionales-oferta-nota';
-      const tipoOferta = obtenerTipoOfertaProducto(prod);
-      if (tipoOferta) notaOferta.classList.add(`adicionales-oferta-nota-${tipoOferta}`);
       notaOferta.textContent = `${obtenerEtiquetaOferta(prod)} · Antes ${formatearPrecioAR(obtenerPrecioRegularProducto(prod))}`;
       desc.appendChild(notaOferta);
     }
@@ -1940,13 +1930,11 @@ function renderProductosCategoria(categoria) {
 
   productos.forEach(prod => {
     const esOferta = productoTieneOferta(prod);
-    const tipoOferta = obtenerTipoOfertaProducto(prod);
     const agotado = PM.productoEstaAgotado(prod);
     const card = document.createElement('article');
     card.className = 'carta-producto-card-nuevo';
     if (esOferta) {
       card.classList.add('carta-producto-en-oferta');
-      if (tipoOferta) card.classList.add(`carta-oferta-${tipoOferta}`);
     }
     if (agotado) card.classList.add('carta-producto-agotado');
 
@@ -2062,7 +2050,6 @@ function renderProductosCategoria(categoria) {
     if (esOferta) {
       const badgeOferta = document.createElement('span');
       badgeOferta.className = 'carta-oferta-badge';
-      if (tipoOferta) badgeOferta.classList.add(`carta-oferta-badge-${tipoOferta}`);
       badgeOferta.textContent = obtenerEtiquetaOferta(prod);
       badgeOferta.setAttribute('aria-label', obtenerEtiquetaOferta(prod));
       card.appendChild(badgeOferta);
@@ -2916,18 +2903,9 @@ function getFondoCategoria(cat) {
   return 'assets/logo.webp';
 }
 
-function obtenerTipoOfertaCategoria(cat) {
-  let tipo = null;
+function categoriaTieneOfertas(cat) {
   const productos = Array.isArray(cat.productos) ? cat.productos : [];
-
-  productos.forEach(prod => {
-    if (!productoTieneOferta(prod)) return;
-    const tipoProd = obtenerTipoOfertaProducto(prod);
-    if (tipoProd === 'dia') tipo = 'dia';
-    else if (tipoProd === 'semana' && tipo !== 'dia') tipo = 'semana';
-  });
-
-  return tipo;
+  return productos.some(prod => productoTieneOferta(prod));
 }
 
 function renderCategoriasVertical() {
@@ -2945,15 +2923,15 @@ function renderCategoriasVertical() {
     const fondo = getFondoCategoria(cat);
     btn.style.setProperty('--cat-fondo', `url('${fondo}')`);
 
-    const tipoOfertas = obtenerTipoOfertaCategoria(cat);
-    if (tipoOfertas) {
-      btn.classList.add('tiene-ofertas', `tiene-ofertas-${tipoOfertas}`);
+    const tieneOfertas = categoriaTieneOfertas(cat);
+    if (tieneOfertas) {
+      btn.classList.add('tiene-ofertas');
     }
 
     btn.innerHTML = `
       <div class="carta-categoria-card-fondo-overlay"></div>
-      ${tipoOfertas ? `
-        <span class="carta-categoria-oferta-badge carta-categoria-oferta-badge-${tipoOfertas}">
+      ${tieneOfertas ? `
+        <span class="carta-categoria-oferta-badge">
           🔥 ¡OFERTAS!
         </span>` : ''}
       <div class="carta-categoria-card-fondo-contenido">

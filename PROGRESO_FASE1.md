@@ -278,12 +278,13 @@ La RPC debe:
 
 ## Próximo paso propuesto
 
-Con estas respuestas, 1B sería:
+Las tablas `config_pedidos`, `pedidos`, la secuencia de numeración y las políticas RLS **ya están creadas** (migraciones 010 y 011, ejecutadas y verificadas).
 
-1. Crear la migración de `config_pedidos`, `pedidos`, secuencia de numeración, RLS y RPC `crear_pedido`.
-2. Crear el rollback correspondiente.
-3. No ejecutar SQL contra la base del usuario.
-4. Recién después adaptar `main.js` para llamar a la RPC sin romper el envío actual por WhatsApp.
+Pendiente para el paso 1C:
+
+1. Crear la función RPC `crear_pedido`.
+2. No ejecutar SQL contra la base del usuario.
+3. Recién después adaptar `main.js` para llamar a la RPC sin romper el envío actual por WhatsApp.
 
 ## Estado real al 2026-11-03
 
@@ -315,8 +316,20 @@ Con estas respuestas, 1B sería:
 - Es idempotente y está marcada como "ya ejecutado a mano".
 - **No ejecutarla** contra la base; no se ejecutó desde el proyecto.
 
-### Pendiente: Paso 1B2 (fechas de oferta para las promos)
+### Paso 1B2: fechas de oferta para las promos (hecho)
 
-- `tipoOferta` hoy es solo una etiqueta visual (`dia` / `semana`); no valida día ni semana.
-- Falta definir y agregar `oferta_desde` y `oferta_hasta` a las promos, y hacer que el cliente respete la vigencia con hora de Argentina.
+- `tipoOferta` queda **ignorado** en la lógica y oculto en el admin. No se eliminó del JSON.
+- La oferta se detecta solo si el precio de oferta es un número válido (mayor a cero) y la vigencia está activa.
+- Nuevos campos opcionales en promos:
+  - `oferta_desde`: texto ISO con offset `-03:00` (`America/Argentina/Buenos_Aires`).
+  - `oferta_hasta`: texto ISO con offset `-03:00`.
+- Reglas:
+  - Sin fechas: oferta activa siempre.
+  - Solo `oferta_desde`: activa desde esa fecha.
+  - Solo `oferta_hasta`: activa hasta esa fecha.
+  - Fuera de fecha se muestra el precio regular y sin cartel.
+- La comparación se hace por instante con el offset argentino, nunca con la hora local del dispositivo.
+- Cartel único: `OFERTA`; si hay `oferta_hasta` agrega `Hasta el dd/mm`.
+- Admin: campos "Oferta desde" y "Oferta hasta" con selector de fecha y hora, botón "Limpiar fechas", y aviso antes de perder la oferta al cambiar de categoría.
+- Verificación: `tools/verificar-carta.mjs` valida IDs, precios, ofertas solo en `promo`, formato ISO y orden de fechas.
 - El servidor seguirá siendo la fuente de verdad en el paso 1C.

@@ -161,23 +161,29 @@
               <input id="producto-mesa" type="number" min="0" step="100" placeholder="13500" required>
             </label>
 
-            <label class="admin-campo">
-              <span>Tipo de oferta</span>
-              <select id="producto-tipo-oferta">
-                <option value="">Sin oferta</option>
-                <option value="dia">Oferta del día</option>
-                <option value="semana">Oferta de la semana</option>
-              </select>
-            </label>
-
-            <label class="admin-campo">
+            <label class="admin-campo admin-campo-oferta">
               <span>Delivery oferta</span>
               <input id="producto-delivery-oferta" type="number" min="0" step="100" placeholder="9900">
             </label>
 
-            <label class="admin-campo">
+            <label class="admin-campo admin-campo-oferta">
               <span>Mesa oferta</span>
               <input id="producto-mesa-oferta" type="number" min="0" step="100" placeholder="10900">
+            </label>
+
+            <label class="admin-campo admin-campo-oferta">
+              <span>Oferta desde</span>
+              <input id="producto-oferta-desde" type="datetime-local">
+            </label>
+
+            <label class="admin-campo admin-campo-oferta">
+              <span>Oferta hasta</span>
+              <input id="producto-oferta-hasta" type="datetime-local">
+            </label>
+
+            <label class="admin-campo admin-campo-check admin-campo-oferta">
+              <span>Fechas de oferta</span>
+              <button type="button" id="producto-limpiar-fechas-oferta" class="btn-secundario">Limpiar fechas</button>
             </label>
 
             <label class="admin-campo admin-campo-check">

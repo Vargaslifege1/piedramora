@@ -46,6 +46,89 @@
     return /^https?:\/\//i.test(ruta) ? ruta : fallback;
   }
 
+  const OFFSET_OFERTA_AR = '-03:00';
+
+  function parseFechaOferta(valor) {
+    const texto = String(valor == null ? '' : valor).trim();
+    if (!texto) return null;
+
+    let normalizado = texto;
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(texto)) {
+      normalizado = texto + (texto.length === 16 ? ':00' : '') + OFFSET_OFERTA_AR;
+    }
+
+    const ms = Date.parse(normalizado);
+    return Number.isFinite(ms) ? ms : null;
+  }
+
+  function ofertaVigente(producto, ahoraMs) {
+    if (!producto) return false;
+
+    const ahora = Number.isFinite(ahoraMs) ? ahoraMs : Date.now();
+
+    if (producto.oferta_desde) {
+      const desde = parseFechaOferta(producto.oferta_desde);
+      if (desde !== null && ahora < desde) return false;
+    }
+
+    if (producto.oferta_hasta) {
+      const hasta = parseFechaOferta(producto.oferta_hasta);
+      if (hasta !== null && ahora > hasta) return false;
+    }
+
+    return true;
+  }
+
+  function fechaOfertaCorta(valor) {
+    const ms = parseFechaOferta(valor);
+    if (ms === null) return '';
+
+    const partes = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      day: '2-digit',
+      month: '2-digit'
+    }).formatToParts(new Date(ms));
+
+    const obtener = (tipo) => {
+      const parte = partes.find(item => item.type === tipo);
+      return parte ? parte.value : '';
+    };
+
+    return `${obtener('day')}/${obtener('month')}`;
+  }
+
+  function fechaOfertaParaInput(valor) {
+    const ms = parseFechaOferta(valor);
+    if (ms === null) return '';
+
+    const partes = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).formatToParts(new Date(ms));
+
+    const obtener = (tipo) => {
+      const parte = partes.find(item => item.type === tipo);
+      return parte ? parte.value : '';
+    };
+
+    return `${obtener('year')}-${obtener('month')}-${obtener('day')}T${obtener('hour')}:${obtener('minute')}`;
+  }
+
+  function inputOfertaAIso(valor) {
+    const texto = String(valor == null ? '' : valor).trim();
+    if (!texto) return '';
+
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(texto)) return '';
+    if (parseFechaOferta(texto) === null) return '';
+
+    return `${texto}:00${OFFSET_OFERTA_AR}`;
+  }
+
   function productoEstaAgotado(producto, fechaHoy) {
     if (!producto || producto.agotado !== true) return false;
     if (producto.agotado_hasta_nuevo_aviso === true) return true;
@@ -86,4 +169,9 @@
   PM.urlExternaSegura = urlExternaSegura;
   PM.productoEstaAgotado = productoEstaAgotado;
   PM.normalizarAgotado = normalizarAgotado;
+  PM.parseFechaOferta = parseFechaOferta;
+  PM.ofertaVigente = ofertaVigente;
+  PM.fechaOfertaCorta = fechaOfertaCorta;
+  PM.fechaOfertaParaInput = fechaOfertaParaInput;
+  PM.inputOfertaAIso = inputOfertaAIso;
 })(window);

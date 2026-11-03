@@ -54,6 +54,8 @@
       "tipoOferta": "semana",
       "delivery_oferta": 21900,
       "mesa_oferta": 24500,
+      "oferta_desde": null,
+      "oferta_hasta": null,
       "agotado": false,
       "agotado_fecha": null,
       "agotado_hasta_nuevo_aviso": false
@@ -75,6 +77,8 @@
       "tipoOferta": "dia",
       "delivery_oferta": 28900,
       "mesa_oferta": 32000,
+      "oferta_desde": null,
+      "oferta_hasta": null,
       "agotado": false,
       "agotado_fecha": null,
       "agotado_hasta_nuevo_aviso": false

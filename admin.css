@@ -725,6 +725,22 @@ p {
   color: #ffd16a;
 }
 
+.admin-badge-oferta {
+  background: rgba(227, 30, 36, 0.16);
+  color: #ff9a9e;
+}
+
+.admin-badge-oferta-vencida {
+  background: rgba(120, 120, 120, 0.2);
+  color: #b9b9b9;
+}
+
+.admin-prod-oferta-fechas {
+  margin: 4px 0 0;
+  color: #ffc247;
+  font-size: 0.72rem;
+}
+
 .admin-prod-editor {
   padding: 16px 14px;
   border-top: 1px solid var(--admin-borde);
