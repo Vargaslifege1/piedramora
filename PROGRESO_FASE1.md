@@ -318,7 +318,6 @@ Pendiente para el paso 1C:
 
 ### Paso 1B2: fechas de oferta para las promos (hecho)
 
-- `tipoOferta` queda **ignorado** en la lógica y oculto en el admin. No se eliminó del JSON.
 - La oferta se detecta solo si el precio de oferta es un número válido (mayor a cero) y la vigencia está activa.
 - Nuevos campos opcionales en promos:
   - `oferta_desde`: texto ISO con offset `-03:00` (`America/Argentina/Buenos_Aires`).
@@ -329,7 +328,17 @@ Pendiente para el paso 1C:
   - Solo `oferta_hasta`: activa hasta esa fecha.
   - Fuera de fecha se muestra el precio regular y sin cartel.
 - La comparación se hace por instante con el offset argentino, nunca con la hora local del dispositivo.
-- Cartel único: `OFERTA`; si hay `oferta_hasta` agrega `Hasta el dd/mm`.
-- Admin: campos "Oferta desde" y "Oferta hasta" con selector de fecha y hora, botón "Limpiar fechas", y aviso antes de perder la oferta al cambiar de categoría.
-- Verificación: `tools/verificar-carta.mjs` valida IDs, precios, ofertas solo en `promo`, formato ISO y orden de fechas.
+- `tipoOferta` es **solo estilo visual**: `dia` o `semana`. No afecta la vigencia ni la detección de la oferta. Si falta, se usa `dia`. Las dos promos lo conservan.
+- Cartel restaurado del historial: fuego, colores y destaque de la tarjeta según `dia`/`semana`; si hay `oferta_hasta`, agrega `Hasta el dd/mm` dentro del cartel.
+- Admin:
+  - Selector "Estilo del cartel: Del día / De la semana".
+  - Botones rápidos para "Oferta hasta": Hoy 23:59, Mañana 23:59, En 7 días, Fin de semana (domingo 23:59), Sin fecha de fin.
+  - Botones rápidos para "Oferta desde": Ahora, Mañana 00:00, Sin fecha de inicio.
+  - Modo personalizado con fecha (`type="date"`) y hora cada 30 minutos.
+  - Resumen en español con la fecha/hora elegida en horario argentino.
+  - Validación de que "hasta" sea posterior a "desde".
+  - Aviso antes de perder la oferta al cambiar de categoría.
+- Verificación:
+  - `tools/verificar-carta.mjs` valida IDs, precios, ofertas solo en `promo`, formato ISO, orden de fechas y estilo `tipoOferta`.
+  - `tools/probar-oferta-vigente.mjs` prueba `ofertaVigente` con fechas `-03:00` en cuatro casos.
 - El servidor seguirá siendo la fuente de verdad en el paso 1C.
