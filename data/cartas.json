@@ -93,9 +93,6 @@
         "delivery": 11000,
         "mesa": 13000
       },
-      "tipoOferta": "dia",
-      "delivery_oferta": 7900,
-      "mesa_oferta": 9000,
       "variaciones": {
         "titulo": "¿COMO LA DESEAS?",
         "obligatorio": true,
@@ -162,9 +159,6 @@
         "delivery": 13000,
         "mesa": 15000
       },
-      "tipoOferta": "dia",
-      "delivery_oferta": 8700,
-      "mesa_oferta": 9000,
       "variaciones": {
         "titulo": "¿COMO LA DESEAS?",
         "obligatorio": true,
@@ -429,9 +423,6 @@
         "delivery": 14000,
         "mesa": 16000
       },
-      "tipoOferta": "semana",
-      "delivery_oferta": 9900,
-      "mesa_oferta": 11000,
       "variaciones": {
         "titulo": "Elegí el tipo de pan",
         "obligatorio": true,
@@ -728,9 +719,6 @@
         "delivery": 13500,
         "mesa": 15500
       },
-      "tipoOferta": "semana",
-      "delivery_oferta": 9900,
-      "mesa_oferta": 11500,
       "agotado": false,
       "agotado_fecha": null,
       "agotado_hasta_nuevo_aviso": false
