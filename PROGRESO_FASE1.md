@@ -403,6 +403,14 @@ Pendientes antes de dar 1C por cerrado:
 - Todos los datos escritos por el cliente se escapan con `PM.escaparHtml`; el teléfono de WhatsApp se arma solo con dígitos.
 - Si la sesión vence o no hay permisos, se muestra un aviso claro sin romper el resto del admin.
 
+## Aviso de privacidad en el checkout (2026-11-03)
+
+- Se agregó el aviso de la Ley 25.326 al pie del formulario de checkout, justo arriba del botón de enviar.
+- El texto es chico, legible y no bloquea el envío: no hay casilla obligatoria.
+- La frase "escribiéndonos por WhatsApp" muestra el número de la sucursal elegida cuando está disponible.
+- El número se actualiza al abrir el checkout y al cambiar de sucursal.
+- Archivos: `index.html`, `style.css`, `main.js`.
+
 Pendiente:
-- Aviso de privacidad (Ley 25.326) y pantalla "Pedido recibido" en el checkout.
+- Pantalla "Pedido recibido" en el checkout.
 - Editor de tramos de envío y sección **Envíos** en el admin.

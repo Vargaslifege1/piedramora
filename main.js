@@ -2104,6 +2104,7 @@ function abrirModalCheckout() {
 
   sincronizarCheckoutConModalidad();
   actualizarEtiquetasPago();
+  actualizarAvisoPrivacidad();
   recalcularPreciosCarrito();
   renderizarListaCheckout();
   programarCotizacionEnvio();
@@ -2137,6 +2138,21 @@ document.getElementById('checkout-cerrar')?.addEventListener('click', (e) => {
 });
 
 document.getElementById('checkout-overlay')?.addEventListener('click', cerrarModalCheckout);
+
+function obtenerWhatsappSucursalActual() {
+  const sucursal = SUCURSALES[cartaActualSucursalId];
+  if (!sucursal) return '';
+  return String((sucursal.botones && sucursal.botones.whatsapp) || sucursal.whatsapp || '').replace(/\D/g, '');
+}
+
+function actualizarAvisoPrivacidad() {
+  const span = document.getElementById('checkout-privacidad-wa');
+  if (!span) return;
+  const numero = obtenerWhatsappSucursalActual();
+  span.textContent = numero
+    ? `escribiéndonos por WhatsApp al ${numero}`
+    : 'escribiéndonos por WhatsApp';
+}
 
 function actualizarEtiquetasPago() {
   document.querySelectorAll('[data-tipo-pago]').forEach(btn => {
@@ -3424,6 +3440,7 @@ async function abrirCartaDosEtapas(sucursalId) {
   await Promise.all([cargarConfiguracionApp(), cargarCartasEnSegundoPlano()]);
   cartaActualSucursalId = sucursalId;
   cartaModalidadSeleccionada = modoCartaForzado || modalidadRetomada;
+  actualizarAvisoPrivacidad();
   programarCotizacionEnvio();
 
   if (modoCartaForzado === 'mesa') {
