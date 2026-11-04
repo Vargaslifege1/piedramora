@@ -276,11 +276,11 @@ La RPC debe:
 11. ¿Los pedidos de mesa siguen siendo solo consulta? Si no, ¿cómo se identifica la mesa?
 12. ¿Aprobás guardar los ítems como snapshot JSONB dentro de `pedidos`, o preferís tabla hija `pedido_items` desde el inicio?
 
-## Paso 1C: RPC `crear_pedido` (preparado, sin ejecutar)
+## Paso 1C: RPC `crear_pedido` (histórico)
 
 Las tablas `config_pedidos`, `pedidos`, la secuencia de numeración y las políticas RLS **ya están creadas** (migraciones 010 y 011, ejecutadas y verificadas).
 
-Se agregó `supabase/migrations/013_crear_pedido.sql`, que **todavía no se ejecutó** contra la base:
+`supabase/migrations/013_crear_pedido.sql` fue reemplazada por la versión definitiva que ya está en la base (parámetros `p_metodo_pago` y `p_zona_envio` incluidos):
 
 - Crea `public.crear_pedido(...)` como `security definer` y `search_path = ''`.
 - Recibe sucursal, modalidad, datos del cliente, dirección/GPS, pago, notas, ítems y `p_idempotency_key`.
@@ -368,4 +368,13 @@ Pendientes antes de dar 1C por cerrado:
 - Verificación:
   - `tools/verificar-carta.mjs` valida IDs, precios, ofertas en cualquier producto, formato ISO y los tres modos de `tipoOferta`.
   - `tools/probar-oferta-vigente.mjs` prueba `ofertaVigente` con fechas `-03:00` en cuatro casos.
-- El servidor seguirá siendo la fuente de verdad en el paso 1C.
+
+## Checkout con `crear_pedido` (2026-11-03)
+
+- `crear_pedido` definitivo = migraciones **013** y **014**. La función que corre en la base usa `p_metodo_pago` y `p_zona_envio`.
+- El checkout de `main.js` llama a `crear_pedido` con timeout de 10 segundos.
+- Si Supabase falla, hay timeout, red caída o Supabase no está configurado, se envía igual por WhatsApp con el mensaje calculado en el navegador, sin número de pedido y con la primera línea "PEDIDO SIN REGISTRAR EN EL SISTEMA".
+- Si el servidor rechaza el pedido, se pide confirmación antes de enviar por WhatsApp.
+- Si el subtotal del servidor difiere del calculado en el navegador, se avisa y se pide confirmación.
+- Mesa es solo lectura: no se registra pedido ni se abre WhatsApp.
+- **Falta mostrar el envío y un selector de zona en el checkout (siguiente paso).**

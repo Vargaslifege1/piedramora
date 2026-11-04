@@ -2760,7 +2760,7 @@ function itemsPedidoDesdeRespuesta(pedido) {
   if (!pedido || !Array.isArray(pedido.items)) return null;
   return pedido.items.map((item) => {
     const especificaciones = [];
-    if (item.variacion_nombre) especificaciones.push(item.variacion_nombre);
+    if (item.variacion && item.variacion.nombre) especificaciones.push(item.variacion.nombre);
     if (Array.isArray(item.adicionales)) {
       item.adicionales.forEach((adicional) => {
         if (adicional && adicional.nombre) especificaciones.push(adicional.nombre);
@@ -2787,10 +2787,14 @@ function construirMensajePedido({
   notas,
   items,
   totales,
-  numeroOrden
+  numeroOrden,
+  sinRegistrar
 }) {
   const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
-  let mensaje = `*NUEVO PEDIDO - ${nombreNegocio}*\n\n`;
+  const cabecera = `*NUEVO PEDIDO - ${nombreNegocio}*\n\n`;
+  let mensaje = sinRegistrar
+    ? `\u26a0\ufe0f PEDIDO SIN REGISTRAR EN EL SISTEMA\n\n${cabecera}`
+    : cabecera;
   if (numeroOrden) mensaje += `\ud83e\uddfe *Pedido:* ${normalizarTextoMensaje(numeroOrden, true)}\n`;
   mensaje += `\ud83d\udce2 *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
   mensaje += `\ud83d\udef5 *Modalidad:* ${modalidadTexto}\n`;
@@ -2827,19 +2831,52 @@ function construirMensajePedido({
   return mensaje;
 }
 
-function abrirEnlaceWhatsapp(ventana, url) {
+function abrirEnlaceWhatsapp(ventana, link) {
   if (ventana && !ventana.closed) {
     try {
-      ventana.location.href = url;
+      ventana.location.href = link;
       return;
     } catch (error) {}
   }
-  const nueva = window.open(url, '_blank');
+  const nueva = window.open(link, '_blank');
   if (nueva) {
     try { nueva.opener = null; } catch (error) {}
     return;
   }
-  window.location.href = url;
+  window.location.href = link;
+}
+
+function conTiempoLimite(promesa, milisegundos) {
+  return new Promise((resolve, reject) => {
+    const temporizador = setTimeout(() => {
+      const error = new Error('Tiempo de espera agotado');
+      error.esTimeout = true;
+      reject(error);
+    }, milisegundos);
+
+    Promise.resolve(promesa).then(
+      (valor) => {
+        clearTimeout(temporizador);
+        resolve(valor);
+      },
+      (error) => {
+        clearTimeout(temporizador);
+        reject(error);
+      }
+    );
+  });
+}
+
+function esRechazoPedido(error) {
+  if (!error || error.esTimeout) return false;
+  if (error.code !== undefined && error.code !== null && String(error.code) === 'P0001') return true;
+  return /[áéíóúñü¿¡]/i.test(String(error.message || ''));
+}
+
+function cerrarVentanaPedido(ventana) {
+  if (ventana && !ventana.closed) {
+    try { ventana.close(); } catch (error) {}
+  }
 }
 
 document.getElementById('checkout-form')?.addEventListener('submit', async (e) => {
@@ -2872,6 +2909,10 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
   if (!telefono) return;
 
   const esMesa = cartaModalidadSeleccionada === 'mesa';
+  if (esMesa) {
+    alert('Esta carta es solo para consulta. El pedido lo toma el personal del local.');
+    return;
+  }
   const tipoEntregaEl = document.querySelector('[data-tipo-entrega].activa');
   const tipoEntrega = esMesa
     ? 'Mesa (salón)'
@@ -2929,33 +2970,58 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
   try {
     await cargarConfigNube();
     const clienteNube = obtenerClienteNube();
-    if (clienteNube) {
-      const { data, error } = await clienteNube.rpc('crear_pedido', {
-        p_sucursal_id: cartaActualSucursalId,
-        p_modalidad: esMesa ? 'mesa' : (tipoEntrega === 'Delivery' ? 'delivery' : 'retiro'),
-        p_cliente_nombre: nombre,
-        p_cliente_telefono: telefono,
-        p_direccion: direccionTexto || null,
-        p_lat: lat,
-        p_lng: lng,
-        p_pago_tipo: pago.tipo,
-        p_notas: notas || null,
-        p_items: CARRITO.map((item) => ({
-          producto_id: item.productoBaseId,
-          variacion_id: item.variacion ? item.variacion.id : null,
-          adicionales_ids: (item.adicionalesLista || []).map(adicional => adicional.id),
-          cantidad: item.cantidad
-        })),
-        p_idempotency_key: idempotencyKey
-      });
-      if (error) throw error;
-      pedidoGuardado = data;
-    }
-  } catch (error) {
-    console.warn('No se pudo guardar el pedido en la base. Se continúa con WhatsApp.', error);
-  }
 
-  try {
+    if (!clienteNube) {
+      console.warn('Supabase no está configurado. Se continúa con WhatsApp sin registrar el pedido.');
+    } else {
+      try {
+        const { data, error } = await conTiempoLimite(clienteNube.rpc('crear_pedido', {
+          p_sucursal_id: cartaActualSucursalId,
+          p_modalidad: tipoEntrega === 'Delivery' ? 'delivery' : 'retiro',
+          p_cliente_nombre: nombre,
+          p_cliente_telefono: telefono,
+          p_direccion: direccionTexto || null,
+          p_lat: lat,
+          p_lng: lng,
+          p_metodo_pago: pago.tipo,
+          p_zona_envio: null,
+          p_notas: notas || null,
+          p_items: CARRITO.map((item) => ({
+            producto_id: item.productoBaseId,
+            variacion_id: item.variacion ? item.variacion.id : null,
+            adicionales_ids: (item.adicionalesLista || []).map(adicional => adicional.id),
+            cantidad: item.cantidad
+          })),
+          p_idempotency_key: idempotencyKey
+        }), 10000);
+
+        if (error) throw error;
+        pedidoGuardado = data;
+      } catch (error) {
+        if (esRechazoPedido(error)) {
+          const mensajeRechazo = String(error.message || 'El servidor rechazó el pedido.');
+          const continuar = window.confirm(`No pudimos registrar tu pedido: ${mensajeRechazo}. ¿Querés enviarlo igual por WhatsApp?`);
+          if (!continuar) {
+            cerrarVentanaPedido(ventanaWhatsapp);
+            return;
+          }
+        } else {
+          console.warn('No se pudo guardar el pedido en la base. Se continúa con WhatsApp.', error);
+        }
+      }
+    }
+
+    if (pedidoGuardado) {
+      const subtotalServidor = Number(pedidoGuardado.subtotal) || 0;
+      if (subtotalServidor !== totalGeneral) {
+        const continuar = window.confirm(`Los precios se actualizaron: subtotal ${formatearPrecioAR(subtotalServidor)}, antes ${formatearPrecioAR(totalGeneral)}. ¿Continuar?`);
+        if (!continuar) {
+          cerrarVentanaPedido(ventanaWhatsapp);
+          return;
+        }
+      }
+    }
+
     const itemsGuardados = itemsPedidoDesdeRespuesta(pedidoGuardado);
     const itemsMensaje = itemsGuardados && itemsGuardados.length > 0 ? itemsGuardados : itemsCliente;
     const totalesMensaje = pedidoGuardado
@@ -2982,7 +3048,8 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       notas,
       items: itemsMensaje,
       totales: totalesMensaje,
-      numeroOrden
+      numeroOrden,
+      sinRegistrar: !pedidoGuardado
     });
 
     const mensajeLimpio = normalizarTextoMensaje(mensaje).normalize('NFC');
