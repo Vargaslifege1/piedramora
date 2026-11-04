@@ -529,6 +529,30 @@
     </div>
   </div>
 
+  <!-- MODAL DE PEDIDO RECIBIDO -->
+  <div id="pedido-recibido-overlay" class="carta-overlay" hidden></div>
+  <div id="pedido-recibido" class="pedido-recibido" role="dialog" aria-modal="true" aria-labelledby="pedido-recibido-titulo" hidden tabindex="-1">
+    <div id="pedido-recibido-icono" class="pedido-recibido-icono" aria-hidden="true">✓</div>
+    <h3 id="pedido-recibido-titulo" class="pedido-recibido-titulo">¡Pedido recibido!</h3>
+    <p id="pedido-recibido-numero" class="pedido-recibido-numero"></p>
+    <dl class="pedido-recibido-datos">
+      <div>
+        <dt>Total</dt>
+        <dd id="pedido-recibido-total">$ 0</dd>
+      </div>
+      <div>
+        <dt>Modalidad</dt>
+        <dd id="pedido-recibido-modalidad">-</dd>
+      </div>
+      <div id="pedido-recibido-tiempo-fila" hidden>
+        <dt>Tiempo estimado</dt>
+        <dd id="pedido-recibido-tiempo">-</dd>
+      </div>
+    </dl>
+    <p id="pedido-recibido-aviso" class="pedido-recibido-aviso"></p>
+    <button type="button" id="pedido-recibido-cerrar" class="btn-confirmar-whatsapp pedido-recibido-boton">Volver a la carta</button>
+  </div>
+
 
   <!-- MODAL DE ADICIONALES / PERSONALIZACIÓN -->
 <div id="modal-adicionales-overlay" class="carta-overlay" hidden></div>

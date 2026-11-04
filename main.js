@@ -2154,6 +2154,110 @@ function actualizarAvisoPrivacidad() {
     : 'escribiéndonos por WhatsApp';
 }
 
+let tiempoEstimadoPromesa = null;
+
+function obtenerTiempoEstimadoEntrega() {
+  if (tiempoEstimadoPromesa) return tiempoEstimadoPromesa;
+
+  tiempoEstimadoPromesa = (async () => {
+    try {
+      await cargarConfigNube();
+      const clienteNube = obtenerClienteNube();
+      if (!clienteNube) return null;
+      const { data, error } = await conTiempoLimite(
+        clienteNube
+          .from('config_negocio')
+          .select('valor')
+          .eq('clave', 'tiempo_estimado_entrega')
+          .maybeSingle(),
+        6000
+      );
+      if (error) return null;
+      const minutos = Number(data && data.valor);
+      return Number.isFinite(minutos) && minutos > 0 ? Math.round(minutos) : null;
+    } catch (error) {
+      return null;
+    }
+  })();
+
+  return tiempoEstimadoPromesa;
+}
+
+function cerrarPedidoRecibido() {
+  const overlay = document.getElementById('pedido-recibido-overlay');
+  const panel = document.getElementById('pedido-recibido');
+  if (!overlay || !panel) return;
+  panel.classList.remove('abierto');
+  overlay.classList.remove('visible');
+  setTimeout(() => {
+    overlay.hidden = true;
+    panel.hidden = true;
+  }, 200);
+}
+
+function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad }) {
+  const overlay = document.getElementById('pedido-recibido-overlay');
+  const panel = document.getElementById('pedido-recibido');
+  if (!overlay || !panel) return;
+
+  const titulo = document.getElementById('pedido-recibido-titulo');
+  const icono = document.getElementById('pedido-recibido-icono');
+  const numero = document.getElementById('pedido-recibido-numero');
+  const totalEl = document.getElementById('pedido-recibido-total');
+  const modalidadEl = document.getElementById('pedido-recibido-modalidad');
+  const aviso = document.getElementById('pedido-recibido-aviso');
+  const filaTiempo = document.getElementById('pedido-recibido-tiempo-fila');
+  const tiempoEl = document.getElementById('pedido-recibido-tiempo');
+
+  const numeroOrden = pedido && pedido.numero_orden ? String(pedido.numero_orden) : '';
+
+  if (titulo) titulo.textContent = esFallback ? 'Pedido enviado por WhatsApp' : '¡Pedido recibido!';
+  if (icono) {
+    icono.classList.toggle('es-aviso', !!esFallback);
+    icono.textContent = esFallback ? '!' : '✓';
+  }
+  if (numero) {
+    numero.hidden = esFallback || !numeroOrden;
+    numero.textContent = !esFallback && numeroOrden ? numeroOrden : '';
+  }
+  if (totalEl) totalEl.textContent = formatearPrecioAR(Number(total) || 0);
+  if (modalidadEl) modalidadEl.textContent = modalidad || '-';
+  if (aviso) {
+    aviso.textContent = esFallback
+      ? 'Tu pedido se envía por WhatsApp. Esperá nuestra confirmación.'
+      : 'Enviá el mensaje de WhatsApp que se abrió para que lo confirmemos.';
+  }
+  if (filaTiempo) filaTiempo.hidden = true;
+  if (tiempoEl) tiempoEl.textContent = '';
+
+  overlay.hidden = false;
+  panel.hidden = false;
+  requestAnimationFrame(() => {
+    overlay.classList.add('visible');
+    panel.classList.add('abierto');
+    try { panel.focus({ preventScroll: true }); } catch (error) {}
+  });
+
+  if (!esFallback) {
+    obtenerTiempoEstimadoEntrega().then((minutos) => {
+      if (!minutos || !filaTiempo || !tiempoEl) return;
+      if (panel.hidden) return;
+      tiempoEl.textContent = `${minutos} ${minutos === 1 ? 'minuto' : 'minutos'}`;
+      filaTiempo.hidden = false;
+    });
+  }
+}
+
+document.getElementById('pedido-recibido-cerrar')?.addEventListener('click', () => {
+  cerrarPedidoRecibido();
+  cerrarModalCheckout();
+});
+
+document.getElementById('pedido-recibido-overlay')?.addEventListener('click', () => {
+  cerrarPedidoRecibido();
+  cerrarModalCheckout();
+});
+
 function actualizarEtiquetasPago() {
   document.querySelectorAll('[data-tipo-pago]').forEach(btn => {
     const tipo = btn.dataset.tipoPago;
@@ -3220,6 +3324,13 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     const link = `https://wa.me/${numeroWsp}?text=${encodeURIComponent(mensajeLimpio)}`;
 
     abrirEnlaceWhatsapp(ventanaWhatsapp, link);
+
+    mostrarPedidoRecibido({
+      pedido: pedidoGuardado,
+      esFallback: !pedidoGuardado,
+      total: totalesMensaje.total,
+      modalidad: tipoEntrega
+    });
 
     if (pedidoGuardado) {
       checkoutIdempotencyKey = null;

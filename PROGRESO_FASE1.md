@@ -411,6 +411,17 @@ Pendientes antes de dar 1C por cerrado:
 - El número se actualiza al abrir el checkout y al cambiar de sucursal.
 - Archivos: `index.html`, `style.css`, `main.js`.
 
+## Pantalla "Pedido recibido" en el checkout (2026-11-03)
+
+- Cuando `crear_pedido` responde bien, además de abrir WhatsApp se muestra un modal accesible con:
+  - "¡Pedido recibido!" y el número (`PM-0001`).
+  - Total y modalidad.
+  - Aviso "Enviá el mensaje de WhatsApp que se abrió para que lo confirmemos".
+  - "Tiempo estimado: X minutos" solo si `config_negocio.tiempo_estimado_entrega` tiene un valor mayor a cero. Hoy es `null`, así que no se muestra.
+- El tiempo estimado se lee con el cliente público de Supabase desde `config_negocio`.
+- Si el pedido no se pudo registrar (fallback), el modal cambia a "Pedido enviado por WhatsApp" y muestra "Tu pedido se envía por WhatsApp. Esperá nuestra confirmación.".
+- El botón "Volver a la carta" cierra el modal y el checkout. Se ve bien en celular y en escritorio.
+- Archivos: `index.html`, `style.css`, `main.js`.
+
 Pendiente:
-- Pantalla "Pedido recibido" en el checkout.
 - Editor de tramos de envío y sección **Envíos** en el admin.
