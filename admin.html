@@ -219,8 +219,8 @@
         <div class="admin-pedidos-head">
           <div>
             <p class="admin-eyebrow">Pedidos</p>
-            <h2>Bandeja de pedidos</h2>
-            <p class="admin-ayuda">Últimos 100 pedidos, los más nuevos primero. Se actualiza en tiempo real.</p>
+            <h2>Centro de pedidos</h2>
+            <p class="admin-ayuda">Tablero por estado con actualización en tiempo real. Los retiros pasan de Listos a Completados.</p>
           </div>
           <div class="admin-pedidos-acciones admin-pedidos-sonido">
             <button type="button" id="btn-pedidos-activar-sonido" class="btn-secundario" aria-pressed="true">Silenciar</button>
@@ -236,35 +236,53 @@
         <p id="pedidos-estado" class="admin-estado" aria-live="polite"></p>
         <div id="pedidos-aviso" class="admin-aviso" hidden></div>
 
-        <div class="admin-pedidos-filtros">
+        <div class="admin-pedidos-toolbar">
           <label class="admin-campo">
-            <span>Estado</span>
-            <select id="pedidos-filtro-estado">
-              <option value="activos">Pendientes y confirmados</option>
-              <option value="pendiente">Pendientes</option>
-              <option value="confirmado">Confirmados</option>
-              <option value="entregado">Entregados</option>
-              <option value="cancelado">Cancelados</option>
-              <option value="todos">Todos</option>
+            <span>Período</span>
+            <select id="pedidos-filtro-periodo">
+              <option value="dia">Por día</option>
+              <option value="rango">Rango</option>
             </select>
           </label>
+          <div id="pedidos-fecha-nav" class="admin-pedidos-fecha-nav">
+            <button type="button" id="btn-pedidos-ayer" class="btn-secundario">‹ Ayer</button>
+            <input id="pedidos-filtro-dia" type="date" aria-label="Día de los pedidos">
+            <button type="button" id="btn-pedidos-hoy" class="btn-secundario">Hoy</button>
+            <button type="button" id="btn-pedidos-siguiente" class="btn-secundario">Siguiente ›</button>
+          </div>
+          <div id="pedidos-rango" class="admin-pedidos-rango" hidden>
+            <label class="admin-campo">
+              <span>Desde</span>
+              <input id="pedidos-filtro-desde" type="date">
+            </label>
+            <label class="admin-campo">
+              <span>Hasta</span>
+              <input id="pedidos-filtro-hasta" type="date">
+            </label>
+          </div>
           <label class="admin-campo">
             <span>Sucursal</span>
             <select id="pedidos-filtro-sucursal">
               <option value="">Todas</option>
             </select>
           </label>
-          <label class="admin-campo">
-            <span>Fecha</span>
-            <select id="pedidos-filtro-fecha">
-              <option value="hoy">Hoy</option>
-              <option value="7">Últimos 7 días</option>
-              <option value="todos">Todos</option>
-            </select>
-          </label>
+          <div class="admin-pedidos-vista" role="group" aria-label="Vista de pedidos">
+            <button type="button" class="btn-secundario activa" data-pedidos-vista="tablero">Tablero</button>
+            <button type="button" class="btn-secundario" data-pedidos-vista="lista">Lista</button>
+          </div>
+          <button type="button" id="btn-pedidos-exportar" class="btn-secundario">Exportar CSV</button>
         </div>
 
-        <div id="pedidos-lista" class="admin-pedidos-lista"></div>
+        <div class="admin-pedidos-modalidades" role="group" aria-label="Filtrar por modalidad">
+          <button type="button" class="btn-secundario activa" data-pedidos-modalidad="">Todos</button>
+          <button type="button" class="btn-secundario" data-pedidos-modalidad="retiro">Para llevar</button>
+          <button type="button" class="btn-secundario" data-pedidos-modalidad="delivery">Delivery</button>
+        </div>
+
+        <div id="pedidos-contenedor" class="admin-pedidos-contenedor">
+          <div id="pedidos-tablero" class="admin-pedidos-tablero"></div>
+          <div id="pedidos-lista" class="admin-pedidos-lista" hidden></div>
+        </div>
       </section>
 
       <section id="admin-vista-envios" class="admin-vista" hidden>
@@ -422,6 +440,8 @@
       <div id="pedido-detalle-contenido" class="admin-pedido-detalle"></div>
     </div>
   </div>
+
+  <div id="pedido-ticket" class="admin-pedido-ticket" aria-hidden="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/core/utils.js"></script>

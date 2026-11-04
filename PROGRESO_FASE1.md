@@ -481,3 +481,53 @@ Cómo probar:
 4. Crear un tramo global que se superponga con uno de una sucursal y verificar que el guardado se bloquea con el mensaje correspondiente.
 5. Cambiar `metros_por_cuadra` y confirmar que la referencia junto a Tramos se actualiza.
 6. Ejecutar `node --check main.js` y `node --check admin.js`.
+
+## Centro de pedidos Kanban y aviso sonoro (2026-11-04)
+
+### Aviso de pedido nuevo (`admin.js`, `admin.html`, `admin.css`)
+
+- Se reemplazó el pitido por un "ding-dong" de dos notas generado con Web Audio API, sin archivos.
+- El aviso se repite cada ~8 segundos mientras haya pedidos en `pendiente` con `sincronizado !== false`; se detiene al atenderlos o al silenciar.
+- El audio se desbloquea con el primer clic en el admin. Si sigue bloqueado se muestra "Activá el sonido con un clic".
+- Botón de silencio/activación y control de volumen, con preferencias persistidas en `localStorage` (`piedraMoraAdminSonido` y `piedraMoraAdminVolumen`). Por defecto: sonido activo y volumen 70%.
+- El título de la pestaña parpadea con `(N) Nuevo pedido` y el badge de la pestaña Pedidos muestra el mismo conteo, excluyendo pedidos no sincronizados.
+
+### Tablero de pedidos (`admin.html`, `admin.js`, `admin.css`)
+
+- La pestaña Pedidos ahora es un tablero Kanban con columnas: Nuevos, En preparación, Listos para entregar, En camino (solo delivery), Completados y Cancelados.
+- Cancelados arranca colapsada en escritorio y se puede expandir/colapsar.
+- Barra superior: período por día o rango, navegación Ayer/Hoy/Siguiente, filtro por sucursal, vista tablero/lista, exportación CSV y filtros rápidos Todos / Para llevar / Delivery.
+- En este negocio no se ofrecen pedidos para mesa: se quitó "En el local" de las pestañas y de los textos del tablero. Los retiros pasan de Listos directo a Completados, sin En camino.
+- Tarjeta: número PM-XXXX, hora, cliente, modalidad con ícono, sucursal, medio de pago, estado de pago, total, ítems expandibles, botón principal de avance, imprimir ticket, "Marcar pagado" y cancelar con confirmación.
+- "Marcar pagado" aparece si `pagado = false` y el medio no es efectivo; con efectivo, recién desde Listos, En camino o Completados.
+- Impresión con `window.print()` y estilos `@media print` para un ticket simple de 80 mm.
+- Los pedidos con `sincronizado = false` no se muestran ni se cuentan como ventas.
+- Realtime: los INSERT y UPDATE actualizan o mueven solo la tarjeta afectada y los contadores de columna, sin reemplazar todo el tablero ni perder el scroll. El re-render completo queda para cambios de filtros, período o vista.
+- Se cargan hasta 500 pedidos recientes para poder navegar fechas.
+
+### Modelo de datos y migración 016
+
+Archivo nuevo: `supabase/migrations/016_pedidos_estados_pagos.sql`. **No fue ejecutado.**
+
+- Mantiene `confirmado` en la base y lo muestra como "En preparación" (sin reescribir datos).
+- Agrega `listo` y `en_camino` al check de estados.
+- Agrega `pagado boolean not null default false` y `pagado_en timestamptz`.
+- El check de modalidad no se modifica.
+- Amplía el `grant update` a `estado, pagado, pagado_en` y mantiene la política RLS con `public.es_admin()`.
+- El trigger `public.pm_pedidos_actualizar_clientes()` no se recrea ni se modifica: sigue sumando o restando fidelidad solo al entrar o salir de `entregado`.
+
+`admin.js` tolera la migración pendiente: si las columnas de pago no existen, carga los pedidos sin ellas y oculta la acción de pago hasta aplicar la migración.
+
+**Antes de aplicar la migración 016, hacer backup de la base.**
+
+### Cómo probar
+
+1. Primer clic en el admin: el aviso debe pasar de "Activá el sonido con un clic" a "Sonido activo".
+2. Crear o simular un pedido nuevo y verificar el ding-dong, la repetición cada ~8 s, el título parpadeante y el badge.
+3. Atender el pedido (avanzar estado) y confirmar que el sonido y el parpadeo se detienen.
+4. Probar silencio y volumen; recargar y verificar que se recuerdan.
+5. Verificar las columnas y que un pedido de retiro pase de Listos a Completados.
+6. Probar filtros de período, fecha, sucursal, modalidad y exportación CSV.
+7. Probar imprimir un ticket, marcar pagado y cancelar con confirmación.
+8. Con dos sesiones, cambiar un estado y verificar que la tarjeta se mueva sin recargar el tablero ni perder scroll.
+9. Ejecutar `node --check admin.js` y `node --check main.js`.

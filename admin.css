@@ -1569,6 +1569,260 @@ p {
   flex: 1 1 auto;
 }
 
+.admin-pedido-estado.estado-listo {
+  background: rgba(61, 220, 132, 0.1);
+  border-color: rgba(61, 220, 132, 0.35);
+  color: var(--admin-verde);
+}
+
+.admin-pedido-estado.estado-en_camino {
+  background: rgba(217, 164, 65, 0.16);
+  border-color: rgba(217, 164, 65, 0.5);
+  color: var(--admin-dorado);
+}
+
+.admin-pedidos-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px 14px;
+  padding: 14px;
+  border: 1px solid var(--admin-borde);
+  border-radius: var(--admin-radio-chico);
+  background: var(--admin-panel-2);
+}
+
+.admin-pedidos-toolbar .admin-campo {
+  min-width: 150px;
+}
+
+.admin-pedidos-fecha-nav,
+.admin-pedidos-rango {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+
+.admin-pedidos-rango .admin-campo {
+  min-width: 150px;
+}
+
+.admin-pedidos-vista,
+.admin-pedidos-modalidades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-pedidos-vista .btn-secundario.activa,
+.admin-pedidos-modalidades .btn-secundario.activa {
+  border-color: var(--admin-dorado);
+  background: rgba(217, 164, 65, 0.12);
+  color: var(--admin-dorado);
+}
+
+.admin-pedidos-contenedor {
+  min-width: 0;
+}
+
+.admin-pedidos-tablero {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.admin-pedidos-columna {
+  display: flex;
+  flex: 0 0 272px;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 300px);
+  padding: 10px;
+  border: 1px solid var(--admin-borde);
+  border-radius: var(--admin-radio-chico);
+  background: var(--admin-panel-2);
+  scroll-snap-align: start;
+}
+
+.admin-pedidos-columna-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-pedidos-columna-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-pedidos-columna-titulo h3 {
+  margin: 0;
+  color: var(--admin-texto-suave);
+  font-size: 0.76rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.admin-pedidos-contador {
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--admin-panel-3);
+  color: var(--admin-texto);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.admin-pedidos-columna-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 38px;
+  overflow-y: auto;
+}
+
+.admin-pedidos-vacio-columna {
+  margin: 0;
+  padding: 14px 8px;
+  color: var(--admin-texto-tenue);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.admin-pedidos-columna.colapsada {
+  flex-basis: 72px;
+}
+
+.admin-pedidos-columna.colapsada .admin-pedidos-columna-titulo h3,
+.admin-pedidos-columna.colapsada .admin-pedidos-columna-cuerpo {
+  display: none;
+}
+
+.admin-pedidos-columna.colapsada .admin-pedidos-columna-head {
+  flex-direction: column;
+}
+
+.admin-pedido-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--admin-borde);
+  border-left: 3px solid var(--admin-borde-fuerte);
+  border-radius: var(--admin-radio-chico);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 60%),
+    var(--admin-panel-3);
+  color: var(--admin-texto);
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-pedido-tarjeta:hover {
+  border-color: var(--admin-borde-fuerte);
+  transform: translateY(-1px);
+}
+
+.admin-pedido-tarjeta.estado-pendiente { border-left-color: var(--admin-ambar); }
+.admin-pedido-tarjeta.estado-confirmado { border-left-color: var(--admin-dorado); }
+.admin-pedido-tarjeta.estado-listo { border-left-color: var(--admin-verde); }
+.admin-pedido-tarjeta.estado-en_camino { border-left-color: var(--admin-dorado); }
+.admin-pedido-tarjeta.estado-entregado { border-left-color: var(--admin-verde); }
+.admin-pedido-tarjeta.estado-cancelado { border-left-color: var(--admin-rojo); }
+
+.admin-pedido-tarjeta-top,
+.admin-pedido-tarjeta-cliente,
+.admin-pedido-tarjeta-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+}
+
+.admin-pedido-tarjeta-cliente {
+  align-items: baseline;
+}
+
+.admin-pedido-cliente {
+  font-weight: 700;
+}
+
+.admin-pedido-modalidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--admin-texto-suave);
+  font-size: 0.78rem;
+}
+
+.admin-pedido-icono {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.admin-pedido-tarjeta-meta {
+  color: var(--admin-texto-suave);
+  font-size: 0.78rem;
+}
+
+.admin-pedido-tarjeta-meta strong {
+  margin-left: auto;
+  color: var(--admin-dorado);
+  font-size: 0.95rem;
+}
+
+.admin-pedido-pago.pagado {
+  color: var(--admin-verde);
+}
+
+.admin-pedido-pago.pendiente {
+  color: var(--admin-ambar);
+}
+
+.admin-pedido-resumen summary {
+  color: var(--admin-texto-suave);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.admin-pedido-resumen ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--admin-texto-suave);
+  font-size: 0.8rem;
+}
+
+.admin-pedido-resumen li + li {
+  margin-top: 3px;
+}
+
+.admin-pedido-tarjeta-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.admin-pedido-tarjeta-acciones button {
+  flex: 1 1 auto;
+  padding: 7px 9px;
+  font-size: 0.74rem;
+}
+
+.admin-pedido-ticket {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .admin-pedidos-lista {
     grid-template-columns: 1fr;
@@ -1767,5 +2021,128 @@ p {
   .admin-envios-tramo-acciones {
     grid-column: 1 / -1;
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-pedidos-columna {
+    flex-basis: 260px;
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-pedidos-toolbar {
+    align-items: stretch;
+  }
+
+  .admin-pedidos-toolbar .admin-campo,
+  .admin-pedidos-fecha-nav,
+  .admin-pedidos-rango {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .admin-pedidos-fecha-nav .btn-secundario,
+  .admin-pedidos-rango .admin-campo {
+    flex: 1 1 auto;
+  }
+
+  .admin-pedidos-vista,
+  .admin-pedidos-modalidades {
+    width: 100%;
+  }
+
+  .admin-pedidos-vista .btn-secundario,
+  .admin-pedidos-modalidades .btn-secundario {
+    flex: 1 1 auto;
+  }
+
+  .admin-pedidos-columna {
+    flex-basis: 82vw;
+    max-height: none;
+  }
+
+  .admin-pedidos-columna.colapsada {
+    flex-basis: 72px;
+  }
+}
+
+@media print {
+  body.admin-imprimiendo-pedido {
+    background: #fff;
+    color: #000;
+  }
+
+  body.admin-imprimiendo-pedido > :not(#pedido-ticket) {
+    display: none !important;
+  }
+
+  body.admin-imprimiendo-pedido #pedido-ticket {
+    display: block !important;
+    width: 80mm;
+    margin: 0 auto;
+    color: #000;
+    background: #fff;
+    font-size: 11px;
+  }
+
+  .admin-pedido-ticket h1 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .admin-pedido-ticket p {
+    margin: 2px 0;
+  }
+
+  .admin-ticket-numero {
+    font-size: 15px;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .admin-ticket-tabla {
+    width: 100%;
+    margin: 8px 0;
+    border-collapse: collapse;
+  }
+
+  .admin-ticket-tabla th,
+  .admin-ticket-tabla td {
+    padding: 3px 2px;
+    border-bottom: 1px dashed #000;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .admin-ticket-tabla th:first-child,
+  .admin-ticket-tabla td:first-child {
+    width: 28px;
+  }
+
+  .admin-ticket-tabla th:last-child,
+  .admin-ticket-tabla td:last-child {
+    text-align: right;
+  }
+
+  .admin-ticket-totales p {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 2px 0;
+  }
+
+  .admin-ticket-total {
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .admin-ticket-notas {
+    margin-top: 8px;
+    border-top: 1px dashed #000;
+    padding-top: 4px;
   }
 }

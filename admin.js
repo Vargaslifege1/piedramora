@@ -115,10 +115,23 @@
     btnPedidosActualizar: document.getElementById('btn-pedidos-actualizar'),
     pedidosEstado: document.getElementById('pedidos-estado'),
     pedidosAviso: document.getElementById('pedidos-aviso'),
-    pedidosFiltroEstado: document.getElementById('pedidos-filtro-estado'),
+    pedidosFiltroPeriodo: document.getElementById('pedidos-filtro-periodo'),
+    pedidosFechaNav: document.getElementById('pedidos-fecha-nav'),
+    pedidosFiltroDia: document.getElementById('pedidos-filtro-dia'),
+    btnPedidosAyer: document.getElementById('btn-pedidos-ayer'),
+    btnPedidosHoy: document.getElementById('btn-pedidos-hoy'),
+    btnPedidosSiguiente: document.getElementById('btn-pedidos-siguiente'),
+    pedidosRango: document.getElementById('pedidos-rango'),
+    pedidosFiltroDesde: document.getElementById('pedidos-filtro-desde'),
+    pedidosFiltroHasta: document.getElementById('pedidos-filtro-hasta'),
     pedidosFiltroSucursal: document.getElementById('pedidos-filtro-sucursal'),
-    pedidosFiltroFecha: document.getElementById('pedidos-filtro-fecha'),
+    pedidosVistaBtns: document.querySelectorAll('[data-pedidos-vista]'),
+    pedidosModalidadBtns: document.querySelectorAll('[data-pedidos-modalidad]'),
+    btnPedidosExportar: document.getElementById('btn-pedidos-exportar'),
+    pedidosContenedor: document.getElementById('pedidos-contenedor'),
+    pedidosTablero: document.getElementById('pedidos-tablero'),
     pedidosLista: document.getElementById('pedidos-lista'),
+    pedidoTicket: document.getElementById('pedido-ticket'),
     modalPedido: document.getElementById('modal-pedido'),
     modalPedidoTitulo: document.getElementById('modal-pedido-titulo'),
     btnCerrarModalPedido: document.getElementById('btn-cerrar-modal-pedido'),
@@ -151,6 +164,11 @@
   let pedidosTituloOriginal = document.title;
   let audioContexto = null;
   let audioDesbloqueado = false;
+  let pedidosVista = 'tablero';
+  let pedidosModalidad = '';
+  let pedidosPeriodo = 'dia';
+  let pedidosFechaDia = '';
+  let pedidosSoportaPagos = true;
 
   let enviosCargados = false;
   let enviosCargando = false;
@@ -1731,11 +1749,58 @@
   }
 
   const ESTADOS_PEDIDO = {
-    pendiente: 'Pendiente',
-    confirmado: 'Confirmado',
-    entregado: 'Entregado',
+    pendiente: 'Nuevo',
+    confirmado: 'En preparación',
+    listo: 'Listo para entregar',
+    en_camino: 'En camino',
+    entregado: 'Completado',
     cancelado: 'Cancelado'
   };
+
+  const COLUMNAS_PEDIDO = [
+    { clave: 'pendiente', titulo: 'Nuevos' },
+    { clave: 'confirmado', titulo: 'En preparación' },
+    { clave: 'listo', titulo: 'Listos para entregar' },
+    { clave: 'en_camino', titulo: 'En camino', soloDelivery: true },
+    { clave: 'entregado', titulo: 'Completados' },
+    { clave: 'cancelado', titulo: 'Cancelados', colapsable: true }
+  ];
+
+  function iconoModalidadPedido(modalidad) {
+    const valor = String(modalidad || '').toLowerCase();
+    if (valor === 'delivery') {
+      return '<svg class="admin-pedido-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+    }
+    return '<svg class="admin-pedido-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Zm3 0V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+  }
+
+  function siguienteEstadoPedido(pedido) {
+    if (!pedido) return '';
+    if (pedido.estado === 'pendiente') return 'confirmado';
+    if (pedido.estado === 'confirmado') return 'listo';
+    if (pedido.estado === 'listo') return pedido.modalidad === 'delivery' ? 'en_camino' : 'entregado';
+    if (pedido.estado === 'en_camino') return 'entregado';
+    return '';
+  }
+
+  function etiquetaBotonAvance(pedido) {
+    if (!pedido) return '';
+    if (pedido.estado === 'pendiente') return 'Iniciar preparación';
+    if (pedido.estado === 'confirmado') return 'Marcar listo';
+    if (pedido.estado === 'listo') return pedido.modalidad === 'delivery' ? 'En camino' : 'Completar';
+    if (pedido.estado === 'en_camino') return 'Completar';
+    return '';
+  }
+
+  function pedidoEsEfectivo(pedido) {
+    return String(pedido && pedido.metodo_pago || '').toLowerCase().includes('efectivo');
+  }
+
+  function mostrarBotonPagado(pedido) {
+    if (!pedidosSoportaPagos || !pedido || pedido.pagado === true) return false;
+    if (!pedidoEsEfectivo(pedido)) return true;
+    return ['listo', 'en_camino', 'entregado'].includes(pedido.estado);
+  }
 
   function mostrarEstadoPedidos(texto, tipo = '') {
     mostrarEstado(el.pedidosEstado, texto, tipo);
@@ -1775,7 +1840,7 @@
   function etiquetaModalidadPedido(modalidad) {
     const valor = String(modalidad || '').toLowerCase();
     if (valor === 'delivery') return 'Delivery';
-    if (valor === 'retiro') return 'Retiro / Takeaway';
+    if (valor === 'retiro') return 'Para llevar';
     return modalidad || '-';
   }
 
@@ -1799,38 +1864,89 @@
     }
   }
 
-  function esPedidoDeHoy(iso) {
+  function horaPedido(iso) {
     const fecha = new Date(iso);
-    if (!Number.isFinite(fecha.getTime())) return false;
+    if (!Number.isFinite(fecha.getTime())) return '';
     try {
-      const diaPedido = fecha.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-      const diaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-      return diaPedido === diaHoy;
+      return fecha.toLocaleTimeString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     } catch (error) {
-      return fecha.toDateString() === new Date().toDateString();
+      return '';
     }
   }
 
-  function pedidosFiltrados() {
-    const estado = (el.pedidosFiltroEstado && el.pedidosFiltroEstado.value) || 'activos';
-    const sucursal = (el.pedidosFiltroSucursal && el.pedidosFiltroSucursal.value) || '';
-    const fecha = (el.pedidosFiltroFecha && el.pedidosFiltroFecha.value) || 'hoy';
-    const limite7Dias = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  function fechaArgentinaHoy() {
+    try {
+      return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+    } catch (error) {
+      return new Date().toISOString().slice(0, 10);
+    }
+  }
 
-    return pedidos.filter(pedido => {
-      if (!pedido) return false;
-      if (estado === 'activos') {
-        if (pedido.estado !== 'pendiente' && pedido.estado !== 'confirmado') return false;
-      } else if (estado !== 'todos' && pedido.estado !== estado) {
-        return false;
-      }
-      if (sucursal && pedido.sucursal_id !== sucursal) return false;
-      if (fecha === 'hoy' && !esPedidoDeHoy(pedido.created_at)) return false;
-      if (fecha === '7') {
-        const creado = new Date(pedido.created_at).getTime();
-        if (!Number.isFinite(creado) || creado < limite7Dias) return false;
-      }
-      return true;
+  function fechaPedidoArgentina(iso) {
+    const fecha = new Date(iso);
+    if (!Number.isFinite(fecha.getTime())) return '';
+    try {
+      return fecha.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+    } catch (error) {
+      return fecha.toISOString().slice(0, 10);
+    }
+  }
+
+  function sumarDiasFecha(fechaISO, dias) {
+    const partes = String(fechaISO || '').split('-').map(Number);
+    if (partes.length !== 3 || !partes.every(Number.isFinite)) return fechaArgentinaHoy();
+    const fecha = new Date(Date.UTC(partes[0], partes[1] - 1, partes[2], 12));
+    fecha.setUTCDate(fecha.getUTCDate() + dias);
+    return fecha.toISOString().slice(0, 10);
+  }
+
+  function pedidoCoincideFiltros(pedido) {
+    if (!pedidoCuentaComoVenta(pedido)) return false;
+    const sucursal = (el.pedidosFiltroSucursal && el.pedidosFiltroSucursal.value) || '';
+    if (sucursal && pedido.sucursal_id !== sucursal) return false;
+    if (pedidosModalidad && pedido.modalidad !== pedidosModalidad) return false;
+    const fecha = fechaPedidoArgentina(pedido.created_at);
+    if (!fecha) return false;
+    if (pedidosPeriodo === 'dia') {
+      return fecha === pedidosFechaDia;
+    }
+    const desde = (el.pedidosFiltroDesde && el.pedidosFiltroDesde.value) || '';
+    const hasta = (el.pedidosFiltroHasta && el.pedidosFiltroHasta.value) || '';
+    if (desde && fecha < desde) return false;
+    if (hasta && fecha > hasta) return false;
+    return true;
+  }
+
+  function pedidosFiltrados() {
+    return pedidos.filter(pedidoCoincideFiltros);
+  }
+
+  function inicializarFiltrosPedidos() {
+    pedidosFechaDia = fechaArgentinaHoy();
+    if (el.pedidosFiltroDia) el.pedidosFiltroDia.value = pedidosFechaDia;
+    if (el.pedidosFiltroDesde && !el.pedidosFiltroDesde.value) el.pedidosFiltroDesde.value = pedidosFechaDia;
+    if (el.pedidosFiltroHasta && !el.pedidosFiltroHasta.value) el.pedidosFiltroHasta.value = pedidosFechaDia;
+    actualizarControlesPedidos();
+  }
+
+  function actualizarControlesPedidos() {
+    const esRango = pedidosPeriodo === 'rango';
+    if (el.pedidosFechaNav) el.pedidosFechaNav.hidden = esRango;
+    if (el.pedidosRango) el.pedidosRango.hidden = !esRango;
+    if (!esRango && el.pedidosFiltroDia) el.pedidosFiltroDia.value = pedidosFechaDia;
+    el.pedidosVistaBtns.forEach(boton => {
+      const activo = boton.dataset.pedidosVista === pedidosVista;
+      boton.classList.toggle('activa', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
+    el.pedidosModalidadBtns.forEach(boton => {
+      const activo = (boton.dataset.pedidosModalidad || '') === pedidosModalidad;
+      boton.classList.toggle('activa', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
     });
   }
 
@@ -1849,42 +1965,196 @@
     el.pedidosBadge.hidden = pendientes === 0;
   }
 
+  function columnaPedido(pedido) {
+    if (!pedido) return '';
+    if (pedido.estado === 'en_camino' && pedido.modalidad !== 'delivery') return 'listo';
+    return COLUMNAS_PEDIDO.some(columna => columna.clave === pedido.estado) ? pedido.estado : '';
+  }
+
+  function resumenItemsPedido(pedido) {
+    const items = Array.isArray(pedido && pedido.items_snapshot) ? pedido.items_snapshot : [];
+    if (!items.length) return '';
+    const filas = items.map(item => {
+      const cantidad = Number(item && item.cantidad) || 0;
+      const nombre = PM.escaparHtml(item && item.nombre ? item.nombre : 'Producto');
+      return `<li><strong>${cantidad}×</strong> ${nombre}</li>`;
+    }).join('');
+    return `<details class="admin-pedido-resumen">
+      <summary>Ítems (${items.length})</summary>
+      <ul>${filas}</ul>
+    </details>`;
+  }
+
+  function botonesPedido(pedido) {
+    const botones = [];
+    const avance = siguienteEstadoPedido(pedido);
+    if (avance) {
+      botones.push(`<button type="button" class="btn-primario" data-pedido-accion="avanzar">${PM.escaparHtml(etiquetaBotonAvance(pedido))}</button>`);
+    }
+    botones.push('<button type="button" class="btn-secundario" data-pedido-accion="imprimir">Imprimir</button>');
+    if (mostrarBotonPagado(pedido)) {
+      botones.push('<button type="button" class="btn-secundario" data-pedido-accion="pagado">Marcar pagado</button>');
+    }
+    if (pedido.estado !== 'cancelado' && pedido.estado !== 'entregado') {
+      botones.push('<button type="button" class="btn-peligro" data-pedido-accion="cancelado">Cancelar</button>');
+    }
+    return botones.join('');
+  }
+
+  function crearTarjetaPedidoHtml(pedido) {
+    const estado = ESTADOS_PEDIDO[pedido.estado] ? pedido.estado : 'desconocido';
+    const id = PM.escaparHtml(pedido.id);
+    const numero = PM.escaparHtml(pedido.numero_orden || 'Sin número');
+    const cliente = PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre');
+    const sucursal = PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id));
+    const modalidad = PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad));
+    const pago = PM.escaparHtml(pedido.metodo_pago || '-');
+    const hora = PM.escaparHtml(horaPedido(pedido.created_at));
+    const pagado = pedido.pagado === true;
+    const pagoClase = pagado ? 'pagado' : 'pendiente';
+
+    return `<article class="admin-pedido-tarjeta estado-${estado}" data-pedido-id="${id}" data-estado="${estado}" data-created-at="${PM.escaparHtml(pedido.created_at || '')}">
+      <div class="admin-pedido-tarjeta-top">
+        <strong class="admin-pedido-numero">${numero}</strong>
+        <span class="admin-pedido-hora">${hora}</span>
+      </div>
+      <div class="admin-pedido-tarjeta-cliente">
+        <span class="admin-pedido-cliente">${cliente}</span>
+        <span class="admin-pedido-modalidad">${iconoModalidadPedido(pedido.modalidad)}${modalidad}</span>
+      </div>
+      <div class="admin-pedido-tarjeta-meta">
+        <span>${sucursal}</span>
+        <span>${pago}</span>
+        <span class="admin-pedido-pago ${pagoClase}">${pagado ? 'Pagado' : 'Pago pendiente'}</span>
+        <strong>${formatearPrecio(pedido.total)}</strong>
+      </div>
+      ${resumenItemsPedido(pedido)}
+      <div class="admin-pedido-tarjeta-acciones">${botonesPedido(pedido)}</div>
+    </article>`;
+  }
+
+  function crearTarjetaPedido(pedido) {
+    const contenedor = document.createElement('div');
+    contenedor.innerHTML = crearTarjetaPedidoHtml(pedido);
+    return contenedor.firstElementChild;
+  }
+
+  function insertarTarjetaOrdenada(contenedor, tarjeta) {
+    if (!contenedor || !tarjeta) return;
+    const fecha = tarjeta.dataset.createdAt || '';
+    const existentes = Array.from(contenedor.querySelectorAll('[data-pedido-id]'));
+    const referencia = existentes.find(item => (item.dataset.createdAt || '') < fecha);
+    if (referencia) contenedor.insertBefore(tarjeta, referencia);
+    else contenedor.appendChild(tarjeta);
+  }
+
+  function buscarTarjetaPedido(contenedor, id) {
+    if (!contenedor) return null;
+    return Array.from(contenedor.querySelectorAll('[data-pedido-id]'))
+      .find(tarjeta => tarjeta.dataset.pedidoId === String(id)) || null;
+  }
+
+  function renderPedidos() {
+    if (!el.pedidosTablero || !el.pedidosLista) return;
+    const esLista = pedidosVista === 'lista';
+    el.pedidosTablero.hidden = esLista;
+    el.pedidosLista.hidden = !esLista;
+    if (esLista) renderPedidosLista();
+    else renderPedidosTablero();
+  }
+
+  function renderPedidosTablero() {
+    if (!el.pedidosTablero) return;
+    const lista = pedidosFiltrados();
+    el.pedidosTablero.innerHTML = COLUMNAS_PEDIDO.map(columna => {
+      const pedidosColumna = lista.filter(pedido => columnaPedido(pedido) === columna.clave
+        && (!columna.soloDelivery || pedido.modalidad === 'delivery'));
+      const tarjetas = pedidosColumna.map(crearTarjetaPedidoHtml).join('');
+      const vacio = pedidosColumna.length ? '' : '<p class="admin-pedidos-vacio-columna">Sin pedidos.</p>';
+      const colapsada = !!columna.colapsable;
+      return `<section class="admin-pedidos-columna columna-${columna.clave} ${colapsada ? 'colapsada' : ''}" data-columna="${columna.clave}">
+        <header class="admin-pedidos-columna-head">
+          <div class="admin-pedidos-columna-titulo">
+            <h3>${PM.escaparHtml(columna.titulo)}</h3>
+            <span class="admin-pedidos-contador" data-contador="${columna.clave}">${pedidosColumna.length}</span>
+          </div>
+          ${columna.colapsable ? `<button type="button" class="btn-icono admin-pedidos-colapsar" data-columna-toggle aria-expanded="${colapsada ? 'false' : 'true'}" aria-label="${colapsada ? 'Expandir' : 'Colapsar'} columna Cancelados">${colapsada ? '‹' : '›'}</button>` : ''}
+        </header>
+        <div class="admin-pedidos-columna-cuerpo">${tarjetas}${vacio}</div>
+      </section>`;
+    }).join('');
+  }
+
   function renderPedidosLista() {
     if (!el.pedidosLista) return;
     const lista = pedidosFiltrados();
-
     if (!lista.length) {
       el.pedidosLista.innerHTML = '<p class="admin-vacio">No hay pedidos para estos filtros.</p>';
       return;
     }
+    el.pedidosLista.innerHTML = lista.map(crearTarjetaPedidoHtml).join('');
+  }
 
-    el.pedidosLista.innerHTML = lista.map(pedido => {
-      const estado = ESTADOS_PEDIDO[pedido.estado] ? pedido.estado : 'desconocido';
-      const numero = PM.escaparHtml(pedido.numero_orden || 'Sin número');
-      const cliente = PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre');
-      const sucursal = PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id));
-      const modalidad = PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad));
-      const pago = PM.escaparHtml(pedido.metodo_pago || '-');
-      const hora = PM.escaparHtml(fechaHoraPedido(pedido.created_at));
-      const id = PM.escaparHtml(pedido.id);
+  function actualizarContadoresColumnas() {
+    if (!el.pedidosTablero) return;
+    COLUMNAS_PEDIDO.forEach(columna => {
+      const contenedor = el.pedidosTablero.querySelector(`[data-columna="${columna.clave}"] .admin-pedidos-columna-cuerpo`);
+      if (!contenedor) return;
+      const tarjetas = contenedor.querySelectorAll('[data-pedido-id]');
+      const contador = el.pedidosTablero.querySelector(`[data-contador="${columna.clave}"]`);
+      if (contador) contador.textContent = String(tarjetas.length);
+      const vacio = contenedor.querySelector('.admin-pedidos-vacio-columna');
+      if (tarjetas.length && vacio) vacio.remove();
+      if (!tarjetas.length && !vacio) {
+        const parrafo = document.createElement('p');
+        parrafo.className = 'admin-pedidos-vacio-columna';
+        parrafo.textContent = 'Sin pedidos.';
+        contenedor.appendChild(parrafo);
+      }
+    });
+  }
 
-      return `<button type="button" class="admin-pedido-card" data-pedido-id="${id}">
-        <div class="admin-pedido-card-top">
-          <span class="admin-pedido-numero">#${numero}</span>
-          <span class="admin-pedido-estado estado-${estado}">${PM.escaparHtml(nombreEstadoPedido(pedido.estado))}</span>
-        </div>
-        <div class="admin-pedido-card-datos">
-          <span>${hora}</span>
-          <span>${cliente}</span>
-          <span>${modalidad}</span>
-        </div>
-        <div class="admin-pedido-card-bottom">
-          <span>${sucursal}</span>
-          <span>${pago}</span>
-          <strong>${formatearPrecio(pedido.total)}</strong>
-        </div>
-      </button>`;
-    }).join('');
+  function actualizarTarjetaEnVista(pedido) {
+    if (!pedidosCargados || !pedido) return;
+    if (pedidosVista === 'tablero') {
+      if (!el.pedidosTablero) return;
+      const existente = buscarTarjetaPedido(el.pedidosTablero, pedido.id);
+      if (!pedidoCoincideFiltros(pedido)) {
+        if (existente) existente.remove();
+        actualizarContadoresColumnas();
+        return;
+      }
+      const columna = columnaPedido(pedido);
+      const destino = columna
+        ? el.pedidosTablero.querySelector(`[data-columna="${columna}"] .admin-pedidos-columna-cuerpo`)
+        : null;
+      if (!destino) {
+        renderPedidosTablero();
+        return;
+      }
+      const nueva = crearTarjetaPedido(pedido);
+      if (existente) existente.remove();
+      insertarTarjetaOrdenada(destino, nueva);
+      actualizarContadoresColumnas();
+      return;
+    }
+
+    if (!el.pedidosLista) return;
+    const existente = buscarTarjetaPedido(el.pedidosLista, pedido.id);
+    if (!pedidoCoincideFiltros(pedido)) {
+      if (existente) existente.remove();
+    } else {
+      const nueva = crearTarjetaPedido(pedido);
+      if (existente) existente.replaceWith(nueva);
+      else insertarTarjetaOrdenada(el.pedidosLista, nueva);
+    }
+    const vacio = el.pedidosLista.querySelector('.admin-vacio');
+    const hayTarjetas = !!el.pedidosLista.querySelector('[data-pedido-id]');
+    if (!hayTarjetas && !vacio) {
+      el.pedidosLista.innerHTML = '<p class="admin-vacio">No hay pedidos para estos filtros.</p>';
+    } else if (hayTarjetas && vacio) {
+      vacio.remove();
+    }
   }
 
   function renderPedidoDetalle(pedido) {
@@ -1936,14 +2206,8 @@
       ? `<div class="admin-pedido-notas"><span>Notas</span><p>${PM.escaparHtml(pedido.notas)}</p></div>`
       : '';
 
-    const acciones = [];
-    if (pedido.estado === 'pendiente') {
-      acciones.push('<button type="button" class="btn-primario" data-pedido-accion="confirmado">Confirmar</button>');
-      acciones.push('<button type="button" class="btn-peligro" data-pedido-accion="cancelado">Cancelar</button>');
-    } else if (pedido.estado === 'confirmado') {
-      acciones.push('<button type="button" class="btn-primario" data-pedido-accion="entregado">Marcar entregado</button>');
-      acciones.push('<button type="button" class="btn-peligro" data-pedido-accion="cancelado">Cancelar</button>');
-    }
+    const pagoEstado = pedido.pagado === true ? 'Pagado' : 'Pago pendiente';
+    const acciones = botonesPedido(pedido);
 
     const estado = ESTADOS_PEDIDO[pedido.estado] ? pedido.estado : 'desconocido';
 
@@ -1957,7 +2221,7 @@
         <p class="admin-pedido-dato"><span>Teléfono</span>${PM.escaparHtml(pedido.cliente_telefono || '-')}</p>
         <p class="admin-pedido-dato"><span>Modalidad</span>${PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad))}</p>
         <p class="admin-pedido-dato"><span>Sucursal</span>${PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id))}</p>
-        <p class="admin-pedido-dato"><span>Pago</span>${PM.escaparHtml(pedido.metodo_pago || '-')}</p>
+        <p class="admin-pedido-dato"><span>Pago</span>${PM.escaparHtml(pedido.metodo_pago || '-')} · ${PM.escaparHtml(pagoEstado)}</p>
       </div>
       ${direccionHtml}
       <div class="admin-pedido-items"><span class="admin-pedido-bloque-titulo">Ítems</span>${itemsHtml || '<p class="admin-ayuda">Sin ítems.</p>'}</div>
@@ -1968,7 +2232,7 @@
         <div><span>Envío</span><span>${formatearPrecio(pedido.costo_envio)}</span></div>
         <div class="admin-pedido-total"><span>Total</span><span>${formatearPrecio(pedido.total)}</span></div>
       </div>
-      <div class="admin-pedido-acciones">${whatsappHtml}${acciones.join('')}</div>`;
+      <div class="admin-pedido-acciones">${whatsappHtml}${acciones}</div>`;
 
     if (el.modalPedidoTitulo) {
       el.modalPedidoTitulo.textContent = `Pedido #${pedido.numero_orden || ''}`;
@@ -2018,17 +2282,31 @@
     }
 
     try {
-      const { data, error } = await cliente
+      const camposBase = 'id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas';
+      let respuesta = await cliente
         .from('pedidos')
-        .select('id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas')
+        .select(`${camposBase},pagado,pagado_en`)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(500);
 
+      if (respuesta.error) {
+        const detalle = String(respuesta.error.message || '').toLowerCase();
+        if (detalle.includes('pagado') && (detalle.includes('column') || detalle.includes('does not exist'))) {
+          pedidosSoportaPagos = false;
+          respuesta = await cliente
+            .from('pedidos')
+            .select(camposBase)
+            .order('created_at', { ascending: false })
+            .limit(500);
+        }
+      }
+
+      const { data, error } = respuesta;
       if (error) throw error;
 
       pedidos = Array.isArray(data) ? data : [];
       pedidosCargados = true;
-      renderPedidosLista();
+      renderPedidos();
       actualizarBadgePedidos();
       actualizarAlertaPedidos();
 
@@ -2071,8 +2349,8 @@
       const indice = pedidos.findIndex(item => String(item.id) === String(id));
       if (indice >= 0) {
         pedidos[indice] = { ...pedidos[indice], estado: (data && data.estado) || nuevoEstado };
+        actualizarTarjetaEnVista(pedidos[indice]);
       }
-      renderPedidosLista();
       actualizarBadgePedidos();
       actualizarAlertaPedidos();
       const actual = pedidos.find(item => String(item.id) === String(id));
@@ -2086,6 +2364,156 @@
       if (boton) boton.disabled = false;
     }
   }
+
+  async function ejecutarAccionPedido(id, accion, boton) {
+    if (!id || !accion) return;
+    const pedido = pedidos.find(item => String(item.id) === String(id));
+    if (!pedido) return;
+    if (accion === 'avanzar') {
+      const siguiente = siguienteEstadoPedido(pedido);
+      if (siguiente) await actualizarEstadoPedido(id, siguiente, boton);
+      return;
+    }
+    if (accion === 'cancelado') {
+      if (!window.confirm('¿Cancelar este pedido?')) return;
+      await actualizarEstadoPedido(id, 'cancelado', boton);
+      return;
+    }
+    if (accion === 'pagado') {
+      await marcarPedidoPagado(id, boton);
+      return;
+    }
+    if (accion === 'imprimir') {
+      imprimirPedido(id);
+    }
+  }
+
+  async function marcarPedidoPagado(id, boton) {
+    if (!cliente) {
+      mostrarAvisoPedidos('Supabase no está disponible.', 'error');
+      return;
+    }
+    if (!pedidosSoportaPagos) {
+      mostrarAvisoPedidos('Aplicá la migración 016 para registrar pagos y nuevos estados.', 'error');
+      return;
+    }
+    const pedido = pedidos.find(item => String(item.id) === String(id));
+    if (!pedido || pedido.pagado === true) return;
+
+    if (boton) boton.disabled = true;
+    const pagadoEn = new Date().toISOString();
+    try {
+      const { data, error } = await cliente
+        .from('pedidos')
+        .update({ pagado: true, pagado_en: pagadoEn })
+        .eq('id', id)
+        .select('id,pagado,pagado_en')
+        .single();
+      if (error) throw error;
+
+      const indice = pedidos.findIndex(item => String(item.id) === String(id));
+      if (indice >= 0) {
+        pedidos[indice] = {
+          ...pedidos[indice],
+          pagado: true,
+          pagado_en: (data && data.pagado_en) || pagadoEn
+        };
+        actualizarTarjetaEnVista(pedidos[indice]);
+        if (String(pedidoAbiertoId) === String(id)) renderPedidoDetalle(pedidos[indice]);
+      }
+      mostrarEstadoPedidos('Pedido marcado como pagado.', 'ok');
+      mostrarAvisoPedidos('');
+    } catch (error) {
+      console.warn('No se pudo marcar el pedido como pagado:', error);
+      mostrarAvisoPedidos(mensajeErrorPedidos(error), 'error');
+    } finally {
+      if (boton) boton.disabled = false;
+    }
+  }
+
+  function imprimirPedido(id) {
+    const pedido = pedidos.find(item => String(item.id) === String(id));
+    if (!pedido || !el.pedidoTicket) return;
+    const items = Array.isArray(pedido.items_snapshot) ? pedido.items_snapshot : [];
+    const filas = items.map(item => {
+      const cantidad = Number(item && item.cantidad) || 0;
+      const nombre = PM.escaparHtml(item && item.nombre ? item.nombre : 'Producto');
+      return `<tr><td>${cantidad}</td><td>${nombre}</td><td>${formatearPrecio(item && item.subtotal)}</td></tr>`;
+    }).join('');
+    const pagoEstado = pedido.pagado === true ? 'Pagado' : 'Pago pendiente';
+
+    el.pedidoTicket.innerHTML = `
+      <h1>Piedra Mora</h1>
+      <p class="admin-ticket-numero">${PM.escaparHtml(pedido.numero_orden || 'Sin número')}</p>
+      <p>${PM.escaparHtml(fechaHoraPedido(pedido.created_at))} · ${PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id))}</p>
+      <p>${PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre')} · ${PM.escaparHtml(pedido.cliente_telefono || '-')}</p>
+      <p>${PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad))} · ${PM.escaparHtml(pedido.metodo_pago || '-')} · ${PM.escaparHtml(pagoEstado)}</p>
+      ${pedido.direccion ? `<p>${PM.escaparHtml(pedido.direccion)}</p>` : ''}
+      <table class="admin-ticket-tabla">
+        <thead><tr><th>Cant.</th><th>Producto</th><th>Subtotal</th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="3">Sin ítems.</td></tr>'}</tbody>
+      </table>
+      <div class="admin-ticket-totales">
+        <p><span>Subtotal</span><span>${formatearPrecio(pedido.subtotal)}</span></p>
+        <p><span>Descuento</span><span>- ${formatearPrecio(pedido.descuento)}</span></p>
+        <p><span>Envío</span><span>${formatearPrecio(pedido.costo_envio)}</span></p>
+        <p class="admin-ticket-total"><span>Total</span><span>${formatearPrecio(pedido.total)}</span></p>
+      </div>
+      ${pedido.notas ? `<p class="admin-ticket-notas">Notas: ${PM.escaparHtml(pedido.notas)}</p>` : ''}`;
+
+    document.body.classList.add('admin-imprimiendo-pedido');
+    try {
+      window.print();
+    } finally {
+      document.body.classList.remove('admin-imprimiendo-pedido');
+    }
+  }
+
+  function campoCsv(valor) {
+    const texto = String(valor === undefined || valor === null ? '' : valor);
+    return `"${texto.replace(/"/g, '""')}"`;
+  }
+
+  function exportarPedidosCsv() {
+    const lista = pedidosFiltrados();
+    if (!lista.length) {
+      mostrarAvisoPedidos('No hay pedidos para exportar con estos filtros.', 'info');
+      return;
+    }
+    const encabezados = ['Numero', 'Fecha', 'Cliente', 'Telefono', 'Sucursal', 'Modalidad', 'Estado', 'Pago', 'Pagado', 'Subtotal', 'Descuento', 'Envio', 'Total', 'Items'];
+    const filas = lista.map(pedido => {
+      const items = Array.isArray(pedido.items_snapshot) ? pedido.items_snapshot : [];
+      const resumen = items.map(item => `${Number(item && item.cantidad) || 0}x ${item && item.nombre ? item.nombre : 'Producto'}`).join(' | ');
+      return [
+        pedido.numero_orden || '',
+        fechaHoraPedido(pedido.created_at),
+        pedido.cliente_nombre || '',
+        pedido.cliente_telefono || '',
+        nombreSucursalPedido(pedido.sucursal_id),
+        etiquetaModalidadPedido(pedido.modalidad),
+        nombreEstadoPedido(pedido.estado),
+        pedido.metodo_pago || '',
+        pedido.pagado === true ? 'SI' : 'NO',
+        pedido.subtotal,
+        pedido.descuento,
+        pedido.costo_envio,
+        pedido.total,
+        resumen
+      ].map(campoCsv).join(';');
+    });
+    const contenido = '\uFEFF' + [encabezados.map(campoCsv).join(';'), ...filas].join('\r\n');
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = `pedidos-${fechaArgentinaHoy()}.csv`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    mostrarEstadoPedidos('Pedidos exportados en CSV.', 'ok');
+  }
+
 
   function cargarPreferenciasSonido() {
     try {
@@ -2264,7 +2692,7 @@
       mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
     }
 
-    renderPedidosLista();
+    actualizarTarjetaEnVista(nuevo);
     actualizarBadgePedidos();
   }
 
@@ -2276,7 +2704,7 @@
     if (indice >= 0) {
       const estadoAnterior = pedidos[indice].estado;
       pedidos[indice] = { ...pedidos[indice], ...actualizado };
-      renderPedidosLista();
+      actualizarTarjetaEnVista(pedidos[indice]);
       actualizarBadgePedidos();
       actualizarAlertaPedidos();
       if (String(pedidoAbiertoId) === String(actualizado.id)) {
@@ -2839,7 +3267,7 @@
     if (el.vistaEnvios) el.vistaEnvios.hidden = !esEnvios;
     if (esPedidos && cliente) {
       if (!pedidosCargados) cargarPedidos();
-      else renderPedidosLista();
+      else renderPedidos();
     }
     if (esEnvios && cliente) {
       if (!enviosCargados) cargarEnvios();
@@ -2880,12 +3308,82 @@
       if (!pedidosSonidoActivo) return;
       desbloquearAudioPedidos();
     }, { capture: true, once: true });
-    if (el.pedidosFiltroEstado) el.pedidosFiltroEstado.addEventListener('change', renderPedidosLista);
-    if (el.pedidosFiltroSucursal) el.pedidosFiltroSucursal.addEventListener('change', renderPedidosLista);
-    if (el.pedidosFiltroFecha) el.pedidosFiltroFecha.addEventListener('change', renderPedidosLista);
+    if (el.pedidosFiltroPeriodo) {
+      el.pedidosFiltroPeriodo.addEventListener('change', () => {
+        pedidosPeriodo = el.pedidosFiltroPeriodo.value === 'rango' ? 'rango' : 'dia';
+        actualizarControlesPedidos();
+        renderPedidos();
+      });
+    }
+    if (el.pedidosFiltroDia) {
+      el.pedidosFiltroDia.addEventListener('change', () => {
+        pedidosFechaDia = el.pedidosFiltroDia.value || fechaArgentinaHoy();
+        renderPedidos();
+      });
+    }
+    if (el.btnPedidosAyer) {
+      el.btnPedidosAyer.addEventListener('click', () => {
+        pedidosFechaDia = sumarDiasFecha(pedidosFechaDia || fechaArgentinaHoy(), -1);
+        actualizarControlesPedidos();
+        renderPedidos();
+      });
+    }
+    if (el.btnPedidosHoy) {
+      el.btnPedidosHoy.addEventListener('click', () => {
+        pedidosFechaDia = fechaArgentinaHoy();
+        actualizarControlesPedidos();
+        renderPedidos();
+      });
+    }
+    if (el.btnPedidosSiguiente) {
+      el.btnPedidosSiguiente.addEventListener('click', () => {
+        pedidosFechaDia = sumarDiasFecha(pedidosFechaDia || fechaArgentinaHoy(), 1);
+        actualizarControlesPedidos();
+        renderPedidos();
+      });
+    }
+    [el.pedidosFiltroDesde, el.pedidosFiltroHasta].forEach(input => {
+      if (input) input.addEventListener('change', renderPedidos);
+    });
+    if (el.pedidosFiltroSucursal) el.pedidosFiltroSucursal.addEventListener('change', renderPedidos);
+    el.pedidosVistaBtns.forEach(boton => {
+      boton.addEventListener('click', () => {
+        pedidosVista = boton.dataset.pedidosVista === 'lista' ? 'lista' : 'tablero';
+        actualizarControlesPedidos();
+        renderPedidos();
+      });
+    });
+    el.pedidosModalidadBtns.forEach(boton => {
+      boton.addEventListener('click', () => {
+        pedidosModalidad = boton.dataset.pedidosModalidad || '';
+        actualizarControlesPedidos();
+        renderPedidos();
+      });
+    });
+    if (el.btnPedidosExportar) el.btnPedidosExportar.addEventListener('click', exportarPedidosCsv);
 
-    if (el.pedidosLista) {
-      el.pedidosLista.addEventListener('click', (evento) => {
+    if (el.pedidosContenedor) {
+      el.pedidosContenedor.addEventListener('click', async (evento) => {
+        const botonColumna = evento.target.closest('[data-columna-toggle]');
+        if (botonColumna) {
+          const columna = botonColumna.closest('[data-columna]');
+          if (columna) {
+            const colapsada = columna.classList.toggle('colapsada');
+            botonColumna.setAttribute('aria-expanded', colapsada ? 'false' : 'true');
+            botonColumna.textContent = colapsada ? '‹' : '›';
+            botonColumna.setAttribute('aria-label', `${colapsada ? 'Expandir' : 'Colapsar'} columna Cancelados`);
+          }
+          return;
+        }
+
+        const boton = evento.target.closest('[data-pedido-accion]');
+        if (boton) {
+          const tarjeta = boton.closest('[data-pedido-id]');
+          if (tarjeta) await ejecutarAccionPedido(tarjeta.dataset.pedidoId, boton.dataset.pedidoAccion, boton);
+          return;
+        }
+
+        if (evento.target.closest('summary, details, a, input, select, textarea, label')) return;
         const tarjeta = evento.target.closest('[data-pedido-id]');
         if (tarjeta) abrirDetallePedido(tarjeta.dataset.pedidoId);
       });
@@ -2894,11 +3392,8 @@
     if (el.pedidoDetalleContenido) {
       el.pedidoDetalleContenido.addEventListener('click', async (evento) => {
         const boton = evento.target.closest('[data-pedido-accion]');
-        if (!boton) return;
-        const nuevoEstado = boton.dataset.pedidoAccion;
-        if (nuevoEstado === 'cancelado' && !window.confirm('¿Cancelar este pedido?')) return;
-        if (nuevoEstado === 'entregado' && !window.confirm('¿Marcar este pedido como entregado?')) return;
-        if (pedidoAbiertoId) await actualizarEstadoPedido(pedidoAbiertoId, nuevoEstado, boton);
+        if (!boton || !pedidoAbiertoId) return;
+        await ejecutarAccionPedido(pedidoAbiertoId, boton.dataset.pedidoAccion, boton);
       });
     }
 
@@ -3112,6 +3607,7 @@
   async function iniciar() {
     cargarPreferenciasSonido();
     actualizarEstadoSonido();
+    inicializarFiltrosPedidos();
     conectarEventos();
     await Promise.all([cargarConfig(), cargarSucursalesConfig()]);
 
