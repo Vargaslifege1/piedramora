@@ -375,6 +375,18 @@ Pendientes antes de dar 1C por cerrado:
 - El checkout de `main.js` llama a `crear_pedido` con timeout de 10 segundos.
 - Si Supabase falla, hay timeout, red caída o Supabase no está configurado, se envía igual por WhatsApp con el mensaje calculado en el navegador, sin número de pedido y con la primera línea "PEDIDO SIN REGISTRAR EN EL SISTEMA".
 - Si el servidor rechaza el pedido, se pide confirmación antes de enviar por WhatsApp.
-- Si el subtotal del servidor difiere del calculado en el navegador, se avisa y se pide confirmación.
+- Si el total del servidor difiere del total mostrado en pantalla, se avisa y se pide confirmación.
 - Mesa es solo lectura: no se registra pedido ni se abre WhatsApp.
-- **Falta mostrar el envío y un selector de zona en el checkout (siguiente paso).**
+
+## Envío por distancia en cuadras (2026-11-03)
+
+- El envío se cobra por **distancia en línea recta** desde la sucursal hasta la dirección del cliente, a **100 m por cuadra**. No se usa un selector de zonas.
+- Tabla `tramos_envio`: 0 a 15 cuadras `$3000`, 16 a 24 `$4500`, 25 o más `$6000`.
+- Función pública `cotizar_envio(p_sucursal_id text, p_lat numeric, p_lng numeric)` devuelve `{ costo_envio, cuadras, metros, por_distancia }`.
+- `crear_pedido` calcula el mismo costo en el servidor cuando recibe `lat` y `lng`, con `p_zona_envio = null`.
+- La zona fija "La Estancita" fue desactivada; ya no existe como zona.
+- La tabla, los tramos y la función fueron aplicados a mano en Supabase (no desde una migración del proyecto).
+- El checkout llama a `cotizar_envio` con timeout de 8 segundos, muestra la línea "Envío" con el costo y las cuadras, y recotiza al cambiar dirección, sucursal o tipo de entrega.
+- El descuento por medio de pago se aplica solo a los productos, nunca al envío.
+- El total mostrado es `subtotal - descuento + envío`; el mensaje de WhatsApp usa los montos del servidor y muestra las cuadras cuando están disponibles.
+- Pendiente: bandeja de pedidos y sección **Envíos** en el admin, y guardar los SQL de `tramos_envio` y `cotizar_envio` como **migración 015**.

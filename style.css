@@ -2185,6 +2185,31 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
   color: var(--color-texto-suave);
 }
 
+.linea-total.linea-envio {
+  align-items: flex-start;
+}
+
+.linea-envio-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.linea-envio-detalle {
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+}
+
+.linea-total.linea-envio > span:last-child {
+  flex: 0 0 auto;
+  max-width: 55%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .linea-total.gran-total {
   color: var(--color-texto);
   font-size: 1.05rem;

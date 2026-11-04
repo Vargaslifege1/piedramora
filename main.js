@@ -334,6 +334,9 @@ let opcionesSeleccionadas = {
 };
 
 let direccionSeleccionadaObjeto = null;
+let envioCotizado = null;
+let envioCotizacionToken = 0;
+let envioCotizando = false;
 let miniMapaLeaflet = null;
 let miniMapaMarker = null;
 let fullMapaLeaflet = null;
@@ -2103,6 +2106,7 @@ function abrirModalCheckout() {
   actualizarEtiquetasPago();
   recalcularPreciosCarrito();
   renderizarListaCheckout();
+  programarCotizacionEnvio();
 
   overlay.hidden = false;
   panel.hidden = false;
@@ -2165,6 +2169,71 @@ function actualizarEtiquetasPago() {
     : 'Sin descuentos activos por medio de pago.';
 }
 
+function checkoutEsDelivery() {
+  const activo = document.querySelector('[data-tipo-entrega].activa');
+  return !activo || activo.dataset.tipoEntrega === 'delivery';
+}
+
+function tieneDireccionConfirmada() {
+  if (!direccionSeleccionadaObjeto) return false;
+  return Number.isFinite(Number(direccionSeleccionadaObjeto.lat))
+    && Number.isFinite(Number(direccionSeleccionadaObjeto.lng));
+}
+
+function obtenerSubtotalCarrito() {
+  return CARRITO.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+}
+
+function obtenerCostoEnvioMostrado() {
+  if (!checkoutEsDelivery() || !tieneDireccionConfirmada() || !envioCotizado) return 0;
+  return Math.max(0, Number(envioCotizado.costo_envio) || 0);
+}
+
+function actualizarLineaEnvio() {
+  const linea = document.getElementById('linea-envio');
+  const valor = document.getElementById('checkout-envio');
+  const detalle = document.getElementById('checkout-envio-detalle');
+
+  if (!linea) return { visible: false, costo: 0 };
+
+  if (!checkoutEsDelivery()) {
+    linea.hidden = true;
+    linea.style.display = 'none';
+    return { visible: false, costo: 0 };
+  }
+
+  linea.hidden = false;
+  linea.style.display = 'flex';
+
+  if (!tieneDireccionConfirmada()) {
+    if (valor) valor.textContent = 'Se calcula con tu direcci\u00f3n';
+    if (detalle) detalle.textContent = '';
+    return { visible: true, costo: 0 };
+  }
+
+  if (envioCotizado) {
+    const costo = Math.max(0, Number(envioCotizado.costo_envio) || 0);
+    const cuadras = Number(envioCotizado.cuadras);
+    if (valor) valor.textContent = formatearPrecioAR(costo);
+    if (detalle) {
+      detalle.textContent = Number.isFinite(cuadras) && cuadras > 0
+        ? `a ${cuadras} cuadra${cuadras === 1 ? '' : 's'} de la sucursal`
+        : '';
+    }
+    return { visible: true, costo };
+  }
+
+  if (envioCotizando) {
+    if (valor) valor.textContent = 'Calculando...';
+    if (detalle) detalle.textContent = '';
+    return { visible: true, costo: 0 };
+  }
+
+  if (valor) valor.textContent = 'A confirmar';
+  if (detalle) detalle.textContent = '';
+  return { visible: true, costo: 0 };
+}
+
 function actualizarResumenPago(subtotal) {
   const totales = calcularTotalesPedido(subtotal);
   const elPago = document.getElementById('checkout-pago-seleccionado');
@@ -2182,14 +2251,68 @@ function actualizarResumenPago(subtotal) {
   if (elDescuento) {
     elDescuento.textContent = `- ${formatearPrecioAR(totales.descuento)}`;
   }
-  if (elTotal) elTotal.textContent = formatearPrecioAR(totales.total);
-  
+
+  const envio = actualizarLineaEnvio();
+  const totalFinal = Math.max(0, totales.total + (envio.costo || 0));
+  if (elTotal) elTotal.textContent = formatearPrecioAR(totalFinal);
+
   if (lineaDescuento) {
     const hayDescuento = totales.descuento > 0;
     lineaDescuento.hidden = !hayDescuento;
     lineaDescuento.style.display = hayDescuento ? 'flex' : 'none'; // Se oculta completamente si no hay descuento
   }
-  return totales;
+  return { ...totales, costo_envio: envio.costo || 0, total: totalFinal };
+}
+
+async function cotizarEnvioCheckout() {
+  const token = ++envioCotizacionToken;
+  const esDelivery = checkoutEsDelivery();
+  const hayDireccion = tieneDireccionConfirmada();
+  const sucursalId = cartaActualSucursalId;
+
+  if (!esDelivery || !hayDireccion || !sucursalId) {
+    envioCotizado = null;
+    envioCotizando = false;
+    actualizarResumenPago(obtenerSubtotalCarrito());
+    return;
+  }
+
+  const lat = Number(direccionSeleccionadaObjeto.lat);
+  const lng = Number(direccionSeleccionadaObjeto.lng);
+
+  envioCotizado = null;
+  envioCotizando = true;
+  actualizarResumenPago(obtenerSubtotalCarrito());
+
+  try {
+    await cargarConfigNube();
+    const clienteNube = obtenerClienteNube();
+    if (!clienteNube) throw new Error('Supabase no configurado');
+
+    const { data, error } = await conTiempoLimite(clienteNube.rpc('cotizar_envio', {
+      p_sucursal_id: sucursalId,
+      p_lat: lat,
+      p_lng: lng
+    }), 8000);
+
+    if (error) throw error;
+    if (token !== envioCotizacionToken) return;
+    if (!data) throw new Error('Respuesta vacía');
+    envioCotizado = data;
+  } catch (error) {
+    if (token !== envioCotizacionToken) return;
+    console.warn('No se pudo cotizar el envío.', error);
+    envioCotizado = null;
+  } finally {
+    if (token === envioCotizacionToken) {
+      envioCotizando = false;
+      actualizarResumenPago(obtenerSubtotalCarrito());
+    }
+  }
+}
+
+function programarCotizacionEnvio() {
+  return cotizarEnvioCheckout();
 }
 
 function renderizarListaCheckout() {
@@ -2288,6 +2411,7 @@ document.querySelectorAll('[data-tipo-entrega]').forEach(btn => {
       wrapDir.style.display = objetivo.dataset.tipoEntrega === 'delivery' ? 'block' : 'none';
     }
     if (objetivo.dataset.tipoEntrega !== 'delivery') limpiarErrorDireccion();
+    programarCotizacionEnvio();
   });
 });
 
@@ -2565,6 +2689,7 @@ function confirmarDireccionPedix(obj) {
   direccionSeleccionadaObjeto = { texto, lat, lng };
   mapaModoManual = false;
   limpiarErrorDireccion();
+  programarCotizacionEnvio();
 
   const buscador = document.getElementById('pedix-buscador-contenedor');
   const lista = document.getElementById('pedix-lista-resultados');
@@ -2621,6 +2746,9 @@ function inicializarMiniMapa(lat, lng) {
 function resetearDireccionCheckout() {
   direccionSeleccionadaObjeto = null;
   mapaModoManual = false;
+  envioCotizacionToken++;
+  envioCotizado = null;
+  envioCotizando = false;
   limpiarErrorDireccion();
 
   const buscador = document.getElementById('pedix-buscador-contenedor');
@@ -2726,6 +2854,7 @@ document.getElementById('btn-confirmar-mapa-fullscreen')?.addEventListener('clic
       direccionSeleccionadaObjeto.lat = pos.lat;
       direccionSeleccionadaObjeto.lng = pos.lng;
       mostrarEstadoBusquedaPedix('Ubicación ajustada en el mapa.', 'ok');
+      programarCotizacionEnvio();
 
       if (miniMapaLeaflet && miniMapaMarker) {
         miniMapaLeaflet.setView([pos.lat, pos.lng], 16);
@@ -2788,6 +2917,7 @@ function construirMensajePedido({
   items,
   totales,
   numeroOrden,
+  cuadrasEnvio,
   sinRegistrar
 }) {
   const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
@@ -2825,7 +2955,11 @@ function construirMensajePedido({
     mensaje += `*Descuento (${pago.nombre} ${porcentaje}%):* - ${formatearPrecioAR(descuento)}\n`;
   }
   if (envio > 0) {
-    mensaje += `*Envío:* ${formatearPrecioAR(envio)}\n`;
+    const cuadras = Number(cuadrasEnvio);
+    const detalleCuadras = Number.isFinite(cuadras) && cuadras > 0
+      ? ` (a ${cuadras} cuadra${cuadras === 1 ? '' : 's'} de la sucursal)`
+      : '';
+    mensaje += `*Envío:* ${formatearPrecioAR(envio)}${detalleCuadras}\n`;
   }
   mensaje += `*TOTAL:* ${formatearPrecioAR(total)}`;
   return mensaje;
@@ -2950,7 +3084,15 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     especificaciones: obtenerEspecificacionesLinea(item)
   }));
   const totalGeneral = itemsCliente.reduce((acc, item) => acc + item.subtotal, 0);
-  const totalesCliente = calcularTotalesPedido(totalGeneral, pago);
+  const totalesBase = calcularTotalesPedido(totalGeneral, pago);
+  const costoEnvioCliente = obtenerCostoEnvioMostrado();
+  const totalesCliente = {
+    subtotal: totalesBase.subtotal,
+    descuento: totalesBase.descuento,
+    costo_envio: costoEnvioCliente,
+    total: Math.max(0, totalesBase.total + costoEnvioCliente)
+  };
+  const totalMostrado = totalesCliente.total;
 
   pedidoEnviando = true;
   const idempotencyKey = obtenerIdempotencyKeyPedido();
@@ -3012,9 +3154,9 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     }
 
     if (pedidoGuardado) {
-      const subtotalServidor = Number(pedidoGuardado.subtotal) || 0;
-      if (subtotalServidor !== totalGeneral) {
-        const continuar = window.confirm(`Los precios se actualizaron: subtotal ${formatearPrecioAR(subtotalServidor)}, antes ${formatearPrecioAR(totalGeneral)}. ¿Continuar?`);
+      const totalServidor = Number(pedidoGuardado.total) || 0;
+      if (totalServidor !== totalMostrado) {
+        const continuar = window.confirm(`El costo final es ${formatearPrecioAR(totalServidor)}. ¿Continuar?`);
         if (!continuar) {
           cerrarVentanaPedido(ventanaWhatsapp);
           return;
@@ -3035,6 +3177,11 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     const numeroOrden = pedidoGuardado && pedidoGuardado.numero_orden
       ? String(pedidoGuardado.numero_orden)
       : '';
+    const cuadrasServidor = pedidoGuardado && Number.isFinite(Number(pedidoGuardado.cuadras))
+      ? Number(pedidoGuardado.cuadras)
+      : (pedidoGuardado && Number.isFinite(Number(pedidoGuardado.envio_cuadras))
+          ? Number(pedidoGuardado.envio_cuadras)
+          : (envioCotizado && Number.isFinite(Number(envioCotizado.cuadras)) ? Number(envioCotizado.cuadras) : null));
 
     const mensaje = construirMensajePedido({
       sucursal,
@@ -3049,6 +3196,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       items: itemsMensaje,
       totales: totalesMensaje,
       numeroOrden,
+      cuadrasEnvio: cuadrasServidor,
       sinRegistrar: !pedidoGuardado
     });
 
@@ -3276,6 +3424,7 @@ async function abrirCartaDosEtapas(sucursalId) {
   await Promise.all([cargarConfiguracionApp(), cargarCartasEnSegundoPlano()]);
   cartaActualSucursalId = sucursalId;
   cartaModalidadSeleccionada = modoCartaForzado || modalidadRetomada;
+  programarCotizacionEnvio();
 
   if (modoCartaForzado === 'mesa') {
     CARRITO = [];
