@@ -441,3 +441,22 @@ Pendientes antes de dar 1C por cerrado:
 Pendiente:
 - Probar la sección Envíos en la nube y ajustar tramos reales si hace falta.
 - Confirmar que no queden claves o variables sin usar en otros módulos.
+
+## Descuentos por medio de pago desde `config_negocio` (2026-11-04)
+
+- El checkout lee los descuentos desde `public.config_negocio`, clave `descuentos_pago`, con el cliente público de Supabase.
+- Formato esperado del valor: `{"efectivo": n, "transferencia": n}` con porcentajes entre 0 y 100.
+- Si la lectura falla, no hay Supabase configurado o la clave no existe, se mantienen los porcentajes de `data/config.json` como respaldo.
+- La lectura se hace al cargar la configuración de la app y se reintenta al abrir el checkout y antes de enviar el pedido.
+- La pantalla del checkout y el mensaje de WhatsApp usan los porcentajes leídos (el servidor sigue recalculando con `config_negocio` en `crear_pedido`).
+- El descuento se aplica solo al subtotal de productos, nunca al envío.
+- Texto actualizado en el checkout: `Descuentos vigentes (solo productos, no el envío): ...`.
+- Archivos modificados: `main.js`, `PROGRESO_FASE1.md`.
+
+Cómo probar:
+1. En Supabase, `config_negocio` con `clave = descuentos_pago` y valor `{"efectivo": 10, "transferencia": 5}`.
+2. Abrir la carta y el checkout: las opciones de pago deben mostrar `10% OFF` y `5% OFF`, y la nota debe listar ambos porcentajes.
+3. Verificar que el total sea `subtotal - descuento + envío` y que el descuento no se aplique al envío.
+4. Elegir cada medio de pago y confirmar que el mensaje de WhatsApp muestre el porcentaje y el descuento correctos.
+5. Borrar o renombrar temporalmente la clave `descuentos_pago` y comprobar que se usan los valores de `data/config.json`.
+6. Ejecutar `node --check main.js`.

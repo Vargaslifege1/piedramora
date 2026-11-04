@@ -241,9 +241,75 @@ function crearConfiguracionAppPorDefecto() {
 
 let CONFIG_APP = crearConfiguracionAppPorDefecto();
 let configAppPromise = null;
+let descuentosPagoNube = null;
+let descuentosPagoNubePromise = null;
 
 function normalizarDescuentoPago(valor) {
   return Math.max(0, Math.min(100, Number(valor) || 0));
+}
+
+function normalizarDescuentosPagoConfig(valor) {
+  let datos = valor;
+  if (typeof datos === 'string') {
+    try { datos = JSON.parse(datos); } catch (error) { return null; }
+  }
+  if (!datos || typeof datos !== 'object' || Array.isArray(datos)) return null;
+
+  const resultado = {};
+  let encontrado = false;
+  Object.keys(CONFIG_APP.pagos || {}).forEach((tipo) => {
+    if (datos[tipo] === undefined || datos[tipo] === null) return;
+    resultado[tipo] = normalizarDescuentoPago(datos[tipo]);
+    encontrado = true;
+  });
+  return encontrado ? resultado : null;
+}
+
+function aplicarDescuentosPagoConfig(descuentos) {
+  if (!descuentos) return false;
+  Object.keys(descuentos).forEach((tipo) => {
+    if (!CONFIG_APP.pagos[tipo]) return;
+    CONFIG_APP.pagos[tipo].descuentoPorcentaje = normalizarDescuentoPago(descuentos[tipo]);
+  });
+  return true;
+}
+
+function cargarDescuentosPagoNube() {
+  if (descuentosPagoNube) return Promise.resolve(descuentosPagoNube);
+  if (descuentosPagoNubePromise) return descuentosPagoNubePromise;
+
+  descuentosPagoNubePromise = (async () => {
+    try {
+      await cargarConfigNube();
+      const clienteNube = obtenerClienteNube();
+      if (!clienteNube) return null;
+      const { data, error } = await conTiempoLimite(
+        clienteNube
+          .from('config_negocio')
+          .select('valor')
+          .eq('clave', 'descuentos_pago')
+          .maybeSingle(),
+        6000
+      );
+      if (error || !data) return null;
+      return normalizarDescuentosPagoConfig(data.valor);
+    } catch (error) {
+      console.warn('No se pudieron leer los descuentos de pago desde config_negocio.', error);
+      return null;
+    }
+  })();
+
+  return descuentosPagoNubePromise.then(
+    (descuentos) => {
+      descuentosPagoNubePromise = null;
+      if (descuentos) descuentosPagoNube = descuentos;
+      return descuentos;
+    },
+    () => {
+      descuentosPagoNubePromise = null;
+      return null;
+    }
+  );
 }
 
 function normalizarConfiguracionApp(datos) {
@@ -298,6 +364,10 @@ async function cargarConfiguracionApp() {
     } catch (error) {
       console.warn('No se pudo cargar data/config.json; se usa la configuración por defecto.', error);
     }
+    try {
+      const descuentosNube = await cargarDescuentosPagoNube();
+      if (descuentosNube) aplicarDescuentosPagoConfig(descuentosNube);
+    } catch (error) {}
     try { actualizarEtiquetasPago(); } catch (e) {}
     try { aplicarConfiguracionMarca(); } catch (e) {}
     try {
@@ -2108,6 +2178,7 @@ function abrirModalCheckout() {
   recalcularPreciosCarrito();
   renderizarListaCheckout();
   programarCotizacionEnvio();
+  refrescarDescuentosPagoCheckout();
 
   overlay.hidden = false;
   panel.hidden = false;
@@ -2285,8 +2356,20 @@ function actualizarEtiquetasPago() {
     .filter(item => item.porcentaje > 0);
 
   nota.textContent = descuentosActivos.length > 0
-    ? `Descuentos vigentes: ${descuentosActivos.map(item => `${item.nombre} ${item.porcentaje}%`).join(' · ')}.`
+    ? `Descuentos vigentes (solo productos, no el envío): ${descuentosActivos.map(item => `${item.nombre} ${item.porcentaje}%`).join(' · ')}.`
     : 'Sin descuentos activos por medio de pago.';
+}
+
+function refrescarDescuentosPagoCheckout() {
+  cargarDescuentosPagoNube().then((descuentos) => {
+    if (!descuentos || !aplicarDescuentosPagoConfig(descuentos)) return;
+    actualizarEtiquetasPago();
+    const panel = document.getElementById('checkout-panel');
+    if (panel && !panel.hidden) {
+      recalcularPreciosCarrito();
+      renderizarListaCheckout();
+    }
+  }).catch(() => {});
 }
 
 function checkoutEsDelivery() {
@@ -3188,6 +3271,10 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     direccionFormateada = `${direccionTexto} — GPS: https://www.google.com/maps?q=${lat},${lng}`;
   }
 
+  try {
+    const descuentosNube = await cargarDescuentosPagoNube();
+    if (descuentosNube) aplicarDescuentosPagoConfig(descuentosNube);
+  } catch (error) {}
   const pago = obtenerPagoSeleccionado();
   const notas = normalizarTextoMensaje(document.getElementById('cliente-notas')?.value, false);
 
