@@ -116,10 +116,8 @@
     pedidosEstado: document.getElementById('pedidos-estado'),
     pedidosAviso: document.getElementById('pedidos-aviso'),
     pedidosFiltroPeriodo: document.getElementById('pedidos-filtro-periodo'),
-    pedidosFechaNav: document.getElementById('pedidos-fecha-nav'),
-    pedidosFiltroDia: document.getElementById('pedidos-filtro-dia'),
-    btnPedidosAyer: document.getElementById('btn-pedidos-ayer'),
-    btnPedidosHoy: document.getElementById('btn-pedidos-hoy'),
+    pedidosPeriodoEtiqueta: document.getElementById('pedidos-periodo-etiqueta'),
+    btnPedidosAnterior: document.getElementById('btn-pedidos-anterior'),
     btnPedidosSiguiente: document.getElementById('btn-pedidos-siguiente'),
     pedidosRango: document.getElementById('pedidos-rango'),
     pedidosFiltroDesde: document.getElementById('pedidos-filtro-desde'),
@@ -1896,12 +1894,148 @@
     }
   }
 
-  function sumarDiasFecha(fechaISO, dias) {
+  function fechaUTCDesdeISO(fechaISO) {
     const partes = String(fechaISO || '').split('-').map(Number);
-    if (partes.length !== 3 || !partes.every(Number.isFinite)) return fechaArgentinaHoy();
+    if (partes.length !== 3 || !partes.every(Number.isFinite)) return null;
     const fecha = new Date(Date.UTC(partes[0], partes[1] - 1, partes[2], 12));
+    if (!Number.isFinite(fecha.getTime())) return null;
+    return fecha;
+  }
+
+  function sumarDiasFecha(fechaISO, dias) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
     fecha.setUTCDate(fecha.getUTCDate() + dias);
     return fecha.toISOString().slice(0, 10);
+  }
+
+  function sumarMesesFecha(fechaISO, meses) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    fecha.setUTCDate(1);
+    fecha.setUTCMonth(fecha.getUTCMonth() + meses, 1);
+    return fecha.toISOString().slice(0, 10);
+  }
+
+  function inicioSemanaFecha(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    const dia = fecha.getUTCDay();
+    const desplazamiento = (dia + 6) % 7;
+    return sumarDiasFecha(fecha.toISOString().slice(0, 10), -desplazamiento);
+  }
+
+  function inicioMesFecha(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    return new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), 1, 12)).toISOString().slice(0, 10);
+  }
+
+  function finMesFecha(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    return new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth() + 1, 0, 12)).toISOString().slice(0, 10);
+  }
+
+  function formatearFechaDiaPedidos(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO);
+    if (!fecha) return '';
+    try {
+      const texto = new Intl.DateTimeFormat('es-AR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC'
+      }).format(fecha).replace(',', '');
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    } catch (error) {
+      return fechaISO;
+    }
+  }
+
+  function formatearFechaCortaPedidos(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO);
+    if (!fecha) return '';
+    try {
+      return new Intl.DateTimeFormat('es-AR', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC'
+      }).format(fecha).replace(/\./g, '');
+    } catch (error) {
+      return fechaISO;
+    }
+  }
+
+  function formatearMesPedidos(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO);
+    if (!fecha) return '';
+    try {
+      const texto = new Intl.DateTimeFormat('es-AR', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC'
+      }).format(fecha).replace(/\s+de\s+/i, ' ');
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    } catch (error) {
+      return fechaISO.slice(0, 7);
+    }
+  }
+
+  function rangoPedidosActual() {
+    const hoy = fechaArgentinaHoy();
+    const referencia = pedidosFechaDia || hoy;
+    if (pedidosPeriodo === 'semana') {
+      const desde = inicioSemanaFecha(referencia);
+      return { desde, hasta: sumarDiasFecha(desde, 6) };
+    }
+    if (pedidosPeriodo === 'mes') {
+      return { desde: inicioMesFecha(referencia), hasta: finMesFecha(referencia) };
+    }
+    if (pedidosPeriodo === 'personalizado') {
+      let desde = (el.pedidosFiltroDesde && el.pedidosFiltroDesde.value) || hoy;
+      let hasta = (el.pedidosFiltroHasta && el.pedidosFiltroHasta.value) || desde;
+      if (desde > hasta) [desde, hasta] = [hasta, desde];
+      return { desde, hasta };
+    }
+    return { desde: referencia, hasta: referencia };
+  }
+
+  function etiquetaPeriodoPedidos(rango) {
+    const hoy = fechaArgentinaHoy();
+    if (pedidosPeriodo === 'dia') {
+      if (rango.desde === hoy) return 'Hoy';
+      if (rango.desde === sumarDiasFecha(hoy, -1)) return 'Ayer';
+      return formatearFechaDiaPedidos(rango.desde);
+    }
+    if (pedidosPeriodo === 'semana') {
+      if (rango.desde === inicioSemanaFecha(hoy)) return 'Esta semana';
+      return `${formatearFechaCortaPedidos(rango.desde)} – ${formatearFechaCortaPedidos(rango.hasta)}`;
+    }
+    if (pedidosPeriodo === 'mes') {
+      return formatearMesPedidos(rango.desde);
+    }
+    if (rango.desde === rango.hasta) return formatearFechaDiaPedidos(rango.desde);
+    return `${formatearFechaCortaPedidos(rango.desde)} – ${formatearFechaCortaPedidos(rango.hasta)}`;
+  }
+
+  function rangoPeriodoSiguiente() {
+    const rango = rangoPedidosActual();
+    if (pedidosPeriodo === 'semana') {
+      const desde = sumarDiasFecha(rango.desde, 7);
+      return { desde, hasta: sumarDiasFecha(desde, 6) };
+    }
+    if (pedidosPeriodo === 'mes') {
+      const desde = sumarMesesFecha(inicioMesFecha(rango.desde), 1);
+      return { desde, hasta: finMesFecha(desde) };
+    }
+    if (pedidosPeriodo === 'personalizado') {
+      return { desde: sumarDiasFecha(rango.desde, 1), hasta: sumarDiasFecha(rango.hasta, 1) };
+    }
+    const fecha = sumarDiasFecha(rango.desde, 1);
+    return { desde: fecha, hasta: fecha };
+  }
+
+  function puedeAvanzarPeriodoPedidos() {
+    const siguiente = rangoPeriodoSiguiente();
+    const hoy = fechaArgentinaHoy();
+    if (pedidosPeriodo === 'personalizado') return siguiente.hasta <= hoy;
+    return siguiente.desde <= hoy;
   }
 
   function pedidoCoincideFiltros(pedido) {
@@ -1911,14 +2045,8 @@
     if (pedidosModalidad && pedido.modalidad !== pedidosModalidad) return false;
     const fecha = fechaPedidoArgentina(pedido.created_at);
     if (!fecha) return false;
-    if (pedidosPeriodo === 'dia') {
-      return fecha === pedidosFechaDia;
-    }
-    const desde = (el.pedidosFiltroDesde && el.pedidosFiltroDesde.value) || '';
-    const hasta = (el.pedidosFiltroHasta && el.pedidosFiltroHasta.value) || '';
-    if (desde && fecha < desde) return false;
-    if (hasta && fecha > hasta) return false;
-    return true;
+    const rango = rangoPedidosActual();
+    return fecha >= rango.desde && fecha <= rango.hasta;
   }
 
   function pedidosFiltrados() {
@@ -1927,17 +2055,35 @@
 
   function inicializarFiltrosPedidos() {
     pedidosFechaDia = fechaArgentinaHoy();
-    if (el.pedidosFiltroDia) el.pedidosFiltroDia.value = pedidosFechaDia;
-    if (el.pedidosFiltroDesde && !el.pedidosFiltroDesde.value) el.pedidosFiltroDesde.value = pedidosFechaDia;
-    if (el.pedidosFiltroHasta && !el.pedidosFiltroHasta.value) el.pedidosFiltroHasta.value = pedidosFechaDia;
+    pedidosPeriodo = 'dia';
+    if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = pedidosFechaDia;
+    if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = pedidosFechaDia;
     actualizarControlesPedidos();
   }
 
   function actualizarControlesPedidos() {
-    const esRango = pedidosPeriodo === 'rango';
-    if (el.pedidosFechaNav) el.pedidosFechaNav.hidden = esRango;
-    if (el.pedidosRango) el.pedidosRango.hidden = !esRango;
-    if (!esRango && el.pedidosFiltroDia) el.pedidosFiltroDia.value = pedidosFechaDia;
+    const esPersonalizado = pedidosPeriodo === 'personalizado';
+    const rango = rangoPedidosActual();
+    const hoy = fechaArgentinaHoy();
+
+    if (el.pedidosFiltroPeriodo && el.pedidosFiltroPeriodo.value !== pedidosPeriodo) {
+      el.pedidosFiltroPeriodo.value = pedidosPeriodo;
+    }
+    if (el.pedidosRango) el.pedidosRango.hidden = !esPersonalizado;
+    if (el.pedidosPeriodoEtiqueta) el.pedidosPeriodoEtiqueta.textContent = etiquetaPeriodoPedidos(rango);
+    if (el.pedidosFiltroDesde) {
+      el.pedidosFiltroDesde.max = hoy;
+      if (esPersonalizado && el.pedidosFiltroDesde.value !== rango.desde) el.pedidosFiltroDesde.value = rango.desde;
+    }
+    if (el.pedidosFiltroHasta) {
+      el.pedidosFiltroHasta.max = hoy;
+      if (esPersonalizado && el.pedidosFiltroHasta.value !== rango.hasta) el.pedidosFiltroHasta.value = rango.hasta;
+    }
+    if (el.btnPedidosSiguiente) {
+      const puedeAvanzar = puedeAvanzarPeriodoPedidos();
+      el.btnPedidosSiguiente.disabled = !puedeAvanzar;
+      el.btnPedidosSiguiente.setAttribute('aria-disabled', puedeAvanzar ? 'false' : 'true');
+    }
     el.pedidosVistaBtns.forEach(boton => {
       const activo = boton.dataset.pedidosVista === pedidosVista;
       boton.classList.toggle('activa', activo);
@@ -1948,6 +2094,68 @@
       boton.classList.toggle('activa', activo);
       boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
     });
+  }
+
+  function moverPeriodoPedidos(direccion) {
+    if (direccion > 0 && !puedeAvanzarPeriodoPedidos()) return;
+    const rango = rangoPedidosActual();
+    if (pedidosPeriodo === 'personalizado') {
+      if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = sumarDiasFecha(rango.desde, direccion);
+      if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = sumarDiasFecha(rango.hasta, direccion);
+      pedidosFechaDia = sumarDiasFecha(rango.desde, direccion);
+    } else if (pedidosPeriodo === 'semana') {
+      pedidosFechaDia = sumarDiasFecha(rango.desde, direccion * 7);
+    } else if (pedidosPeriodo === 'mes') {
+      pedidosFechaDia = sumarMesesFecha(inicioMesFecha(rango.desde), direccion);
+    } else {
+      pedidosFechaDia = sumarDiasFecha(rango.desde, direccion);
+    }
+    actualizarControlesPedidos();
+    renderPedidos();
+  }
+
+  function cambiarPeriodoPedidos(valor) {
+    const permitidos = ['dia', 'semana', 'mes', 'personalizado'];
+    const nuevo = permitidos.includes(valor) ? valor : 'dia';
+    const rangoAnterior = rangoPedidosActual();
+    if (nuevo === 'personalizado') {
+      if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = rangoAnterior.desde;
+      if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = rangoAnterior.hasta;
+      pedidosFechaDia = rangoAnterior.desde;
+    } else if (nuevo === 'mes') {
+      pedidosFechaDia = inicioMesFecha(rangoAnterior.desde);
+    } else {
+      pedidosFechaDia = rangoAnterior.desde;
+    }
+    pedidosPeriodo = nuevo;
+    actualizarControlesPedidos();
+    renderPedidos();
+  }
+
+  function volverAHoyPedidos() {
+    pedidosPeriodo = 'dia';
+    pedidosFechaDia = fechaArgentinaHoy();
+    if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = pedidosFechaDia;
+    if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = pedidosFechaDia;
+    actualizarControlesPedidos();
+    renderPedidos();
+  }
+
+  function aplicarCambioRangoPedidos(origen) {
+    const hoy = fechaArgentinaHoy();
+    let desde = (el.pedidosFiltroDesde && el.pedidosFiltroDesde.value) || hoy;
+    let hasta = (el.pedidosFiltroHasta && el.pedidosFiltroHasta.value) || desde;
+    if (desde > hoy) desde = hoy;
+    if (hasta > hoy) hasta = hoy;
+    if (desde > hasta) {
+      if (origen === 'desde') hasta = desde;
+      else desde = hasta;
+    }
+    if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = desde;
+    if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = hasta;
+    pedidosFechaDia = desde;
+    actualizarControlesPedidos();
+    renderPedidos();
   }
 
   function pedidoCuentaComoVenta(pedido) {
@@ -2506,7 +2714,11 @@
     const url = URL.createObjectURL(blob);
     const enlace = document.createElement('a');
     enlace.href = url;
-    enlace.download = `pedidos-${fechaArgentinaHoy()}.csv`;
+    const rangoExportado = rangoPedidosActual();
+    const nombreRango = rangoExportado.desde === rangoExportado.hasta
+      ? rangoExportado.desde
+      : `${rangoExportado.desde}-a-${rangoExportado.hasta}`;
+    enlace.download = `pedidos-${nombreRango}.csv`;
     document.body.appendChild(enlace);
     enlace.click();
     enlace.remove();
@@ -3310,41 +3522,24 @@
     }, { capture: true, once: true });
     if (el.pedidosFiltroPeriodo) {
       el.pedidosFiltroPeriodo.addEventListener('change', () => {
-        pedidosPeriodo = el.pedidosFiltroPeriodo.value === 'rango' ? 'rango' : 'dia';
-        actualizarControlesPedidos();
-        renderPedidos();
+        cambiarPeriodoPedidos(el.pedidosFiltroPeriodo.value);
       });
     }
-    if (el.pedidosFiltroDia) {
-      el.pedidosFiltroDia.addEventListener('change', () => {
-        pedidosFechaDia = el.pedidosFiltroDia.value || fechaArgentinaHoy();
-        renderPedidos();
-      });
+    if (el.pedidosPeriodoEtiqueta) {
+      el.pedidosPeriodoEtiqueta.addEventListener('click', volverAHoyPedidos);
     }
-    if (el.btnPedidosAyer) {
-      el.btnPedidosAyer.addEventListener('click', () => {
-        pedidosFechaDia = sumarDiasFecha(pedidosFechaDia || fechaArgentinaHoy(), -1);
-        actualizarControlesPedidos();
-        renderPedidos();
-      });
-    }
-    if (el.btnPedidosHoy) {
-      el.btnPedidosHoy.addEventListener('click', () => {
-        pedidosFechaDia = fechaArgentinaHoy();
-        actualizarControlesPedidos();
-        renderPedidos();
-      });
+    if (el.btnPedidosAnterior) {
+      el.btnPedidosAnterior.addEventListener('click', () => moverPeriodoPedidos(-1));
     }
     if (el.btnPedidosSiguiente) {
-      el.btnPedidosSiguiente.addEventListener('click', () => {
-        pedidosFechaDia = sumarDiasFecha(pedidosFechaDia || fechaArgentinaHoy(), 1);
-        actualizarControlesPedidos();
-        renderPedidos();
-      });
+      el.btnPedidosSiguiente.addEventListener('click', () => moverPeriodoPedidos(1));
     }
-    [el.pedidosFiltroDesde, el.pedidosFiltroHasta].forEach(input => {
-      if (input) input.addEventListener('change', renderPedidos);
-    });
+    if (el.pedidosFiltroDesde) {
+      el.pedidosFiltroDesde.addEventListener('change', () => aplicarCambioRangoPedidos('desde'));
+    }
+    if (el.pedidosFiltroHasta) {
+      el.pedidosFiltroHasta.addEventListener('change', () => aplicarCambioRangoPedidos('hasta'));
+    }
     if (el.pedidosFiltroSucursal) el.pedidosFiltroSucursal.addEventListener('change', renderPedidos);
     el.pedidosVistaBtns.forEach(boton => {
       boton.addEventListener('click', () => {

@@ -237,40 +237,44 @@
         <div id="pedidos-aviso" class="admin-aviso" hidden></div>
 
         <div class="admin-pedidos-toolbar">
-          <label class="admin-campo">
-            <span>Período</span>
-            <select id="pedidos-filtro-periodo">
-              <option value="dia">Por día</option>
-              <option value="rango">Rango</option>
-            </select>
-          </label>
-          <div id="pedidos-fecha-nav" class="admin-pedidos-fecha-nav">
-            <button type="button" id="btn-pedidos-ayer" class="btn-secundario">‹ Ayer</button>
-            <input id="pedidos-filtro-dia" type="date" aria-label="Día de los pedidos">
-            <button type="button" id="btn-pedidos-hoy" class="btn-secundario">Hoy</button>
-            <button type="button" id="btn-pedidos-siguiente" class="btn-secundario">Siguiente ›</button>
-          </div>
-          <div id="pedidos-rango" class="admin-pedidos-rango" hidden>
-            <label class="admin-campo">
-              <span>Desde</span>
-              <input id="pedidos-filtro-desde" type="date">
+          <div class="admin-pedidos-periodo">
+            <label class="admin-pedidos-periodo-select">
+              <select id="pedidos-filtro-periodo" aria-label="Período de los pedidos">
+                <option value="dia">Por día</option>
+                <option value="semana">Por semana</option>
+                <option value="mes">Por mes</option>
+                <option value="personalizado">Personalizado</option>
+              </select>
             </label>
+            <div class="admin-pedidos-periodo-nav" role="group" aria-label="Navegar período">
+              <button type="button" id="btn-pedidos-anterior" class="admin-pedidos-nav-btn" aria-label="Período anterior">‹</button>
+              <button type="button" id="pedidos-periodo-etiqueta" class="admin-pedidos-periodo-etiqueta" title="Volver a hoy">Hoy</button>
+              <button type="button" id="btn-pedidos-siguiente" class="admin-pedidos-nav-btn" aria-label="Período siguiente">›</button>
+            </div>
+            <div id="pedidos-rango" class="admin-pedidos-rango" hidden>
+              <label class="admin-campo">
+                <span>Desde</span>
+                <input id="pedidos-filtro-desde" type="date">
+              </label>
+              <label class="admin-campo">
+                <span>Hasta</span>
+                <input id="pedidos-filtro-hasta" type="date">
+              </label>
+            </div>
+          </div>
+          <div class="admin-pedidos-toolbar-derecha">
             <label class="admin-campo">
-              <span>Hasta</span>
-              <input id="pedidos-filtro-hasta" type="date">
+              <span>Sucursal</span>
+              <select id="pedidos-filtro-sucursal">
+                <option value="">Todas</option>
+              </select>
             </label>
+            <div class="admin-pedidos-vista" role="group" aria-label="Vista de pedidos">
+              <button type="button" class="btn-secundario activa" data-pedidos-vista="tablero">Tablero</button>
+              <button type="button" class="btn-secundario" data-pedidos-vista="lista">Lista</button>
+            </div>
+            <button type="button" id="btn-pedidos-exportar" class="btn-secundario">Exportar CSV</button>
           </div>
-          <label class="admin-campo">
-            <span>Sucursal</span>
-            <select id="pedidos-filtro-sucursal">
-              <option value="">Todas</option>
-            </select>
-          </label>
-          <div class="admin-pedidos-vista" role="group" aria-label="Vista de pedidos">
-            <button type="button" class="btn-secundario activa" data-pedidos-vista="tablero">Tablero</button>
-            <button type="button" class="btn-secundario" data-pedidos-vista="lista">Lista</button>
-          </div>
-          <button type="button" id="btn-pedidos-exportar" class="btn-secundario">Exportar CSV</button>
         </div>
 
         <div class="admin-pedidos-modalidades" role="group" aria-label="Filtrar por modalidad">

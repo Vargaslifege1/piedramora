@@ -531,3 +531,32 @@ Archivo nuevo: `supabase/migrations/016_pedidos_estados_pagos.sql`. **No fue eje
 7. Probar imprimir un ticket, marcar pagado y cancelar con confirmación.
 8. Con dos sesiones, cambiar un estado y verificar que la tarjeta se mueva sin recargar el tablero ni perder scroll.
 9. Ejecutar `node --check admin.js` y `node --check main.js`.
+
+## Escala del admin y selector de período Pedix (2026-11-04)
+
+### Escala del panel (escritorio)
+
+- `admin-main` pasó a `min(1680px, 96%)`, con menos padding lateral, para aprovechar el ancho de pantalla.
+- Texto base en 16 px, campos más cómodos, botones con altura mínima de 40 px y tabs más grandes.
+- Pedidos: tarjetas con más padding, número de pedido y total destacados, columnas de mínimo 300 px que se reparten el ancho disponible.
+- El tablero usa altura calculada con `vh`, con scroll vertical interno por columna.
+- La barra horizontal del tablero ahora mide 12 px y usa los colores del tema oscuro; aparece solo cuando las columnas no entran.
+- Carta y Envíos conservan sus grillas y se adaptan al contenedor más ancho.
+
+### Selector de período
+
+- Se reemplazó la barra anterior por: selector `Por día / Por semana / Por mes / Personalizado`, flecha anterior, etiqueta central clickeable y flecha siguiente.
+- Etiqueta: `Hoy`/`Ayer`/fecha larga para día; `Esta semana` o rango corto lunes-domingo para semana; `Noviembre 2026` para mes.
+- La etiqueta vuelve a hoy al hacer clic. La flecha siguiente se bloquea cuando el período siguiente sería futuro.
+- Personalizado muestra únicamente los inputs Desde/Hasta, con límite máximo en hoy.
+- Todos los cálculos de fecha se hacen en `America/Argentina/Buenos_Aires`; el filtrado, los contadores, el tablero, la lista y el CSV usan el mismo rango.
+- Sucursal, Tablero/Lista y Exportar CSV quedan a la derecha; las pestañas Todos / Para llevar / Delivery siguen abajo. En escritorio la barra queda en una fila y en celular se apila.
+
+### Cómo probar
+
+1. Verificar que el panel use el ancho disponible y que Carta/Envíos no se rompan.
+2. En Pedidos, revisar columnas, scroll horizontal fino, scroll vertical por columna y que la página no obligue a bajar en escritorio.
+3. Probar día, semana, mes y personalizado; comprobar etiquetas, flechas y bloqueo de fechas futuras.
+4. Confirmar que el CSV exporta solo el rango visible.
+5. Probar la barra en celular.
+6. Ejecutar `node --check admin.js`.

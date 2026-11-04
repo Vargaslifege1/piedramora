@@ -1589,7 +1589,8 @@ p {
 .admin-pedidos-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px 16px;
   padding: 16px;
   border: 1px solid var(--admin-borde);
@@ -1601,12 +1602,109 @@ p {
   min-width: 170px;
 }
 
-.admin-pedidos-fecha-nav,
 .admin-pedidos-rango {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: 8px;
+}
+
+.admin-pedidos-periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-pedidos-periodo-select {
+  flex: 0 0 auto;
+}
+
+.admin-pedidos-periodo-select select {
+  min-width: 158px;
+  min-height: 44px;
+  padding: 9px 36px 9px 14px;
+  border: 1px solid var(--admin-borde-fuerte);
+  border-radius: 999px;
+  background: #0c0c0c;
+  color: var(--admin-texto);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-pedidos-periodo-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--admin-borde);
+  border-radius: 999px;
+  background: var(--admin-panel-3);
+}
+
+.admin-pedidos-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  flex: 0 0 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--admin-texto-suave);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.admin-pedidos-nav-btn:hover:not(:disabled) {
+  background: var(--admin-panel-2);
+  color: var(--admin-dorado);
+}
+
+.admin-pedidos-nav-btn:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+.admin-pedidos-periodo-etiqueta {
+  min-width: 190px;
+  min-height: 42px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--admin-texto);
+  font-size: 0.96rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-pedidos-periodo-etiqueta:hover {
+  background: var(--admin-panel-2);
+  color: var(--admin-dorado);
+}
+
+.admin-pedidos-toolbar-derecha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-left: auto;
+}
+
+.admin-pedidos-toolbar-derecha .admin-campo {
+  min-width: 190px;
+}
+
+.admin-pedidos-rango {
+  align-items: end;
 }
 
 .admin-pedidos-rango .admin-campo {
@@ -2099,21 +2197,69 @@ p {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1200px) {
   .admin-pedidos-toolbar {
     align-items: stretch;
   }
 
+  .admin-pedidos-periodo,
+  .admin-pedidos-toolbar-derecha {
+    flex: 1 1 100%;
+  }
+
+  .admin-pedidos-toolbar-derecha {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-pedidos-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-pedidos-periodo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-pedidos-periodo-select,
+  .admin-pedidos-periodo-select select {
+    width: 100%;
+  }
+
+  .admin-pedidos-periodo-nav {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    width: 100%;
+    border-radius: 16px;
+  }
+
+  .admin-pedidos-periodo-etiqueta {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .admin-pedidos-rango,
   .admin-pedidos-toolbar .admin-campo,
-  .admin-pedidos-fecha-nav,
-  .admin-pedidos-rango {
+  .admin-pedidos-toolbar-derecha {
     width: 100%;
     min-width: 100%;
   }
 
-  .admin-pedidos-fecha-nav .btn-secundario,
+  .admin-pedidos-rango {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .admin-pedidos-rango .admin-campo {
     flex: 1 1 auto;
+  }
+
+  .admin-pedidos-toolbar-derecha {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .admin-pedidos-vista,
@@ -2124,6 +2270,10 @@ p {
   .admin-pedidos-vista .btn-secundario,
   .admin-pedidos-modalidades .btn-secundario {
     flex: 1 1 auto;
+  }
+
+  .admin-pedidos-toolbar-derecha .btn-secundario {
+    width: 100%;
   }
 
   .admin-pedidos-columna {
