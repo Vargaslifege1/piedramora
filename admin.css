@@ -35,6 +35,7 @@ body {
     var(--admin-fondo);
   color: var(--admin-texto);
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -117,9 +118,9 @@ p {
 }
 
 .admin-main {
-  width: min(1280px, 100%);
+  width: min(1680px, 96%);
   margin: 0 auto;
-  padding: clamp(20px, 4vw, 42px) clamp(14px, 4vw, 40px) 90px;
+  padding: clamp(20px, 3vw, 36px) clamp(16px, 2vw, 24px) 90px;
 }
 
 .admin-card {
@@ -173,7 +174,7 @@ p {
 
 .admin-campo > span:first-child {
   color: var(--admin-texto-suave);
-  font-size: 0.7rem;
+  font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.8px;
   text-transform: uppercase;
@@ -184,11 +185,12 @@ p {
 .admin-campo textarea {
   width: 100%;
   min-width: 0;
-  padding: 11px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--admin-borde-fuerte);
   border-radius: 10px;
   background: #0c0c0c;
   color: var(--admin-texto);
+  font-size: 0.98rem;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
@@ -224,11 +226,12 @@ p {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 10px 16px;
+  min-height: 40px;
+  padding: 10px 18px;
   border-radius: 999px;
   border: 1px solid transparent;
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   letter-spacing: 0.3px;
   cursor: pointer;
   transition: transform 0.2s ease, filter 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
@@ -268,11 +271,11 @@ p {
 }
 
 .btn-peligro {
-  padding: 8px 12px;
+  padding: 10px 16px;
   background: rgba(227, 30, 36, 0.08);
   color: #ff7d83;
   border-color: rgba(227, 30, 36, 0.4);
-  font-size: 0.74rem;
+  font-size: 0.84rem;
 }
 
 .btn-peligro:hover {
@@ -1211,13 +1214,14 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 18px;
+  min-height: 44px;
+  padding: 10px 22px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--admin-texto-suave);
   font-weight: 700;
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
@@ -1310,8 +1314,8 @@ p {
 
 .admin-pedidos-lista {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
 }
 
 .admin-pedido-card {
@@ -1345,6 +1349,7 @@ p {
 }
 
 .admin-pedido-numero {
+  font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 0.3px;
 }
@@ -1585,15 +1590,15 @@ p {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: 10px 14px;
-  padding: 14px;
+  gap: 12px 16px;
+  padding: 16px;
   border: 1px solid var(--admin-borde);
   border-radius: var(--admin-radio-chico);
   background: var(--admin-panel-2);
 }
 
 .admin-pedidos-toolbar .admin-campo {
-  min-width: 150px;
+  min-width: 170px;
 }
 
 .admin-pedidos-fecha-nav,
@@ -1628,20 +1633,45 @@ p {
 
 .admin-pedidos-tablero {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
-  padding-bottom: 8px;
+  height: clamp(360px, calc(100vh - 500px), 900px);
+  padding-bottom: 12px;
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--admin-dorado) var(--admin-panel-3);
   scroll-snap-type: x proximity;
+}
+
+.admin-pedidos-tablero::-webkit-scrollbar {
+  height: 12px;
+}
+
+.admin-pedidos-tablero::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--admin-panel-3);
+}
+
+.admin-pedidos-tablero::-webkit-scrollbar-thumb {
+  border: 2px solid var(--admin-panel-3);
+  border-radius: 999px;
+  background: var(--admin-dorado);
+}
+
+.admin-pedidos-tablero::-webkit-scrollbar-thumb:hover {
+  background: var(--admin-ambar);
 }
 
 .admin-pedidos-columna {
   display: flex;
-  flex: 0 0 272px;
+  flex: 1 1 300px;
   flex-direction: column;
-  gap: 10px;
-  max-height: calc(100vh - 300px);
-  padding: 10px;
+  gap: 12px;
+  min-width: 300px;
+  height: 100%;
+  padding: 14px;
+  overflow: hidden;
   border: 1px solid var(--admin-borde);
   border-radius: var(--admin-radio-chico);
   background: var(--admin-panel-2);
@@ -1665,28 +1695,46 @@ p {
 .admin-pedidos-columna-titulo h3 {
   margin: 0;
   color: var(--admin-texto-suave);
-  font-size: 0.76rem;
+  font-size: 0.86rem;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
 .admin-pedidos-contador {
-  min-width: 24px;
-  padding: 2px 8px;
+  min-width: 28px;
+  padding: 3px 9px;
   border-radius: 999px;
   background: var(--admin-panel-3);
   color: var(--admin-texto);
-  font-size: 0.76rem;
+  font-size: 0.85rem;
   font-weight: 800;
   text-align: center;
 }
 
 .admin-pedidos-columna-cuerpo {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: 10px;
-  min-height: 38px;
+  gap: 12px;
+  min-height: 0;
+  padding-right: 4px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--admin-borde-fuerte) transparent;
+}
+
+.admin-pedidos-columna-cuerpo::-webkit-scrollbar {
+  width: 10px;
+}
+
+.admin-pedidos-columna-cuerpo::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-pedidos-columna-cuerpo::-webkit-scrollbar-thumb {
+  border: 2px solid var(--admin-panel-2);
+  border-radius: 999px;
+  background: var(--admin-borde-fuerte);
 }
 
 .admin-pedidos-vacio-columna {
@@ -1698,7 +1746,8 @@ p {
 }
 
 .admin-pedidos-columna.colapsada {
-  flex-basis: 72px;
+  flex: 0 0 72px;
+  min-width: 72px;
 }
 
 .admin-pedidos-columna.colapsada .admin-pedidos-columna-titulo h3,
@@ -1713,8 +1762,8 @@ p {
 .admin-pedido-tarjeta {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
+  padding: 16px;
   border: 1px solid var(--admin-borde);
   border-left: 3px solid var(--admin-borde-fuerte);
   border-radius: var(--admin-radio-chico);
@@ -1753,6 +1802,7 @@ p {
 }
 
 .admin-pedido-cliente {
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -1761,24 +1811,24 @@ p {
   align-items: center;
   gap: 3px;
   color: var(--admin-texto-suave);
-  font-size: 0.78rem;
+  font-size: 0.86rem;
 }
 
 .admin-pedido-icono {
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
   flex: 0 0 auto;
 }
 
 .admin-pedido-tarjeta-meta {
   color: var(--admin-texto-suave);
-  font-size: 0.78rem;
+  font-size: 0.86rem;
 }
 
 .admin-pedido-tarjeta-meta strong {
   margin-left: auto;
   color: var(--admin-dorado);
-  font-size: 0.95rem;
+  font-size: 1.12rem;
 }
 
 .admin-pedido-pago.pagado {
@@ -1791,7 +1841,7 @@ p {
 
 .admin-pedido-resumen summary {
   color: var(--admin-texto-suave);
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   cursor: pointer;
 }
 
@@ -1799,7 +1849,7 @@ p {
   margin: 6px 0 0;
   padding-left: 18px;
   color: var(--admin-texto-suave);
-  font-size: 0.8rem;
+  font-size: 0.88rem;
 }
 
 .admin-pedido-resumen li + li {
@@ -1815,8 +1865,9 @@ p {
 
 .admin-pedido-tarjeta-acciones button {
   flex: 1 1 auto;
-  padding: 7px 9px;
-  font-size: 0.74rem;
+  min-height: 40px;
+  padding: 9px 12px;
+  font-size: 0.82rem;
 }
 
 .admin-pedido-ticket {
@@ -2024,9 +2075,26 @@ p {
   }
 }
 
+@media (max-width: 1023px) {
+  .admin-pedidos-tablero {
+    height: auto;
+    min-height: 0;
+    overflow-y: visible;
+  }
+
+  .admin-pedidos-columna {
+    height: auto;
+  }
+
+  .admin-pedidos-columna-cuerpo {
+    overflow-y: visible;
+  }
+}
+
 @media (max-width: 900px) {
   .admin-pedidos-columna {
-    flex-basis: 260px;
+    flex: 0 0 280px;
+    min-width: 0;
     max-height: none;
   }
 }
@@ -2059,7 +2127,8 @@ p {
   }
 
   .admin-pedidos-columna {
-    flex-basis: 82vw;
+    flex: 0 0 82vw;
+    min-width: 0;
     max-height: none;
   }
 
