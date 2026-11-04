@@ -460,3 +460,24 @@ Cómo probar:
 4. Elegir cada medio de pago y confirmar que el mensaje de WhatsApp muestre el porcentaje y el descuento correctos.
 5. Borrar o renombrar temporalmente la clave `descuentos_pago` y comprobar que se usan los valores de `data/config.json`.
 6. Ejecutar `node --check main.js`.
+
+## Ajustes de accesibilidad y validación de envíos (2026-11-04)
+
+- Modal "Pedido recibido" (`main.js`):
+  - `Escape` cierra solo el modal, sin cerrar la carta ni el checkout que quede detrás.
+  - Se agregó focus trap: `Tab` y `Shift+Tab` quedan dentro del modal.
+  - Al cerrarse, el foco vuelve al elemento que lo abrió; si ya no es visible (por ejemplo, el botón de envío del checkout cerrado), vuelve al panel de la carta.
+- Pestaña Envíos (`admin.js`):
+  - El aviso de "hueco al final" (último tramo activo menor a 999) ahora también aparece al cargar la pestaña, no solo al guardar o activar un tramo.
+  - Al cargar se evalúa el conjunto efectivo de cada sucursal (tramos globales + los de esa sucursal) y se listan las sucursales con hueco.
+  - La validación de superposición ahora usa ese mismo conjunto efectivo: un tramo global choca con cualquier tramo activo de cualquier sucursal, y un tramo de sucursal choca con los globales y con los de su propia sucursal. El mensaje indica el rango y la sucursal del tramo en conflicto.
+  - Junto a "Tramos por cuadras" se muestra la referencia `1 cuadra = X metros`, leída de `config_negocio.metros_por_cuadra`.
+- Archivos modificados: `main.js`, `admin.js`, `admin.html`, `PROGRESO_FASE1.md`.
+
+Cómo probar:
+1. Con la carta abierta, enviar un pedido y comprobar que `Escape` cierra el modal sin cerrar la carta; recorrer con `Tab` y verificar que el foco no sale del modal.
+2. Al cerrar, verificar que el foco vuelve al botón que abrió el modal o al panel de la carta.
+3. Entrar a la pestaña Envíos con un último tramo activo menor a 999 y confirmar que el aviso aparece sin guardar nada.
+4. Crear un tramo global que se superponga con uno de una sucursal y verificar que el guardado se bloquea con el mensaje correspondiente.
+5. Cambiar `metros_por_cuadra` y confirmar que la referencia junto a Tramos se actualiza.
+6. Ejecutar `node --check main.js` y `node --check admin.js`.

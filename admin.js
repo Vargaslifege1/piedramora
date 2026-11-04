@@ -104,6 +104,7 @@
     btnCancelarTramo: document.getElementById('btn-cancelar-tramo'),
     tramosEstado: document.getElementById('tramos-estado'),
     tramosLista: document.getElementById('tramos-lista'),
+    tramosMetrosReferencia: document.getElementById('tramos-metros-referencia'),
     pedidosBadge: document.getElementById('pedidos-badge'),
     btnPedidosActivarSonido: document.getElementById('btn-pedidos-activar-sonido'),
     btnPedidosActualizar: document.getElementById('btn-pedidos-actualizar'),
@@ -2239,6 +2240,10 @@
       const metros = configEnvios.metrosPorCuadra || 100;
       el.enviosAyuda.textContent = `La distancia se mide en línea recta desde la sucursal. Una cuadra cuenta como ${metros} metros.`;
     }
+    if (el.tramosMetrosReferencia) {
+      const metros = configEnvios.metrosPorCuadra || 100;
+      el.tramosMetrosReferencia.textContent = `1 cuadra = ${metros} metros.`;
+    }
   }
 
   function renderZonasNormales() {
@@ -2371,7 +2376,10 @@
       renderTramosEnvios();
       enviosCargados = true;
 
-      if (!opciones.silencioso) mostrarEstadoEnvios('Envíos actualizados.', 'ok');
+      if (!opciones.silencioso) {
+        mostrarEstadoEnvios('Envíos actualizados.', 'ok');
+        mostrarAvisoEnvios(avisoHuecoFinalTodas(), 'info');
+      }
     } catch (error) {
       console.warn('No se pudieron cargar los envíos:', error);
       mostrarEstadoEnvios('');
@@ -2529,7 +2537,9 @@
     const otros = tramosEnvios.filter(tramo => {
       if (String(tramo.id) === String(idExcluir)) return false;
       if (!tramo.activa) return false;
-      return (tramo.sucursal_id || '') === clave;
+      const claveTramo = tramo.sucursal_id || '';
+      if (!clave) return true;
+      return !claveTramo || claveTramo === clave;
     });
 
     const choque = otros.find(tramo =>
@@ -2538,7 +2548,7 @@
     );
 
     if (choque) {
-      throw new Error(`El tramo se superpone con el tramo activo de ${choque.desde_cuadras} a ${choque.hasta_cuadras} cuadras.`);
+      throw new Error(`El tramo de ${datos.desde_cuadras} a ${datos.hasta_cuadras} cuadras se superpone con el tramo activo de ${choque.desde_cuadras} a ${choque.hasta_cuadras} cuadras de ${etiquetaSucursalEnvios(choque.sucursal_id)}.`);
     }
   }
 
@@ -2549,6 +2559,21 @@
     const maximo = Math.max(...activos.map(tramo => Number(tramo.hasta_cuadras) || 0));
     if (maximo >= 999) return '';
     return `Aviso: el último tramo activo llega hasta ${maximo} cuadras. Conviene que llegue a 999 para no dejar envíos sin precio.`;
+  }
+
+  function avisoHuecoFinalTodas() {
+    const conHueco = [];
+    Object.keys(SUCURSALES_NOMBRES).forEach(id => {
+      const activos = tramosEnvios.filter(tramo =>
+        tramo.activa && (!tramo.sucursal_id || tramo.sucursal_id === id));
+      if (!activos.length) return;
+      const maximo = Math.max(...activos.map(tramo => Number(tramo.hasta_cuadras) || 0));
+      if (maximo < 999) {
+        conHueco.push(`${SUCURSALES_NOMBRES[id]} (hasta ${maximo} cuadras)`);
+      }
+    });
+    if (!conHueco.length) return '';
+    return `Aviso: el último tramo activo no llega a 999 cuadras en ${conHueco.join(', ')}. Conviene que llegue a 999 para no dejar envíos sin precio.`;
   }
 
   async function guardarTramo(evento) {

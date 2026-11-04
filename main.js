@@ -2254,15 +2254,28 @@ function obtenerTiempoEstimadoEntrega() {
   return tiempoEstimadoPromesa;
 }
 
+let pedidoRecibidoOrigenFoco = null;
+
+function elementoEnfocableVisible(elemento) {
+  return !!(elemento && elemento.isConnected && elemento.getClientRects().length);
+}
+
 function cerrarPedidoRecibido() {
   const overlay = document.getElementById('pedido-recibido-overlay');
   const panel = document.getElementById('pedido-recibido');
   if (!overlay || !panel) return;
+  const origen = pedidoRecibidoOrigenFoco;
+  pedidoRecibidoOrigenFoco = null;
   panel.classList.remove('abierto');
   overlay.classList.remove('visible');
   setTimeout(() => {
     overlay.hidden = true;
     panel.hidden = true;
+    if (elementoEnfocableVisible(origen)) {
+      try { origen.focus({ preventScroll: true }); } catch (error) {}
+    } else if (elementoEnfocableVisible(cartaPanel)) {
+      try { cartaPanel.focus({ preventScroll: true }); } catch (error) {}
+    }
   }, 200);
 }
 
@@ -2270,6 +2283,10 @@ function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad }) {
   const overlay = document.getElementById('pedido-recibido-overlay');
   const panel = document.getElementById('pedido-recibido');
   if (!overlay || !panel) return;
+
+  pedidoRecibidoOrigenFoco = document.activeElement instanceof HTMLElement
+    ? document.activeElement
+    : null;
 
   const titulo = document.getElementById('pedido-recibido-titulo');
   const icono = document.getElementById('pedido-recibido-icono');
@@ -3796,6 +3813,37 @@ if (cartaVolverModalidad) {
 }
 
 document.addEventListener('keydown', (e) => {
+  const pedidoRecibido = document.getElementById('pedido-recibido');
+  if (pedidoRecibido && !pedidoRecibido.hidden) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      cerrarPedidoRecibido();
+      return;
+    }
+    if (e.key === 'Tab') {
+      const focusables = Array.from(pedidoRecibido.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )).filter(elementoEnfocableVisible);
+      if (!focusables.length) {
+        e.preventDefault();
+        try { pedidoRecibido.focus({ preventScroll: true }); } catch (error) {}
+        return;
+      }
+      const primero = focusables[0];
+      const ultimo = focusables[focusables.length - 1];
+      const activo = document.activeElement;
+      if (e.shiftKey && (activo === primero || !pedidoRecibido.contains(activo))) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && (activo === ultimo || !pedidoRecibido.contains(activo))) {
+        e.preventDefault();
+        primero.focus();
+      }
+      return;
+    }
+    return;
+  }
+
   if (e.key !== 'Escape') return;
 
   if (confirmacionResolver) {
