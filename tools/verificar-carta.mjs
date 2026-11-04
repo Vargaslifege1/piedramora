@@ -105,19 +105,11 @@ if (Array.isArray(carta.productos)) {
       }
     });
 
-    const clavesOferta = Object.keys(producto).filter(clave => /oferta/i.test(clave));
-
-    if (categoria !== 'promo' && clavesOferta.length > 0) {
-      error(`Producto "${id}": fuera de la categoría "promo" no debe tener campos de oferta (${clavesOferta.join(', ')}).`);
-    }
-
-    if (categoria !== 'promo') return;
-
     const desdeMs = validarFechaOferta(producto, 'oferta_desde');
     const hastaMs = validarFechaOferta(producto, 'oferta_hasta');
 
     if (desdeMs !== null && hastaMs !== null && hastaMs <= desdeMs) {
-      error(`Producto "${id}": oferta_hasta debe ser posterior a oferta_desde.`);
+      error(`Producto "${id}": el fin de la oferta debe ser posterior al inicio.`);
     }
 
     const tieneDelivery = producto.delivery_oferta !== undefined && producto.delivery_oferta !== null && producto.delivery_oferta !== '';
@@ -148,8 +140,16 @@ if (Array.isArray(carta.productos)) {
       }
     }
 
-    if (producto.tipoOferta !== undefined && producto.tipoOferta !== 'dia' && producto.tipoOferta !== 'semana') {
-      error(`Producto "${id}": tipoOferta debe ser "dia" o "semana".`);
+    if (producto.tipoOferta !== undefined && !['dia', 'semana', 'fecha'].includes(producto.tipoOferta)) {
+      error(`Producto "${id}": tipoOferta debe ser "dia", "semana" o "fecha".`);
+    }
+
+    if ((tieneDelivery || tieneMesa) && producto.tipoOferta === 'fecha' && hastaMs === null) {
+      error(`Producto "${id}": la oferta "Hasta una fecha" necesita oferta_hasta.`);
+    }
+
+    if (producto.oferta_hasta && producto.tipoOferta !== 'fecha') {
+      error(`Producto "${id}": oferta_hasta solo se usa con tipoOferta "fecha".`);
     }
   });
 }

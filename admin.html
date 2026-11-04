@@ -161,36 +161,29 @@
               <input id="producto-mesa" type="number" min="0" step="100" placeholder="13500" required>
             </label>
 
-            <label class="admin-campo admin-campo-oferta">
-              <span>Estilo del cartel</span>
+            <label class="admin-campo">
+              <span>Tipo de oferta</span>
               <select id="producto-tipo-oferta">
-                <option value="dia">Del día</option>
-                <option value="semana">De la semana</option>
+                <option value="dia">Oferta del día</option>
+                <option value="semana">Oferta de la semana</option>
+                <option value="fecha">Hasta una fecha</option>
               </select>
             </label>
 
-            <label class="admin-campo admin-campo-oferta">
+            <label class="admin-campo">
               <span>Delivery oferta</span>
               <input id="producto-delivery-oferta" type="number" min="0" step="100" placeholder="9900">
             </label>
 
-            <label class="admin-campo admin-campo-oferta">
+            <label class="admin-campo">
               <span>Mesa oferta</span>
               <input id="producto-mesa-oferta" type="number" min="0" step="100" placeholder="10900">
             </label>
 
-            <div class="admin-campo admin-campo-oferta-fechas admin-campo-oferta" data-oferta-placeholder="desde">
-              <span>Oferta desde</span>
-            </div>
-
-            <div class="admin-campo admin-campo-oferta-fechas admin-campo-oferta" data-oferta-placeholder="hasta">
-              <span>Oferta hasta</span>
-            </div>
-
-            <div class="admin-campo admin-campo-oferta-limpiar admin-campo-oferta">
-              <span>Fechas de oferta</span>
-              <button type="button" id="producto-limpiar-fechas-oferta" class="btn-secundario">Limpiar ambas fechas</button>
-            </div>
+            <label class="admin-campo admin-campo-oferta-fecha" id="producto-oferta-fecha-campo" hidden>
+              <span>Termina el</span>
+              <input id="producto-oferta-hasta" type="date">
+            </label>
 
             <label class="admin-campo admin-campo-check">
               <span>Agotado hoy</span>

@@ -715,7 +715,8 @@ p {
   text-transform: uppercase;
 }
 
-.admin-badge-dia {
+.admin-badge-dia,
+.admin-badge-fecha {
   background: rgba(227, 30, 36, 0.16);
   color: #ff9a9e;
 }
@@ -741,87 +742,13 @@ p {
   font-size: 0.72rem;
 }
 
-.admin-campo-oferta-fechas {
+.admin-campo-oferta-fecha {
   grid-column: span 2;
 }
 
-.admin-campo-oferta-limpiar {
-  grid-column: span 1;
-}
-
-.admin-oferta-control {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.admin-oferta-rapidos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.admin-oferta-rapido {
-  padding: 6px 9px;
-  border: 1px solid var(--admin-borde-fuerte);
-  border-radius: 999px;
-  background: #0c0c0c;
-  color: var(--admin-texto);
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1.2;
-  cursor: pointer;
-}
-
-.admin-oferta-rapido:hover {
-  border-color: rgba(227, 30, 36, 0.7);
-  color: #ffffff;
-}
-
-.admin-oferta-custom {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.admin-oferta-custom-item {
-  display: flex;
-  flex: 1 1 120px;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.admin-oferta-custom-item > span {
-  color: var(--admin-texto-suave);
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-}
-
-.admin-oferta-resumen {
-  margin: 0;
-  color: #ffc247;
-  font-size: 0.72rem;
-  line-height: 1.35;
-}
-
 @media (max-width: 900px) {
-  .admin-campo-oferta-fechas,
-  .admin-campo-oferta-limpiar {
+  .admin-campo-oferta-fecha {
     grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 640px) {
-  .admin-oferta-custom {
-    flex-direction: column;
-  }
-
-  .admin-oferta-rapido {
-    flex: 1 1 auto;
   }
 }
 

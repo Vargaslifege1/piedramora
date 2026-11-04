@@ -276,15 +276,41 @@ La RPC debe:
 11. ¿Los pedidos de mesa siguen siendo solo consulta? Si no, ¿cómo se identifica la mesa?
 12. ¿Aprobás guardar los ítems como snapshot JSONB dentro de `pedidos`, o preferís tabla hija `pedido_items` desde el inicio?
 
-## Próximo paso propuesto
+## Paso 1C: RPC `crear_pedido` (preparado, sin ejecutar)
 
 Las tablas `config_pedidos`, `pedidos`, la secuencia de numeración y las políticas RLS **ya están creadas** (migraciones 010 y 011, ejecutadas y verificadas).
 
-Pendiente para el paso 1C:
+Se agregó `supabase/migrations/013_crear_pedido.sql`, que **todavía no se ejecutó** contra la base:
 
-1. Crear la función RPC `crear_pedido`.
-2. No ejecutar SQL contra la base del usuario.
-3. Recién después adaptar `main.js` para llamar a la RPC sin romper el envío actual por WhatsApp.
+- Crea `public.crear_pedido(...)` como `security definer` y `search_path = ''`.
+- Recibe sucursal, modalidad, datos del cliente, dirección/GPS, pago, notas, ítems y `p_idempotency_key`.
+- Vuelve a leer la carta y `config_negocio`; no confía en precios ni totales del cliente.
+- Valida sucursal, producto, agotado, variaciones, adicionales, cantidades y categorías sin personalización (`pizza`, `promo`).
+- Repite en SQL la lógica de lomos/milanesas solo con pan y las opciones de pan sintéticas.
+- Replica precios regulares y de oferta, variaciones, adicionales y descuento por forma de pago.
+- Guarda `items_snapshot` y devuelve número de pedido, ítems y totales calculados.
+- Es idempotente por `idempotency_key`: si ya existe, devuelve el pedido existente sin duplicarlo.
+- Permisos: ejecución solo para `anon` y `authenticated`; acceso directo a `pedidos` sigue cerrado.
+- Decisión provisional de envío: `costo_envio = 0` y `zona_envio = 'Zona normal'` para delivery, porque el checkout actual no calcula envío. Queda pendiente definir zonas/tramos reales.
+
+`main.js` quedó adaptado para el paso 1C:
+
+- Genera una clave UUID por intento de checkout y la reutiliza si falla el guardado y el usuario reintenta.
+- Guarda el pedido con `crear_pedido` antes de abrir WhatsApp.
+- Abre una ventana en blanco de forma síncrona para no perder el gesto del usuario y luego la redirige a `wa.me`.
+- Usa los ítems, totales y `numero_orden` del servidor en el mensaje cuando el guardado funciona.
+- Si Supabase falla o no está configurado, continúa con el mensaje calculado en el cliente para no bloquear la venta.
+- Si el guardado fue exitoso, vacía el carrito y cierra el checkout.
+- Evita doble envío con un bloqueo mientras la RPC está en curso.
+
+Pendientes antes de dar 1C por cerrado:
+
+1. Ejecutar `013_crear_pedido.sql` en la base con confirmación explícita.
+2. Probar un pedido real de delivery y uno de retiro.
+3. Probar doble clic y reintento con la misma clave.
+4. Probar el fallback cuando Supabase no responde.
+5. Definir si el total del servidor se muestra/avisa cuando difiere del total local.
+6. Definir zonas y costo de envío reales.
 
 ## Estado real al 2026-11-03
 
@@ -316,29 +342,30 @@ Pendiente para el paso 1C:
 - Es idempotente y está marcada como "ya ejecutado a mano".
 - **No ejecutarla** contra la base; no se ejecutó desde el proyecto.
 
-### Paso 1B2: fechas de oferta para las promos (hecho)
+### Paso 1B2: ofertas para cualquier producto (hecho)
 
 - La oferta se detecta solo si el precio de oferta es un número válido (mayor a cero) y la vigencia está activa.
-- Nuevos campos opcionales en promos:
-  - `oferta_desde`: texto ISO con offset `-03:00` (`America/Argentina/Buenos_Aires`).
-  - `oferta_hasta`: texto ISO con offset `-03:00`.
+- Campos opcionales en cualquier producto:
+  - `oferta_hasta`: texto ISO con offset `-03:00` (`America/Argentina/Buenos_Aires`).
+  - `oferta_desde`: se conserva por compatibilidad, pero la interfaz ya no lo carga.
 - Reglas:
-  - Sin fechas: oferta activa siempre.
-  - Solo `oferta_desde`: activa desde esa fecha.
-  - Solo `oferta_hasta`: activa hasta esa fecha.
+  - `dia` y `semana`: oferta activa siempre, sin fecha.
+  - `fecha`: oferta activa hasta `oferta_hasta`.
   - Fuera de fecha se muestra el precio regular y sin cartel.
 - La comparación se hace por instante con el offset argentino, nunca con la hora local del dispositivo.
-- `tipoOferta` es **solo estilo visual**: `dia` o `semana`. No afecta la vigencia ni la detección de la oferta. Si falta, se usa `dia`. Las dos promos lo conservan.
-- Cartel restaurado del historial: fuego, colores y destaque de la tarjeta según `dia`/`semana`; si hay `oferta_hasta`, agrega `Hasta el dd/mm` dentro del cartel.
+- `tipoOferta` tiene tres modos excluyentes: `dia`, `semana` y `fecha`. No afecta la detección de la oferta; define el cartel y, en `fecha`, exige `oferta_hasta`.
+- Carteles:
+  - `dia`: `⚡ OFERTA DEL DÍA`.
+  - `semana`: `🔥 OFERTA DE LA SEMANA`.
+  - `fecha`: `Hasta el DD/MM`, con estilo visual del día.
 - Admin:
-  - Selector "Estilo del cartel: Del día / De la semana".
-  - Botones rápidos para "Oferta hasta": Hoy 23:59, Mañana 23:59, En 7 días, Fin de semana (domingo 23:59), Sin fecha de fin.
-  - Botones rápidos para "Oferta desde": Ahora, Mañana 00:00, Sin fecha de inicio.
-  - Modo personalizado con fecha (`type="date"`) y hora cada 30 minutos.
-  - Resumen en español con la fecha/hora elegida en horario argentino.
-  - Validación de que "hasta" sea posterior a "desde".
-  - Aviso antes de perder la oferta al cambiar de categoría.
+  - Las ofertas están disponibles para **todos los productos**, sin importar la categoría.
+  - Un único selector "Tipo de oferta": Oferta del día / Oferta de la semana / Hasta una fecha.
+  - Si se elige "Hasta una fecha", aparece un único campo de fecha (`type="date"`); se guarda a las 23:59 de Argentina.
+  - Sin botones rápidos, horas intermedias ni "Limpiar fechas".
+  - Las ofertas de día y semana no guardan fecha; solo "Hasta una fecha" guarda `oferta_hasta`.
+  - Ya no se advierte ni se borra la oferta al cambiar de categoría.
 - Verificación:
-  - `tools/verificar-carta.mjs` valida IDs, precios, ofertas solo en `promo`, formato ISO, orden de fechas y estilo `tipoOferta`.
+  - `tools/verificar-carta.mjs` valida IDs, precios, ofertas en cualquier producto, formato ISO y los tres modos de `tipoOferta`.
   - `tools/probar-oferta-vigente.mjs` prueba `ofertaVigente` con fechas `-03:00` en cuatro casos.
 - El servidor seguirá siendo la fuente de verdad en el paso 1C.

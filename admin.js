@@ -54,8 +54,8 @@
     productoDeliveryOferta: document.getElementById('producto-delivery-oferta'),
     productoMesaOferta: document.getElementById('producto-mesa-oferta'),
     productoTipoOferta: document.getElementById('producto-tipo-oferta'),
-    productoLimpiarFechasOferta: document.getElementById('producto-limpiar-fechas-oferta'),
-    productoOfertaCampos: document.querySelectorAll('.admin-campo-oferta'),
+    productoOfertaFechaCampo: document.getElementById('producto-oferta-fecha-campo'),
+    productoOfertaHasta: document.getElementById('producto-oferta-hasta'),
     productoAgotado: document.getElementById('producto-agotado'),
     productoAgotadoPermanente: document.getElementById('producto-agotado-permanente'),
     btnAgregarProducto: document.getElementById('btn-agregar-producto'),
@@ -200,12 +200,19 @@
     return cat ? rutaImagenCategoria(cat) : 'assets/logo.webp';
   }
 
+  const TIPOS_OFERTA = ['dia', 'semana', 'fecha'];
+
   function tipoOfertaProducto(producto) {
-    return producto && producto.tipoOferta === 'semana' ? 'semana' : 'dia';
+    const tipo = producto && producto.tipoOferta;
+    if (tipo === 'semana') return 'semana';
+    if (tipo === 'fecha') return 'fecha';
+    return 'dia';
   }
 
   function etiquetaTipoOferta(tipo) {
-    return tipo === 'semana' ? 'Oferta de la semana' : 'Oferta del día';
+    if (tipo === 'semana') return 'Oferta de la semana';
+    if (tipo === 'fecha') return 'Hasta una fecha';
+    return 'Oferta del día';
   }
 
   function precioOfertaValido(producto) {
@@ -219,255 +226,28 @@
       return { tiene: false, vencida: false, texto: '' };
     }
 
-    const ahora = Date.now();
-    const desde = PM.parseFechaOferta(producto.oferta_desde);
+    const tipo = tipoOfertaProducto(producto);
     const hasta = PM.parseFechaOferta(producto.oferta_hasta);
 
-    if (hasta !== null && ahora > hasta) {
-      return { tiene: true, vencida: true, texto: `Vencida (${PM.fechaOfertaCorta(producto.oferta_hasta)})` };
-    }
-    if (desde !== null && ahora < desde) {
-      return { tiene: true, vencida: false, texto: `Empieza el ${PM.fechaOfertaCorta(producto.oferta_desde)}` };
-    }
-    if (hasta !== null) {
-      return { tiene: true, vencida: false, texto: `Activa hasta el ${PM.fechaOfertaCorta(producto.oferta_hasta)}` };
-    }
-    return { tiene: true, vencida: false, texto: 'Activa siempre' };
-  }
-
-  function productoConDatosOferta(producto) {
-    return precioOfertaValido(producto) || !!(producto && (producto.oferta_desde || producto.oferta_hasta));
-  }
-
-  function dosDigitos(numero) {
-    return String(numero).padStart(2, '0');
-  }
-
-  function partesArgentina(ms) {
-    const fecha = new Date((ms == null ? Date.now() : ms) - 3 * 60 * 60 * 1000);
-    return {
-      year: fecha.getUTCFullYear(),
-      month: fecha.getUTCMonth() + 1,
-      day: fecha.getUTCDate(),
-      weekday: fecha.getUTCDay(),
-      hour: fecha.getUTCHours(),
-      minute: fecha.getUTCMinutes()
-    };
-  }
-
-  function isoArgentinaConDias(dias, hora, minuto) {
-    const fecha = new Date((Date.now() - 3 * 60 * 60 * 1000) + dias * 24 * 60 * 60 * 1000);
-    return `${fecha.getUTCFullYear()}-${dosDigitos(fecha.getUTCMonth() + 1)}-${dosDigitos(fecha.getUTCDate())}T${dosDigitos(hora)}:${dosDigitos(minuto)}:00-03:00`;
-  }
-
-  function isoRapidoOferta(campo, accion) {
-    if (accion === 'ninguna') return '';
-
-    if (campo === 'hasta') {
-      if (accion === 'hoy') return isoArgentinaConDias(0, 23, 59);
-      if (accion === 'manana') return isoArgentinaConDias(1, 23, 59);
-      if (accion === 'siete') return isoArgentinaConDias(7, 23, 59);
-      if (accion === 'finde') {
-        const weekday = partesArgentina().weekday;
-        const dias = weekday === 0 ? 0 : 7 - weekday;
-        return isoArgentinaConDias(dias, 23, 59);
+    if (tipo === 'fecha' && hasta !== null) {
+      if (Date.now() > hasta) {
+        return { tiene: true, vencida: true, texto: `Vencida (${PM.fechaOfertaCorta(producto.oferta_hasta)})` };
       }
-      return '';
+      return { tiene: true, vencida: false, texto: `Hasta el ${PM.fechaOfertaCorta(producto.oferta_hasta)}` };
     }
 
-    if (accion === 'ahora') {
-      const ahora = partesArgentina();
-      return isoArgentinaConDias(0, ahora.hour, ahora.minute);
-    }
-    if (accion === 'manana') return isoArgentinaConDias(1, 0, 0);
-    return '';
+    return { tiene: true, vencida: false, texto: '' };
   }
 
-  function textoResumenOferta(campo, valorIso) {
-    if (!valorIso) {
-      return campo === 'hasta' ? 'Sin fecha de fin' : 'Sin fecha de inicio';
-    }
-
-    const ms = PM.parseFechaOferta(valorIso);
-    if (ms === null) return 'Fecha inválida';
-
-    const fecha = PM.fechaOfertaLarga(valorIso);
-    const hora = PM.horaOfertaCorta(valorIso);
-
-    if (campo === 'hasta') {
-      if (ms < Date.now()) return `Vencida el ${fecha} a las ${hora} (hora de Argentina)`;
-      return `Vence el ${fecha} a las ${hora} (hora de Argentina)`;
-    }
-
-    return `Empieza el ${fecha} a las ${hora} (hora de Argentina)`;
+  function isoDesdeFechaInput(valor) {
+    const texto = String(valor || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return '';
+    return `${texto}T23:59:00-03:00`;
   }
 
-  function opcionesHoraOferta(seleccionada) {
-    const valores = [];
-    for (let hora = 0; hora < 24; hora += 1) {
-      valores.push(`${dosDigitos(hora)}:00`);
-      valores.push(`${dosDigitos(hora)}:30`);
-    }
-    if (!valores.includes('23:59')) valores.push('23:59');
-
-    return valores.map(valor => {
-      const seleccion = valor === seleccionada ? ' selected' : '';
-      return `<option value="${valor}"${seleccion}>${valor}</option>`;
-    }).join('');
-  }
-
-  function asegurarOpcionHora(select, hora) {
-    if (!select || !hora) return;
-    if (!Array.from(select.options).some(opcion => opcion.value === hora)) {
-      const opcion = document.createElement('option');
-      opcion.value = hora;
-      opcion.textContent = hora;
-      select.appendChild(opcion);
-    }
-    select.value = hora;
-  }
-
-  function htmlControlOferta(campo, valorIso, idProducto) {
-    const valor = valorIso || '';
-    const paraInput = PM.fechaOfertaParaInput(valor);
-    const fecha = paraInput ? paraInput.slice(0, 10) : '';
-    const horaPorDefecto = campo === 'hasta' ? '23:59' : '00:00';
-    const hora = paraInput ? paraInput.slice(11, 16) : horaPorDefecto;
-    const ambito = idProducto ? `data-id="${escaparHtml(idProducto)}"` : 'data-oferta-nuevo="1"';
-
-    const botones = campo === 'hasta'
-      ? [
-        ['hoy', 'Hoy 23:59'],
-        ['manana', 'Mañana 23:59'],
-        ['siete', 'En 7 días'],
-        ['finde', 'Fin de semana (domingo 23:59)'],
-        ['ninguna', 'Sin fecha de fin']
-      ]
-      : [
-        ['ahora', 'Ahora'],
-        ['manana', 'Mañana 00:00'],
-        ['ninguna', 'Sin fecha de inicio']
-      ];
-
-    return `
-      <div class="admin-oferta-control" data-oferta-control="${campo}" ${ambito}>
-        <input type="hidden" data-oferta-valor="${campo}" value="${escaparHtml(valor)}">
-        <div class="admin-oferta-rapidos">
-          ${botones.map(([accion, texto]) => `<button type="button" class="admin-oferta-rapido" data-accion="oferta-rapida" data-oferta-campo="${campo}" data-oferta-rapida="${accion}">${texto}</button>`).join('')}
-        </div>
-        <div class="admin-oferta-custom">
-          <label class="admin-oferta-custom-item">
-            <span>Fecha</span>
-            <input type="date" data-oferta-fecha="${campo}" value="${escaparHtml(fecha)}">
-          </label>
-          <label class="admin-oferta-custom-item">
-            <span>Hora</span>
-            <select data-oferta-hora="${campo}">${opcionesHoraOferta(hora)}</select>
-          </label>
-        </div>
-        <p class="admin-oferta-resumen" data-oferta-resumen="${campo}">${escaparHtml(textoResumenOferta(campo, valor))}</p>
-      </div>
-    `;
-  }
-
-  function fijarValorOfertaControl(control, valorIso) {
-    if (!control) return;
-    const campo = control.dataset.ofertaControl;
-    const valor = valorIso || '';
-    const paraInput = PM.fechaOfertaParaInput(valor);
-    const horaPorDefecto = campo === 'hasta' ? '23:59' : '00:00';
-
-    const oculto = control.querySelector('[data-oferta-valor]');
-    if (oculto) oculto.value = valor;
-
-    const fecha = control.querySelector('[data-oferta-fecha]');
-    if (fecha) fecha.value = paraInput ? paraInput.slice(0, 10) : '';
-
-    const hora = control.querySelector('[data-oferta-hora]');
-    if (hora) asegurarOpcionHora(hora, paraInput ? paraInput.slice(11, 16) : horaPorDefecto);
-
-    const resumen = control.querySelector('[data-oferta-resumen]');
-    if (resumen) resumen.textContent = textoResumenOferta(campo, valor);
-  }
-
-  function valorOfertaDesdeControles(control) {
-    if (!control) return '';
-    const campo = control.dataset.ofertaControl;
-    const fecha = control.querySelector('[data-oferta-fecha]');
-    const hora = control.querySelector('[data-oferta-hora]');
-    if (!fecha || !fecha.value) return '';
-
-    const partes = fecha.value.split('-');
-    if (partes.length !== 3) return '';
-    const horaFinal = (hora && hora.value) || (campo === 'hasta' ? '23:59' : '00:00');
-    return `${partes[0]}-${partes[1]}-${partes[2]}T${horaFinal}:00-03:00`;
-  }
-
-  function contextoControlOferta(control) {
-    if (!control) return null;
-
-    const card = control.closest('.admin-producto');
-    if (card) {
-      const producto = buscarProducto(card.dataset.id);
-      return producto ? { producto, card } : null;
-    }
-
-    if (control.closest('#form-producto')) return { nuevo: true };
-    return null;
-  }
-
-  function aplicarValorOfertaContexto(contexto, campo, valor) {
-    if (!contexto || !contexto.producto) return;
-    const clave = `oferta_${campo}`;
-    if (valor) contexto.producto[clave] = valor;
-    else delete contexto.producto[clave];
-    actualizarResumenOferta(contexto.card, contexto.producto);
-    marcarCambios();
-  }
-
-  function manejarClickOferta(evento) {
-    const boton = evento.target.closest('[data-accion="oferta-rapida"]');
-    if (!boton) return;
-
-    const control = boton.closest('[data-oferta-control]');
-    if (!control) return;
-
-    evento.preventDefault();
-    const campo = control.dataset.ofertaControl;
-    const valor = isoRapidoOferta(campo, boton.dataset.ofertaRapida);
-    fijarValorOfertaControl(control, valor);
-    aplicarValorOfertaContexto(contextoControlOferta(control), campo, valor);
-  }
-
-  function manejarCambioOferta(evento) {
-    const entrada = evento.target.closest('[data-oferta-fecha], [data-oferta-hora]');
-    if (!entrada) return;
-
-    const control = entrada.closest('[data-oferta-control]');
-    if (!control) return;
-
-    const campo = control.dataset.ofertaControl;
-    const fecha = control.querySelector('[data-oferta-fecha]');
-    const hora = control.querySelector('[data-oferta-hora]');
-
-    if (!fecha || !fecha.value) {
-      if (entrada.matches('[data-oferta-hora]')) {
-        const hoy = partesArgentina();
-        fecha.value = `${hoy.year}-${dosDigitos(hoy.month)}-${dosDigitos(hoy.day)}`;
-      } else {
-        fijarValorOfertaControl(control, '');
-        aplicarValorOfertaContexto(contextoControlOferta(control), campo, '');
-        return;
-      }
-    }
-
-    if (hora && !hora.value) {
-      hora.value = campo === 'hasta' ? '23:59' : '00:00';
-    }
-
-    const valor = valorOfertaDesdeControles(control);
-    fijarValorOfertaControl(control, valor);
-    aplicarValorOfertaContexto(contextoControlOferta(control), campo, valor);
+  function fechaInputDesdeIso(valorIso) {
+    const paraInput = PM.fechaOfertaParaInput(valorIso);
+    return paraInput ? paraInput.slice(0, 10) : '';
   }
 
   function productosDeCategoria(id) {
@@ -806,7 +586,6 @@
     el.listaProductos.innerHTML = productos.map(producto => {
       const id = producto.id;
       const abierto = productosExpandidos.has(id);
-      const esPromo = producto.categoria === 'promo';
       const tipo = tipoOfertaProducto(producto);
       const oferta = estadoOfertaProducto(producto);
       const precios = producto.precios || {};
@@ -820,7 +599,7 @@
       const agotadoBadge = agotado
         ? `<span class="admin-badge admin-badge-agotado">${agotadoPermanente ? 'AGOTADO PERMANENTE' : 'AGOTADO HOY'}</span>`
         : '';
-      const ofertaFechas = oferta.tiene
+      const ofertaFechas = oferta.tiene && oferta.texto
         ? `<p class="admin-prod-desc admin-prod-oferta-fechas">${escaparHtml(oferta.texto)}</p>`
         : '';
 
@@ -886,12 +665,12 @@
                 <input type="number" min="0" step="100" data-campo-producto="mesa" value="${escaparHtml(precios.mesa === undefined ? '' : precios.mesa)}">
               </label>
 
-              ${esPromo ? `
               <label class="admin-campo">
-                <span>Estilo del cartel</span>
+                <span>Tipo de oferta</span>
                 <select data-campo-producto="tipoOferta">
-                  <option value="dia"${tipo === 'dia' ? ' selected' : ''}>Del día</option>
-                  <option value="semana"${tipo === 'semana' ? ' selected' : ''}>De la semana</option>
+                  <option value="dia"${tipo === 'dia' ? ' selected' : ''}>Oferta del día</option>
+                  <option value="semana"${tipo === 'semana' ? ' selected' : ''}>Oferta de la semana</option>
+                  <option value="fecha"${tipo === 'fecha' ? ' selected' : ''}>Hasta una fecha</option>
                 </select>
               </label>
 
@@ -905,21 +684,10 @@
                 <input type="number" min="0" step="100" data-campo-producto="mesa_oferta" value="${escaparHtml(producto.mesa_oferta === undefined ? '' : producto.mesa_oferta)}">
               </label>
 
-              <div class="admin-campo admin-campo-oferta-fechas">
-                <span>Oferta desde</span>
-                ${htmlControlOferta('desde', producto.oferta_desde, id)}
-              </div>
-
-              <div class="admin-campo admin-campo-oferta-fechas">
-                <span>Oferta hasta</span>
-                ${htmlControlOferta('hasta', producto.oferta_hasta, id)}
-              </div>
-
-              <div class="admin-campo admin-campo-oferta-limpiar">
-                <span>Fechas de oferta</span>
-                <button type="button" class="btn-secundario" data-accion="limpiar-fechas-oferta" data-id="${escaparHtml(id)}">Limpiar ambas fechas</button>
-              </div>
-              ` : ''}
+              <label class="admin-campo admin-campo-oferta-fecha"${tipo === 'fecha' ? '' : ' hidden'}>
+                <span>Termina el</span>
+                <input type="date" data-campo-producto="oferta_hasta_fecha" value="${escaparHtml(fechaInputDesdeIso(producto.oferta_hasta))}">
+              </label>
 
               <label class="admin-campo admin-campo-check">
                 <span>Agotado hoy</span>
@@ -963,7 +731,7 @@
     const estado = estadoOfertaProducto(producto);
     let parrafo = info.querySelector('.admin-prod-oferta-fechas');
 
-    if (!estado.tiene) {
+    if (!estado.tiene || !estado.texto) {
       if (parrafo) parrafo.remove();
       return;
     }
@@ -999,21 +767,6 @@
       if (!categoriaValida(control.value)) return;
 
       const categoriaAnterior = producto.categoria;
-
-      if (categoriaAnterior === 'promo' && control.value !== 'promo' && productoConDatosOferta(producto)) {
-        const confirmado = window.confirm(
-          `"${producto.nombre || producto.id}" tiene una oferta cargada. Si lo cambiás a otra categoría, se va a quitar la oferta. ¿Continuar?`
-        );
-        if (!confirmado) {
-          control.value = categoriaAnterior;
-          return;
-        }
-        delete producto.delivery_oferta;
-        delete producto.mesa_oferta;
-        delete producto.oferta_desde;
-        delete producto.oferta_hasta;
-      }
-
       const idAnterior = producto.id;
       const sufijo = idAnterior.startsWith(`${categoriaAnterior}_`)
         ? idAnterior.slice(categoriaAnterior.length + 1)
@@ -1058,10 +811,25 @@
       else producto.precios[campo] = valor;
       actualizarResumenPrecios(contenedor, producto);
     } else if (campo === 'tipoOferta') {
-      producto.tipoOferta = control.value === 'semana' ? 'semana' : 'dia';
+      producto.tipoOferta = TIPOS_OFERTA.includes(control.value) ? control.value : 'dia';
+      if (producto.tipoOferta === 'fecha') {
+        delete producto.oferta_desde;
+      } else {
+        delete producto.oferta_desde;
+        delete producto.oferta_hasta;
+      }
       marcarCambios();
       renderizarCategorias();
       renderizarDetalleCategoria();
+      return;
+    } else if (campo === 'oferta_hasta_fecha') {
+      const valor = isoDesdeFechaInput(control.value);
+      if (valor) producto.oferta_hasta = valor;
+      else delete producto.oferta_hasta;
+      const estado = estadoOfertaProducto(producto);
+      contenedor.dataset.oferta = estado.tiene ? (estado.vencida ? 'vencida' : 'activa') : 'ninguna';
+      actualizarResumenOferta(contenedor, producto);
+      marcarCambios();
       return;
     } else if (campo === 'delivery_oferta' || campo === 'mesa_oferta') {
       const valor = Number(control.value);
@@ -1101,24 +869,6 @@
       renderizarCategorias();
       renderizarDetalleCategoria();
       return;
-    }
-
-    marcarCambios();
-  }
-
-  function limpiarFechasOferta(id) {
-    const producto = buscarProducto(id);
-    if (!producto) return;
-
-    delete producto.oferta_desde;
-    delete producto.oferta_hasta;
-
-    const card = buscarTarjetaProducto(id);
-    if (card) {
-      card.querySelectorAll('[data-oferta-control]').forEach(control => {
-        fijarValorOfertaControl(control, '');
-      });
-      actualizarResumenOferta(card, producto);
     }
 
     marcarCambios();
@@ -1279,15 +1029,9 @@
     subiendoFotoNueva = false;
     el.formProducto.reset();
     if (el.productoCategoriaChip) el.productoCategoriaChip.textContent = cat.nombre || cat.id;
-    if (el.productoOfertaCampos) {
-      el.productoOfertaCampos.forEach(campo => { campo.hidden = cat.id !== 'promo'; });
-    }
-    if (el.formProducto) {
-      const phDesde = el.formProducto.querySelector('[data-oferta-placeholder="desde"]');
-      const phHasta = el.formProducto.querySelector('[data-oferta-placeholder="hasta"]');
-      if (phDesde) phDesde.innerHTML = htmlControlOferta('desde', '', null);
-      if (phHasta) phHasta.innerHTML = htmlControlOferta('hasta', '', null);
-    }
+    if (el.productoTipoOferta) el.productoTipoOferta.value = 'dia';
+    if (el.productoOfertaHasta) el.productoOfertaHasta.value = '';
+    if (el.productoOfertaFechaCampo) el.productoOfertaFechaCampo.hidden = true;
     if (el.productoFotoFile) el.productoFotoFile.value = '';
     if (el.productoFotoPreview) {
       el.productoFotoPreview.dataset.fallback = '';
@@ -1389,14 +1133,14 @@
     const descripcion = el.productoDescripcion.value.trim();
     const delivery = Number(el.productoDelivery.value);
     const mesa = Number(el.productoMesa.value);
-    const esPromo = cat.id === 'promo';
-    const tipoOfertaNueva = el.productoTipoOferta && el.productoTipoOferta.value === 'semana' ? 'semana' : 'dia';
-    const ofertaDeliveryTexto = esPromo && el.productoDeliveryOferta ? el.productoDeliveryOferta.value.trim() : '';
-    const ofertaMesaTexto = esPromo && el.productoMesaOferta ? el.productoMesaOferta.value.trim() : '';
-    const controlDesde = el.formProducto ? el.formProducto.querySelector('[data-oferta-control="desde"]') : null;
-    const controlHasta = el.formProducto ? el.formProducto.querySelector('[data-oferta-control="hasta"]') : null;
-    const ofertaDesde = esPromo && controlDesde ? (controlDesde.querySelector('[data-oferta-valor]') || {}).value || '' : '';
-    const ofertaHasta = esPromo && controlHasta ? (controlHasta.querySelector('[data-oferta-valor]') || {}).value || '' : '';
+    const tipoOfertaNueva = el.productoTipoOferta && TIPOS_OFERTA.includes(el.productoTipoOferta.value)
+      ? el.productoTipoOferta.value
+      : 'dia';
+    const ofertaDeliveryTexto = el.productoDeliveryOferta ? el.productoDeliveryOferta.value.trim() : '';
+    const ofertaMesaTexto = el.productoMesaOferta ? el.productoMesaOferta.value.trim() : '';
+    const ofertaHasta = tipoOfertaNueva === 'fecha' && el.productoOfertaHasta
+      ? isoDesdeFechaInput(el.productoOfertaHasta.value)
+      : '';
 
     if (!nombre) {
       mostrarEstado(el.productoEstado, 'Escribí un nombre para el producto.', 'error');
@@ -1436,7 +1180,6 @@
     };
 
     if (descripcion) producto.descripcion = descripcion;
-    if (esPromo) producto.tipoOferta = tipoOfertaNueva;
 
     const hayPrecioOferta = ofertaDeliveryTexto !== '' || ofertaMesaTexto !== '';
 
@@ -1454,27 +1197,16 @@
         return;
       }
 
+      if (tipoOfertaNueva === 'fecha' && !ofertaHasta) {
+        mostrarEstado(el.productoEstado, 'Elegí la fecha en la que termina la oferta.', 'error');
+        return;
+      }
+
       producto.delivery_oferta = deliveryOferta;
       producto.mesa_oferta = mesaOferta;
+      producto.tipoOferta = tipoOfertaNueva;
+      if (tipoOfertaNueva === 'fecha') producto.oferta_hasta = ofertaHasta;
     }
-
-    if (ofertaDesde && PM.parseFechaOferta(ofertaDesde) === null) {
-      mostrarEstado(el.productoEstado, 'La fecha "Oferta desde" es inválida.', 'error');
-      return;
-    }
-
-    if (ofertaHasta && PM.parseFechaOferta(ofertaHasta) === null) {
-      mostrarEstado(el.productoEstado, 'La fecha "Oferta hasta" es inválida.', 'error');
-      return;
-    }
-
-    if (ofertaDesde && ofertaHasta && PM.parseFechaOferta(ofertaHasta) <= PM.parseFechaOferta(ofertaDesde)) {
-      mostrarEstado(el.productoEstado, 'La fecha "Oferta hasta" debe ser posterior a "Oferta desde".', 'error');
-      return;
-    }
-
-    if (ofertaDesde) producto.oferta_desde = ofertaDesde;
-    if (ofertaHasta) producto.oferta_hasta = ofertaHasta;
 
     carta.productos.push(producto);
     productosExpandidos.add(producto.id);
@@ -1670,17 +1402,24 @@
       if (!categorias.has(producto.categoria)) return `"${nombre}" tiene una categoría inválida.`;
       if (!id.startsWith(`${producto.categoria}_`)) return `El ID "${id}" debe empezar con "${producto.categoria}_".`;
 
+      if (producto.tipoOferta && !TIPOS_OFERTA.includes(producto.tipoOferta)) {
+        return `"${nombre}" tiene un tipo de oferta inválido.`;
+      }
+
       const desde = producto.oferta_desde ? PM.parseFechaOferta(producto.oferta_desde) : null;
       const hasta = producto.oferta_hasta ? PM.parseFechaOferta(producto.oferta_hasta) : null;
 
       if (producto.oferta_desde && desde === null) {
-        return `"${nombre}" tiene una fecha de "Oferta desde" inválida.`;
+        return `"${nombre}" tiene una fecha de inicio de oferta inválida.`;
       }
       if (producto.oferta_hasta && hasta === null) {
-        return `"${nombre}" tiene una fecha de "Oferta hasta" inválida.`;
+        return `"${nombre}" tiene una fecha de fin de oferta inválida.`;
       }
       if (desde !== null && hasta !== null && hasta <= desde) {
-        return `En "${nombre}", "Oferta hasta" debe ser posterior a "Oferta desde".`;
+        return `En "${nombre}", el fin de la oferta debe ser posterior al inicio.`;
+      }
+      if (precioOfertaValido(producto) && tipoOfertaProducto(producto) === 'fecha' && hasta === null) {
+        return `"${nombre}" tiene una oferta "Hasta una fecha" sin fecha de fin.`;
       }
     }
 
@@ -1711,43 +1450,41 @@
         producto.precios[campo] = Number.isFinite(numero) && numero >= 0 ? numero : 0;
       });
 
-      if (producto.categoria !== 'promo') {
-        delete producto.delivery_oferta;
-        delete producto.mesa_oferta;
+      if (producto.tipoOferta !== undefined) {
+        producto.tipoOferta = TIPOS_OFERTA.includes(producto.tipoOferta) ? producto.tipoOferta : 'dia';
+      }
+
+      const tienePrecioOferta = producto.delivery_oferta !== undefined || producto.mesa_oferta !== undefined;
+
+      if (tienePrecioOferta) {
+        const deliveryOferta = Number(producto.delivery_oferta);
+        const mesaOferta = Number(producto.mesa_oferta);
+        const delivery = producto.precios.delivery;
+        const mesa = producto.precios.mesa;
+        if (Number.isFinite(deliveryOferta) && deliveryOferta > 0 && deliveryOferta < delivery &&
+            Number.isFinite(mesaOferta) && mesaOferta > 0 && mesaOferta < mesa) {
+          producto.delivery_oferta = deliveryOferta;
+          producto.mesa_oferta = mesaOferta;
+          producto.tipoOferta = tipoOfertaProducto(producto);
+        } else {
+          delete producto.delivery_oferta;
+          delete producto.mesa_oferta;
+        }
+      }
+
+      if (!precioOfertaValido(producto)) {
+        delete producto.tipoOferta;
         delete producto.oferta_desde;
         delete producto.oferta_hasta;
+      } else if (tipoOfertaProducto(producto) === 'fecha') {
+        delete producto.oferta_desde;
+        const valorInput = PM.fechaOfertaParaInput(producto.oferta_hasta);
+        const iso = valorInput ? PM.inputOfertaAIso(valorInput) : '';
+        if (iso) producto.oferta_hasta = iso;
+        else delete producto.oferta_hasta;
       } else {
-        if (producto.tipoOferta !== 'dia' && producto.tipoOferta !== 'semana') {
-          producto.tipoOferta = 'dia';
-        }
-
-        const tienePrecioOferta = producto.delivery_oferta !== undefined || producto.mesa_oferta !== undefined;
-
-        if (tienePrecioOferta) {
-          const deliveryOferta = Number(producto.delivery_oferta);
-          const mesaOferta = Number(producto.mesa_oferta);
-          const delivery = producto.precios.delivery;
-          const mesa = producto.precios.mesa;
-          if (Number.isFinite(deliveryOferta) && deliveryOferta > 0 && deliveryOferta < delivery &&
-              Number.isFinite(mesaOferta) && mesaOferta > 0 && mesaOferta < mesa) {
-            producto.delivery_oferta = deliveryOferta;
-            producto.mesa_oferta = mesaOferta;
-          } else {
-            delete producto.delivery_oferta;
-            delete producto.mesa_oferta;
-          }
-        }
-
-        ['oferta_desde', 'oferta_hasta'].forEach(campo => {
-          if (!producto[campo]) {
-            delete producto[campo];
-            return;
-          }
-          const valorInput = PM.fechaOfertaParaInput(producto[campo]);
-          const iso = valorInput ? PM.inputOfertaAIso(valorInput) : '';
-          if (iso) producto[campo] = iso;
-          else delete producto[campo];
-        });
+        delete producto.oferta_desde;
+        delete producto.oferta_hasta;
       }
 
       producto.foto = String(producto.foto || '').trim();
@@ -1920,18 +1657,13 @@
     if (el.btnCerrarFormProducto) el.btnCerrarFormProducto.addEventListener('click', cerrarFormularioProducto);
     if (el.btnCancelarProducto) el.btnCancelarProducto.addEventListener('click', cerrarFormularioProducto);
     if (el.formProducto) el.formProducto.addEventListener('submit', agregarProducto);
-    if (el.productoLimpiarFechasOferta) {
-      el.productoLimpiarFechasOferta.addEventListener('click', () => {
-        if (!el.formProducto) return;
-        el.formProducto.querySelectorAll('[data-oferta-control]').forEach(control => {
-          fijarValorOfertaControl(control, '');
-        });
+    if (el.productoTipoOferta) {
+      el.productoTipoOferta.addEventListener('change', () => {
+        const esFecha = el.productoTipoOferta.value === 'fecha';
+        if (el.productoOfertaFechaCampo) el.productoOfertaFechaCampo.hidden = !esFecha;
+        if (!esFecha && el.productoOfertaHasta) el.productoOfertaHasta.value = '';
       });
     }
-
-    document.addEventListener('click', manejarClickOferta);
-    document.addEventListener('input', manejarCambioOferta);
-    document.addEventListener('change', manejarCambioOferta);
 
     if (el.btnSubirProducto) {
       el.btnSubirProducto.addEventListener('click', () => abrirSelectorArchivo(el.productoFotoFile));
@@ -2013,7 +1745,6 @@
 
           if (accion === 'toggle-producto') toggleProducto(id);
           else if (accion === 'eliminar-producto') eliminarProducto(id);
-          else if (accion === 'limpiar-fechas-oferta') limpiarFechasOferta(id);
           else if (accion === 'subir-imagen-producto') {
             const archivo = zona ? zona.querySelector('[data-file-producto]') : null;
             abrirSelectorArchivo(archivo);

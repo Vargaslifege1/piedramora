@@ -226,6 +226,8 @@ let CARTAS_UNIFICADAS = { categorias: [], productos: [] };
 let CARTA_CACHE_LOADED = false;
 let cartaCargaPromise = null;
 let CARRITO = [];
+let pedidoEnviando = false;
+let checkoutIdempotencyKey = null;
 
 function crearConfiguracionAppPorDefecto() {
   return {
@@ -1327,7 +1329,13 @@ function productoTieneOferta(prod) {
 function obtenerTipoOfertaProducto(prod) {
   if (!productoTieneOferta(prod)) return null;
   const tipo = String((prod && prod.tipoOferta) || '').toLowerCase();
-  return tipo === 'semana' ? 'semana' : 'dia';
+  if (tipo === 'semana') return 'semana';
+  if (tipo === 'fecha') return 'fecha';
+  return 'dia';
+}
+
+function obtenerTipoOfertaVisual(prod) {
+  return obtenerTipoOfertaProducto(prod) === 'semana' ? 'semana' : 'dia';
 }
 
 function obtenerPrecioProducto(prod, sucursalId) {
@@ -1338,9 +1346,11 @@ function obtenerPrecioProducto(prod, sucursalId) {
 
 function obtenerEtiquetaOferta(prod) {
   const tipo = obtenerTipoOfertaProducto(prod);
-  const base = tipo === 'semana' ? '🔥 OFERTA DE LA SEMANA' : '⚡ OFERTA DEL DÍA';
-  const hasta = PM.fechaOfertaCorta(prod && prod.oferta_hasta);
-  return hasta ? `${base} · Hasta el ${hasta}` : base;
+  if (tipo === 'fecha') {
+    const hasta = PM.fechaOfertaCorta(prod && prod.oferta_hasta);
+    return hasta ? `Hasta el ${hasta}` : 'OFERTA';
+  }
+  return tipo === 'semana' ? '🔥 OFERTA DE LA SEMANA' : '⚡ OFERTA DEL DÍA';
 }
 
 /* ===== LÓGICA DE CARRITO ===== */
@@ -1379,6 +1389,7 @@ function modificarCantidadLinea(lineaId, cambio) {
 }
 
 function actualizarVistaCarrito() {
+  if (!pedidoEnviando) checkoutIdempotencyKey = null;
   if (categoriaActivaIndex >= 0 && cartaActualData && cartaActualData.categorias[categoriaActivaIndex]) {
     renderProductosCategoria(cartaActualData.categorias[categoriaActivaIndex]);
   }
@@ -1940,7 +1951,7 @@ function renderProductosCategoria(categoria) {
 
   productos.forEach(prod => {
     const esOferta = productoTieneOferta(prod);
-    const tipoOferta = obtenerTipoOfertaProducto(prod);
+    const tipoOferta = obtenerTipoOfertaVisual(prod);
     const agotado = PM.productoEstaAgotado(prod);
     const card = document.createElement('article');
     card.className = 'carta-producto-card-nuevo';
@@ -2729,8 +2740,111 @@ document.getElementById('btn-confirmar-mapa-fullscreen')?.addEventListener('clic
 });
 
 // Envío del Formulario con Emojis Seguros en Unicode
-document.getElementById('checkout-form')?.addEventListener('submit', (e) => {
+function generarUuidPedido() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return window.crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (caracter) => {
+    const azar = Math.floor(Math.random() * 16);
+    const valor = caracter === 'x' ? azar : ((azar & 0x3) | 0x8);
+    return valor.toString(16);
+  });
+}
+
+function obtenerIdempotencyKeyPedido() {
+  if (!checkoutIdempotencyKey) checkoutIdempotencyKey = generarUuidPedido();
+  return checkoutIdempotencyKey;
+}
+
+function itemsPedidoDesdeRespuesta(pedido) {
+  if (!pedido || !Array.isArray(pedido.items)) return null;
+  return pedido.items.map((item) => {
+    const especificaciones = [];
+    if (item.variacion_nombre) especificaciones.push(item.variacion_nombre);
+    if (Array.isArray(item.adicionales)) {
+      item.adicionales.forEach((adicional) => {
+        if (adicional && adicional.nombre) especificaciones.push(adicional.nombre);
+      });
+    }
+    return {
+      nombre: item.nombre || item.producto_id || 'Producto',
+      cantidad: Number(item.cantidad) || 0,
+      subtotal: Number(item.subtotal) || 0,
+      especificaciones
+    };
+  });
+}
+
+function construirMensajePedido({
+  sucursal,
+  esMesa,
+  modalidadTexto,
+  nombre,
+  telefono,
+  tipoEntrega,
+  direccionFormateada,
+  pago,
+  notas,
+  items,
+  totales,
+  numeroOrden
+}) {
+  const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
+  let mensaje = `*NUEVO PEDIDO - ${nombreNegocio}*\n\n`;
+  if (numeroOrden) mensaje += `\ud83e\uddfe *Pedido:* ${normalizarTextoMensaje(numeroOrden, true)}\n`;
+  mensaje += `\ud83d\udce2 *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
+  mensaje += `\ud83d\udef5 *Modalidad:* ${modalidadTexto}\n`;
+  mensaje += `\ud83d\udc64 *Cliente:* ${nombre}\n`;
+  mensaje += `\ud83d\udcf1 *Teléfono:* ${telefono}\n`;
+  if (!esMesa) mensaje += `\ud83d\udce6 *Entrega:* ${tipoEntrega}\n`;
+  if (direccionFormateada) mensaje += `\ud83d\udccd *Dirección:* ${direccionFormateada}\n`;
+  const porcentaje = Number(pago.porcentaje) || 0;
+  mensaje += `\ud83d\udcb0 *Pago:* ${pago.nombre}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}\n`;
+  if (notas) mensaje += `\ud83d\udcdd *Notas:* ${notas}\n`;
+
+  mensaje += `*Detalle del pedido:*\n`;
+  (items || []).forEach((item) => {
+    const subtotal = Number(item.subtotal) || 0;
+    const especificaciones = Array.isArray(item.especificaciones) ? item.especificaciones : [];
+    const detalleConfig = especificaciones.length > 0
+      ? ` (${especificaciones.map(esp => normalizarTextoMensaje(esp, true)).join(', ')})`
+      : '';
+    mensaje += `- ${item.cantidad} x ${normalizarTextoMensaje(item.nombre, true)}${detalleConfig} — ${formatearPrecioAR(subtotal)}\n`;
+  });
+
+  const subtotal = Number(totales.subtotal) || 0;
+  const descuento = Number(totales.descuento) || 0;
+  const envio = Number(totales.costo_envio) || 0;
+  const total = Number(totales.total) || 0;
+  mensaje += `\n*Subtotal:* ${formatearPrecioAR(subtotal)}\n`;
+  if (descuento > 0) {
+    mensaje += `*Descuento (${pago.nombre} ${porcentaje}%):* - ${formatearPrecioAR(descuento)}\n`;
+  }
+  if (envio > 0) {
+    mensaje += `*Envío:* ${formatearPrecioAR(envio)}\n`;
+  }
+  mensaje += `*TOTAL:* ${formatearPrecioAR(total)}`;
+  return mensaje;
+}
+
+function abrirEnlaceWhatsapp(ventana, url) {
+  if (ventana && !ventana.closed) {
+    try {
+      ventana.location.href = url;
+      return;
+    } catch (error) {}
+  }
+  const nueva = window.open(url, '_blank');
+  if (nueva) {
+    try { nueva.opener = null; } catch (error) {}
+    return;
+  }
+  window.location.href = url;
+}
+
+document.getElementById('checkout-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (pedidoEnviando) return;
 
   const sucursal = SUCURSALES[cartaActualSucursalId];
   if (!sucursal) return;
@@ -2763,11 +2877,14 @@ document.getElementById('checkout-form')?.addEventListener('submit', (e) => {
     ? 'Mesa (salón)'
     : (tipoEntregaEl && tipoEntregaEl.dataset.tipoEntrega === 'delivery' ? 'Delivery' : 'Retiro / Takeaway');
 
+  let direccionTexto = '';
   let direccionFormateada = '';
+  let lat = null;
+  let lng = null;
   if (tipoEntrega === 'Delivery') {
-    const direccionTexto = normalizarTextoMensaje(direccionSeleccionadaObjeto?.texto, true);
-    const lat = Number(direccionSeleccionadaObjeto?.lat);
-    const lng = Number(direccionSeleccionadaObjeto?.lng);
+    direccionTexto = normalizarTextoMensaje(direccionSeleccionadaObjeto?.texto, true);
+    lat = Number(direccionSeleccionadaObjeto?.lat);
+    lng = Number(direccionSeleccionadaObjeto?.lng);
 
     if (!direccionTexto || !Number.isFinite(lat) || !Number.isFinite(lng)) {
       mostrarErrorDireccion('Seleccioná una dirección de la lista o marcá tu ubicación en el mapa.');
@@ -2779,43 +2896,118 @@ document.getElementById('checkout-form')?.addEventListener('submit', (e) => {
   const pago = obtenerPagoSeleccionado();
   const notas = normalizarTextoMensaje(document.getElementById('cliente-notas')?.value, false);
 
-  const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
-  let mensaje = `*NUEVO PEDIDO - ${nombreNegocio}*\n\n`;
-  mensaje += `\ud83d\udce2 *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
-  mensaje += `\ud83d\udef5 *Modalidad:* ${esMesa ? 'Mesa (salón)' : (cartaModalidadSeleccionada === 'delivery_takeaway' ? 'Delivery / Takeaway' : 'Delivery')}\n`;
-  mensaje += `\ud83d\udc64 *Cliente:* ${nombre}\n`;
-  mensaje += `\ud83d\udcf1 *Teléfono:* ${telefono}\n`;
-  if (!esMesa) mensaje += `\ud83d\udce6 *Entrega:* ${tipoEntrega}\n`;
-  if (direccionFormateada) mensaje += `\ud83d\udccd *Dirección:* ${direccionFormateada}\n`;
-  mensaje += `\ud83d\udcb0 *Pago:* ${pago.nombre}${pago.porcentaje > 0 ? ` (${pago.porcentaje}% de descuento)` : ''}\n`;
-  if (notas) mensaje += `\ud83d\udcdd *Notas:* ${notas}\n`;
-
-  mensaje += `*Detalle del pedido:*\n`;
-  let totalGeneral = 0;
-  CARRITO.forEach(item => {
-    const subtotal = item.precio * item.cantidad;
-    totalGeneral += subtotal;
-    const especificaciones = obtenerEspecificacionesLinea(item);
-    const detalleConfig = especificaciones.length > 0 ? ` (${especificaciones.map(esp => normalizarTextoMensaje(esp, true)).join(', ')})` : '';
-    mensaje += `- ${item.cantidad} x ${normalizarTextoMensaje(item.nombre, true)}${detalleConfig} — ${formatearPrecioAR(subtotal)}\n`;
-  });
-
-  const totales = calcularTotalesPedido(totalGeneral, pago);
-  mensaje += `\n*Subtotal:* ${formatearPrecioAR(totales.subtotal)}\n`;
-  if (totales.descuento > 0) {
-    mensaje += `*Descuento (${pago.nombre} ${pago.porcentaje}%):* - ${formatearPrecioAR(totales.descuento)}\n`;
-  }
-  mensaje += `*TOTAL:* ${formatearPrecioAR(totales.total)}`;
-
   const numeroWsp = String((sucursal.botones && sucursal.botones.whatsapp) || sucursal.whatsapp || '').replace(/\D/g, '');
   if (!numeroWsp) {
     alert('La sucursal no tiene un número de WhatsApp configurado.');
     return;
   }
-  const mensajeLimpio = normalizarTextoMensaje(mensaje).normalize('NFC');
-  const link = `https://wa.me/${numeroWsp}?text=${encodeURIComponent(mensajeLimpio)}`;
 
-  window.open(link, '_blank', 'noopener,noreferrer');
+  const itemsCliente = CARRITO.map((item) => ({
+    nombre: item.nombre,
+    cantidad: item.cantidad,
+    subtotal: item.precio * item.cantidad,
+    especificaciones: obtenerEspecificacionesLinea(item)
+  }));
+  const totalGeneral = itemsCliente.reduce((acc, item) => acc + item.subtotal, 0);
+  const totalesCliente = calcularTotalesPedido(totalGeneral, pago);
+
+  pedidoEnviando = true;
+  const idempotencyKey = obtenerIdempotencyKeyPedido();
+  const botonEnviar = document.querySelector('#checkout-form button[type="submit"]');
+  if (botonEnviar) {
+    botonEnviar.disabled = true;
+    botonEnviar.dataset.textoOriginal = botonEnviar.textContent;
+    botonEnviar.textContent = 'GUARDANDO PEDIDO...';
+  }
+
+  const ventanaWhatsapp = window.open('', '_blank');
+  if (ventanaWhatsapp) {
+    try { ventanaWhatsapp.opener = null; } catch (error) {}
+  }
+
+  let pedidoGuardado = null;
+  try {
+    await cargarConfigNube();
+    const clienteNube = obtenerClienteNube();
+    if (clienteNube) {
+      const { data, error } = await clienteNube.rpc('crear_pedido', {
+        p_sucursal_id: cartaActualSucursalId,
+        p_modalidad: esMesa ? 'mesa' : (tipoEntrega === 'Delivery' ? 'delivery' : 'retiro'),
+        p_cliente_nombre: nombre,
+        p_cliente_telefono: telefono,
+        p_direccion: direccionTexto || null,
+        p_lat: lat,
+        p_lng: lng,
+        p_pago_tipo: pago.tipo,
+        p_notas: notas || null,
+        p_items: CARRITO.map((item) => ({
+          producto_id: item.productoBaseId,
+          variacion_id: item.variacion ? item.variacion.id : null,
+          adicionales_ids: (item.adicionalesLista || []).map(adicional => adicional.id),
+          cantidad: item.cantidad
+        })),
+        p_idempotency_key: idempotencyKey
+      });
+      if (error) throw error;
+      pedidoGuardado = data;
+    }
+  } catch (error) {
+    console.warn('No se pudo guardar el pedido en la base. Se continúa con WhatsApp.', error);
+  }
+
+  try {
+    const itemsGuardados = itemsPedidoDesdeRespuesta(pedidoGuardado);
+    const itemsMensaje = itemsGuardados && itemsGuardados.length > 0 ? itemsGuardados : itemsCliente;
+    const totalesMensaje = pedidoGuardado
+      ? {
+          subtotal: Number(pedidoGuardado.subtotal) || 0,
+          descuento: Number(pedidoGuardado.descuento) || 0,
+          costo_envio: Number(pedidoGuardado.costo_envio) || 0,
+          total: Number(pedidoGuardado.total) || 0
+        }
+      : totalesCliente;
+    const numeroOrden = pedidoGuardado && pedidoGuardado.numero_orden
+      ? String(pedidoGuardado.numero_orden)
+      : '';
+
+    const mensaje = construirMensajePedido({
+      sucursal,
+      esMesa,
+      modalidadTexto: esMesa ? 'Mesa (salón)' : (cartaModalidadSeleccionada === 'delivery_takeaway' ? 'Delivery / Takeaway' : 'Delivery'),
+      nombre,
+      telefono,
+      tipoEntrega,
+      direccionFormateada,
+      pago,
+      notas,
+      items: itemsMensaje,
+      totales: totalesMensaje,
+      numeroOrden
+    });
+
+    const mensajeLimpio = normalizarTextoMensaje(mensaje).normalize('NFC');
+    const link = `https://wa.me/${numeroWsp}?text=${encodeURIComponent(mensajeLimpio)}`;
+
+    abrirEnlaceWhatsapp(ventanaWhatsapp, link);
+
+    if (pedidoGuardado) {
+      checkoutIdempotencyKey = null;
+      vaciarCarrito({ resetDireccion: true });
+      cerrarModalCheckout();
+      actualizarVistaCarrito();
+    }
+  } catch (error) {
+    console.error('No se pudo abrir WhatsApp con el pedido.', error);
+    if (ventanaWhatsapp && !ventanaWhatsapp.closed) {
+      try { ventanaWhatsapp.close(); } catch (cerrarError) {}
+    }
+  } finally {
+    if (botonEnviar) {
+      botonEnviar.disabled = false;
+      botonEnviar.textContent = botonEnviar.dataset.textoOriginal || 'ENVIAR PEDIDO POR WHATSAPP';
+    }
+    pedidoEnviando = false;
+  }
 });
 
 /* ===== Categorías Navegación ===== */
@@ -2923,8 +3115,11 @@ function obtenerTipoOfertaCategoria(cat) {
   productos.forEach(prod => {
     if (!productoTieneOferta(prod)) return;
     const tipoProd = obtenerTipoOfertaProducto(prod);
-    if (tipoProd === 'dia') tipo = 'dia';
-    else if (tipoProd === 'semana' && tipo !== 'dia') tipo = 'semana';
+    if (tipoProd === 'semana') {
+      if (tipo !== 'dia') tipo = 'semana';
+    } else {
+      tipo = 'dia';
+    }
   });
 
   return tipo;
