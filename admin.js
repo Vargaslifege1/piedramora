@@ -6,6 +6,9 @@
   const BUCKET_IMAGENES = 'carta-imagenes';
   const TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024;
   const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
+  const CLAVE_PREF_SONIDO = 'piedraMoraAdminSonido';
+  const CLAVE_PREF_VOLUMEN = 'piedraMoraAdminVolumen';
+  const INTERVALO_ALERTA_PEDIDOS = 8000;
   let SUCURSALES_POR_DEFECTO = ['maestro-quiroga', 'intendente-lascano'];
   let SUCURSALES_NOMBRES = {};
 
@@ -107,6 +110,8 @@
     tramosMetrosReferencia: document.getElementById('tramos-metros-referencia'),
     pedidosBadge: document.getElementById('pedidos-badge'),
     btnPedidosActivarSonido: document.getElementById('btn-pedidos-activar-sonido'),
+    pedidosVolumen: document.getElementById('pedidos-volumen'),
+    pedidosSonidoEstado: document.getElementById('pedidos-sonido-estado'),
     btnPedidosActualizar: document.getElementById('btn-pedidos-actualizar'),
     pedidosEstado: document.getElementById('pedidos-estado'),
     pedidosAviso: document.getElementById('pedidos-aviso'),
@@ -138,8 +143,14 @@
   let pedidoAbiertoId = null;
   let pedidosCanal = null;
   let pedidosTimer = null;
-  let pedidosSonidoActivo = false;
+  let pedidosSonidoActivo = true;
+  let pedidosVolumen = 0.7;
+  let pedidosAlertaTimer = null;
+  let pedidosTituloTimer = null;
+  let pedidosTituloAlternado = false;
+  let pedidosTituloOriginal = document.title;
   let audioContexto = null;
+  let audioDesbloqueado = false;
 
   let enviosCargados = false;
   let enviosCargando = false;
@@ -468,6 +479,7 @@
     cerrarModalPedido();
     cerrarFormTramo();
     detenerRealtimePedidos();
+    detenerAlertaPedidos();
     enviosCargados = false;
     actualizarBotonGuardar();
   }
@@ -1822,9 +1834,17 @@
     });
   }
 
+  function pedidoCuentaComoVenta(pedido) {
+    return !!pedido && pedido.sincronizado !== false;
+  }
+
+  function contarPedidosNuevos() {
+    return pedidos.filter(pedido => pedidoCuentaComoVenta(pedido) && pedido.estado === 'pendiente').length;
+  }
+
   function actualizarBadgePedidos() {
     if (!el.pedidosBadge) return;
-    const pendientes = pedidos.filter(pedido => pedido && pedido.estado === 'pendiente').length;
+    const pendientes = contarPedidosNuevos();
     el.pedidosBadge.textContent = String(pendientes);
     el.pedidosBadge.hidden = pendientes === 0;
   }
@@ -2010,6 +2030,7 @@
       pedidosCargados = true;
       renderPedidosLista();
       actualizarBadgePedidos();
+      actualizarAlertaPedidos();
 
       if (pedidoAbiertoId) {
         const actual = pedidos.find(item => String(item.id) === String(pedidoAbiertoId));
@@ -2053,6 +2074,7 @@
       }
       renderPedidosLista();
       actualizarBadgePedidos();
+      actualizarAlertaPedidos();
       const actual = pedidos.find(item => String(item.id) === String(id));
       if (actual && String(pedidoAbiertoId) === String(id)) renderPedidoDetalle(actual);
       mostrarEstadoPedidos('Pedido actualizado.', 'ok');
@@ -2065,42 +2087,169 @@
     }
   }
 
-  function reproducirSonidoPedido() {
-    if (!pedidosSonidoActivo || !audioContexto) return;
+  function cargarPreferenciasSonido() {
     try {
-      const ahora = audioContexto.currentTime;
-      const oscilador = audioContexto.createOscillator();
-      const ganancia = audioContexto.createGain();
-      oscilador.type = 'sine';
-      oscilador.frequency.setValueAtTime(880, ahora);
-      oscilador.frequency.exponentialRampToValueAtTime(1320, ahora + 0.12);
-      ganancia.gain.setValueAtTime(0.0001, ahora);
-      ganancia.gain.exponentialRampToValueAtTime(0.16, ahora + 0.02);
-      ganancia.gain.exponentialRampToValueAtTime(0.0001, ahora + 0.28);
-      oscilador.connect(ganancia);
-      ganancia.connect(audioContexto.destination);
-      oscilador.start(ahora);
-      oscilador.stop(ahora + 0.3);
+      const sonido = localStorage.getItem(CLAVE_PREF_SONIDO);
+      if (sonido === 'off' || sonido === '0') pedidosSonidoActivo = false;
+      if (sonido === 'on' || sonido === '1') pedidosSonidoActivo = true;
+      const volumen = Number(localStorage.getItem(CLAVE_PREF_VOLUMEN));
+      if (Number.isFinite(volumen)) {
+        pedidosVolumen = Math.min(1, Math.max(0, volumen / 100));
+      }
+    } catch (error) {}
+    if (el.pedidosVolumen) el.pedidosVolumen.value = String(Math.round(pedidosVolumen * 100));
+  }
+
+  function guardarPreferenciaSonido() {
+    try {
+      localStorage.setItem(CLAVE_PREF_SONIDO, pedidosSonidoActivo ? 'on' : 'off');
+      localStorage.setItem(CLAVE_PREF_VOLUMEN, String(Math.round(pedidosVolumen * 100)));
+    } catch (error) {}
+  }
+
+  function obtenerAudioContexto() {
+    const ConstructorAudio = window.AudioContext || window.webkitAudioContext;
+    if (!ConstructorAudio) return null;
+    if (!audioContexto) audioContexto = new ConstructorAudio();
+    return audioContexto;
+  }
+
+  async function desbloquearAudioPedidos() {
+    const contexto = obtenerAudioContexto();
+    if (!contexto) return false;
+    try {
+      if (contexto.state === 'suspended') await contexto.resume();
+    } catch (error) {}
+    audioDesbloqueado = contexto.state === 'running';
+    actualizarEstadoSonido();
+    return audioDesbloqueado;
+  }
+
+  function actualizarEstadoSonido() {
+    const bloqueado = pedidosSonidoActivo && (!audioContexto || !audioDesbloqueado);
+    if (el.pedidosSonidoEstado) {
+      el.pedidosSonidoEstado.textContent = bloqueado
+        ? 'Activá el sonido con un clic'
+        : (pedidosSonidoActivo ? 'Sonido activo' : 'Sonido silenciado');
+      el.pedidosSonidoEstado.dataset.tipo = bloqueado ? 'pendiente' : '';
+    }
+    if (el.btnPedidosActivarSonido) {
+      el.btnPedidosActivarSonido.textContent = pedidosSonidoActivo ? 'Silenciar' : 'Activar sonido';
+      el.btnPedidosActivarSonido.setAttribute('aria-pressed', pedidosSonidoActivo ? 'true' : 'false');
+    }
+  }
+
+  function reproducirDingDong() {
+    if (!pedidosSonidoActivo) return;
+    const contexto = audioContexto;
+    if (!contexto || !audioDesbloqueado || contexto.state !== 'running') {
+      actualizarEstadoSonido();
+      return;
+    }
+    try {
+      const ahora = contexto.currentTime;
+      const master = contexto.createGain();
+      master.gain.setValueAtTime(Math.max(0.0001, pedidosVolumen), ahora);
+      master.connect(contexto.destination);
+
+      const notas = [
+        { frecuencia: 783.99, inicio: 0, duracion: 0.45 },
+        { frecuencia: 523.25, inicio: 0.32, duracion: 0.7 }
+      ];
+
+      notas.forEach(nota => {
+        const oscilador = contexto.createOscillator();
+        const ganancia = contexto.createGain();
+        const inicio = ahora + nota.inicio;
+        oscilador.type = 'sine';
+        oscilador.frequency.setValueAtTime(nota.frecuencia, inicio);
+        ganancia.gain.setValueAtTime(0.0001, inicio);
+        ganancia.gain.exponentialRampToValueAtTime(0.24, inicio + 0.04);
+        ganancia.gain.exponentialRampToValueAtTime(0.0001, inicio + nota.duracion);
+        oscilador.connect(ganancia);
+        ganancia.connect(master);
+        oscilador.start(inicio);
+        oscilador.stop(inicio + nota.duracion + 0.05);
+      });
     } catch (error) {
       console.warn('No se pudo reproducir el sonido del pedido.', error);
     }
   }
 
-  function activarSonidoPedidos() {
-    try {
-      const ConstructorAudio = window.AudioContext || window.webkitAudioContext;
-      if (!ConstructorAudio) throw new Error('Este navegador no soporta sonidos.');
-      if (!audioContexto) audioContexto = new ConstructorAudio();
-      if (audioContexto.state === 'suspended') audioContexto.resume();
-      pedidosSonidoActivo = true;
-      if (el.btnPedidosActivarSonido) {
-        el.btnPedidosActivarSonido.textContent = 'Sonido activado';
-        el.btnPedidosActivarSonido.disabled = true;
+  function actualizarTituloPedidos() {
+    const nuevos = contarPedidosNuevos();
+    if (nuevos > 0) {
+      if (!pedidosTituloTimer) {
+        pedidosTituloAlternado = false;
+        pedidosTituloTimer = setInterval(() => {
+          const cantidad = contarPedidosNuevos();
+          if (cantidad <= 0) {
+            actualizarTituloPedidos();
+            return;
+          }
+          pedidosTituloAlternado = !pedidosTituloAlternado;
+          document.title = pedidosTituloAlternado ? `(${cantidad}) Nuevo pedido` : pedidosTituloOriginal;
+        }, 1200);
       }
-      reproducirSonidoPedido();
-    } catch (error) {
-      mostrarAvisoPedidos(`No se pudo activar el sonido: ${error.message || error}`, 'error');
+      return;
     }
+    if (pedidosTituloTimer) {
+      clearInterval(pedidosTituloTimer);
+      pedidosTituloTimer = null;
+    }
+    pedidosTituloAlternado = false;
+    document.title = pedidosTituloOriginal;
+  }
+
+  function detenerAlertaPedidos() {
+    if (pedidosAlertaTimer) {
+      clearInterval(pedidosAlertaTimer);
+      pedidosAlertaTimer = null;
+    }
+    actualizarTituloPedidos();
+  }
+
+  function actualizarAlertaPedidos() {
+    const hayNuevos = contarPedidosNuevos() > 0;
+    if (hayNuevos && pedidosSonidoActivo) {
+      if (!pedidosAlertaTimer) {
+        pedidosAlertaTimer = setInterval(() => {
+          if (contarPedidosNuevos() > 0 && pedidosSonidoActivo) reproducirDingDong();
+          else actualizarAlertaPedidos();
+        }, INTERVALO_ALERTA_PEDIDOS);
+      }
+    } else if (pedidosAlertaTimer) {
+      clearInterval(pedidosAlertaTimer);
+      pedidosAlertaTimer = null;
+    }
+    actualizarTituloPedidos();
+    actualizarEstadoSonido();
+  }
+
+  function alertarPedidoNuevo() {
+    if (pedidosSonidoActivo) {
+      desbloquearAudioPedidos().then(desbloqueado => {
+        if (desbloqueado) reproducirDingDong();
+      });
+    }
+    actualizarAlertaPedidos();
+  }
+
+  async function alternarSonidoPedidos() {
+    pedidosSonidoActivo = !pedidosSonidoActivo;
+    guardarPreferenciaSonido();
+    if (pedidosSonidoActivo) {
+      const desbloqueado = await desbloquearAudioPedidos();
+      if (desbloqueado) reproducirDingDong();
+    }
+    actualizarAlertaPedidos();
+  }
+
+  function cambiarVolumenPedidos(evento) {
+    const valor = Number(evento && evento.target ? evento.target.value : 70);
+    pedidosVolumen = Number.isFinite(valor) ? Math.min(1, Math.max(0, valor / 100)) : 0.7;
+    guardarPreferenciaSonido();
+    if (pedidosSonidoActivo && audioDesbloqueado) reproducirDingDong();
   }
 
   function manejarPedidoInsertado(payload) {
@@ -2110,8 +2259,8 @@
     const existe = pedidos.some(item => String(item.id) === String(nuevo.id));
     if (!existe) {
       pedidos.unshift(nuevo);
-      if (pedidos.length > 100) pedidos.length = 100;
-      reproducirSonidoPedido();
+      if (pedidos.length > 500) pedidos.length = 500;
+      alertarPedidoNuevo();
       mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
     }
 
@@ -2129,6 +2278,7 @@
       pedidos[indice] = { ...pedidos[indice], ...actualizado };
       renderPedidosLista();
       actualizarBadgePedidos();
+      actualizarAlertaPedidos();
       if (String(pedidoAbiertoId) === String(actualizado.id)) {
         renderPedidoDetalle(pedidos[indice]);
       }
@@ -2721,8 +2871,15 @@
       el.btnPedidosActualizar.addEventListener('click', () => cargarPedidos());
     }
     if (el.btnPedidosActivarSonido) {
-      el.btnPedidosActivarSonido.addEventListener('click', activarSonidoPedidos);
+      el.btnPedidosActivarSonido.addEventListener('click', alternarSonidoPedidos);
     }
+    if (el.pedidosVolumen) {
+      el.pedidosVolumen.addEventListener('change', cambiarVolumenPedidos);
+    }
+    document.addEventListener('pointerdown', () => {
+      if (!pedidosSonidoActivo) return;
+      desbloquearAudioPedidos();
+    }, { capture: true, once: true });
     if (el.pedidosFiltroEstado) el.pedidosFiltroEstado.addEventListener('change', renderPedidosLista);
     if (el.pedidosFiltroSucursal) el.pedidosFiltroSucursal.addEventListener('change', renderPedidosLista);
     if (el.pedidosFiltroFecha) el.pedidosFiltroFecha.addEventListener('change', renderPedidosLista);
@@ -2953,6 +3110,8 @@
   }
 
   async function iniciar() {
+    cargarPreferenciasSonido();
+    actualizarEstadoSonido();
     conectarEventos();
     await Promise.all([cargarConfig(), cargarSucursalesConfig()]);
 

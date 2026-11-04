@@ -1275,6 +1275,29 @@ p {
   gap: 8px;
 }
 
+.admin-pedidos-sonido {
+  align-items: center;
+}
+
+.admin-pedidos-volumen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--admin-texto-suave);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.admin-pedidos-volumen input[type="range"] {
+  width: 110px;
+  accent-color: var(--admin-dorado);
+}
+
+.admin-pedidos-sonido-estado {
+  margin: -8px 0 0;
+  min-height: 1.2em;
+}
+
 .admin-pedidos-filtros {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

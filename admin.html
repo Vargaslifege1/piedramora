@@ -222,11 +222,16 @@
             <h2>Bandeja de pedidos</h2>
             <p class="admin-ayuda">Últimos 100 pedidos, los más nuevos primero. Se actualiza en tiempo real.</p>
           </div>
-          <div class="admin-pedidos-acciones">
-            <button type="button" id="btn-pedidos-activar-sonido" class="btn-secundario">Activar sonido</button>
+          <div class="admin-pedidos-acciones admin-pedidos-sonido">
+            <button type="button" id="btn-pedidos-activar-sonido" class="btn-secundario" aria-pressed="true">Silenciar</button>
+            <label class="admin-pedidos-volumen">
+              <span>Volumen</span>
+              <input id="pedidos-volumen" type="range" min="0" max="100" step="5" value="70">
+            </label>
             <button type="button" id="btn-pedidos-actualizar" class="btn-secundario">Actualizar</button>
           </div>
         </div>
+        <p id="pedidos-sonido-estado" class="admin-estado admin-pedidos-sonido-estado" aria-live="polite">Activá el sonido</p>
 
         <p id="pedidos-estado" class="admin-estado" aria-live="polite"></p>
         <div id="pedidos-aviso" class="admin-aviso" hidden></div>
