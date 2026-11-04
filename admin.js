@@ -7,6 +7,7 @@
   const TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024;
   const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
   let SUCURSALES_POR_DEFECTO = ['maestro-quiroga', 'intendente-lascano'];
+  let SUCURSALES_NOMBRES = {};
 
   const el = {
     login: document.getElementById('admin-login'),
@@ -73,7 +74,23 @@
     categoriaFotoEstado: document.getElementById('categoria-foto-estado'),
     categoriaEstado: document.getElementById('categoria-estado'),
     btnGuardarCategoria: document.getElementById('btn-guardar-categoria'),
-    btnCancelarCategoria: document.getElementById('btn-cancelar-categoria')
+    btnCancelarCategoria: document.getElementById('btn-cancelar-categoria'),
+    tabsVista: document.querySelectorAll('[data-admin-vista]'),
+    vistaCarta: document.getElementById('admin-vista-carta'),
+    vistaPedidos: document.getElementById('admin-vista-pedidos'),
+    pedidosBadge: document.getElementById('pedidos-badge'),
+    btnPedidosActivarSonido: document.getElementById('btn-pedidos-activar-sonido'),
+    btnPedidosActualizar: document.getElementById('btn-pedidos-actualizar'),
+    pedidosEstado: document.getElementById('pedidos-estado'),
+    pedidosAviso: document.getElementById('pedidos-aviso'),
+    pedidosFiltroEstado: document.getElementById('pedidos-filtro-estado'),
+    pedidosFiltroSucursal: document.getElementById('pedidos-filtro-sucursal'),
+    pedidosFiltroFecha: document.getElementById('pedidos-filtro-fecha'),
+    pedidosLista: document.getElementById('pedidos-lista'),
+    modalPedido: document.getElementById('modal-pedido'),
+    modalPedidoTitulo: document.getElementById('modal-pedido-titulo'),
+    btnCerrarModalPedido: document.getElementById('btn-cerrar-modal-pedido'),
+    pedidoDetalleContenido: document.getElementById('pedido-detalle-contenido')
   };
 
   let config = null;
@@ -87,6 +104,15 @@
   let productosExpandidos = new Set();
   const previewsTemporales = new Set();
   const tokensUploadProducto = new Map();
+
+  let pedidos = [];
+  let pedidosCargados = false;
+  let pedidosCargando = false;
+  let pedidoAbiertoId = null;
+  let pedidosCanal = null;
+  let pedidosTimer = null;
+  let pedidosSonidoActivo = false;
+  let audioContexto = null;
 
   let modalCategoriaModo = 'crear';
   let categoriaEditandoId = null;
@@ -367,9 +393,21 @@
         ? datos.sucursales.map(sucursal => String(sucursal.id || '').trim()).filter(Boolean)
         : [];
       if (ids.length > 0) SUCURSALES_POR_DEFECTO = ids;
+      SUCURSALES_NOMBRES = {};
+      if (Array.isArray(datos.sucursales)) {
+        datos.sucursales.forEach(sucursal => {
+          if (!sucursal || !sucursal.id) return;
+          const id = String(sucursal.id).trim();
+          SUCURSALES_NOMBRES[id] = String(sucursal.nombre || sucursal.tituloCarta || id).trim();
+        });
+      }
     } catch (error) {
       console.warn(error.message);
     }
+    SUCURSALES_POR_DEFECTO.forEach(id => {
+      if (!SUCURSALES_NOMBRES[id]) SUCURSALES_NOMBRES[id] = id;
+    });
+    poblarFiltroSucursalesPedidos();
   }
 
   function inicializarCliente() {
@@ -393,6 +431,8 @@
     if (el.sesion) el.sesion.hidden = true;
     if (el.passwordInput) el.passwordInput.value = '';
     cerrarModalCategoria();
+    cerrarModalPedido();
+    detenerRealtimePedidos();
     actualizarBotonGuardar();
   }
 
@@ -423,7 +463,12 @@
     if (el.sesion) el.sesion.hidden = false;
     if (el.sesionEmail) el.sesionEmail.textContent = usuario.email || 'Administrador';
 
-    if (!yaVisible) await cargarCarta();
+    if (!yaVisible) {
+      await cargarCarta();
+      await cargarPedidos({ silencioso: true });
+      iniciarRealtimePedidos();
+      iniciarRefrescoPedidos();
+    }
   }
 
   async function cargarCarta() {
@@ -1617,6 +1662,9 @@
       console.warn(error);
     }
     cambiosPendientes = false;
+    pedidos = [];
+    pedidosCargados = false;
+    actualizarBadgePedidos();
     mostrarLogin();
   }
 
@@ -1634,6 +1682,480 @@
     });
   }
 
+  const ESTADOS_PEDIDO = {
+    pendiente: 'Pendiente',
+    confirmado: 'Confirmado',
+    entregado: 'Entregado',
+    cancelado: 'Cancelado'
+  };
+
+  function mostrarEstadoPedidos(texto, tipo = '') {
+    mostrarEstado(el.pedidosEstado, texto, tipo);
+  }
+
+  function mostrarAvisoPedidos(texto, tipo = 'info') {
+    if (!el.pedidosAviso) return;
+    if (!texto) {
+      el.pedidosAviso.hidden = true;
+      el.pedidosAviso.textContent = '';
+      return;
+    }
+    el.pedidosAviso.hidden = false;
+    el.pedidosAviso.dataset.tipo = tipo;
+    el.pedidosAviso.textContent = texto;
+  }
+
+  function poblarFiltroSucursalesPedidos() {
+    if (!el.pedidosFiltroSucursal) return;
+    const actual = el.pedidosFiltroSucursal.value;
+    const opciones = Object.keys(SUCURSALES_NOMBRES)
+      .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
+      .map(id => `<option value="${PM.escaparHtml(id)}">${PM.escaparHtml(SUCURSALES_NOMBRES[id])}</option>`)
+      .join('');
+    el.pedidosFiltroSucursal.innerHTML = `<option value="">Todas</option>${opciones}`;
+    if (actual) el.pedidosFiltroSucursal.value = actual;
+  }
+
+  function nombreSucursalPedido(id) {
+    return SUCURSALES_NOMBRES[id] || id || '-';
+  }
+
+  function nombreEstadoPedido(estado) {
+    return ESTADOS_PEDIDO[estado] || estado || 'Sin estado';
+  }
+
+  function etiquetaModalidadPedido(modalidad) {
+    const valor = String(modalidad || '').toLowerCase();
+    if (valor === 'delivery') return 'Delivery';
+    if (valor === 'retiro') return 'Retiro / Takeaway';
+    return modalidad || '-';
+  }
+
+  function telefonoSoloDigitos(valor) {
+    return String(valor || '').replace(/\D/g, '');
+  }
+
+  function fechaHoraPedido(iso) {
+    const fecha = new Date(iso);
+    if (!Number.isFinite(fecha.getTime())) return '';
+    try {
+      return fecha.toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return fecha.toLocaleString('es-AR');
+    }
+  }
+
+  function esPedidoDeHoy(iso) {
+    const fecha = new Date(iso);
+    if (!Number.isFinite(fecha.getTime())) return false;
+    try {
+      const diaPedido = fecha.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+      const diaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+      return diaPedido === diaHoy;
+    } catch (error) {
+      return fecha.toDateString() === new Date().toDateString();
+    }
+  }
+
+  function pedidosFiltrados() {
+    const estado = (el.pedidosFiltroEstado && el.pedidosFiltroEstado.value) || 'activos';
+    const sucursal = (el.pedidosFiltroSucursal && el.pedidosFiltroSucursal.value) || '';
+    const fecha = (el.pedidosFiltroFecha && el.pedidosFiltroFecha.value) || 'hoy';
+    const limite7Dias = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
+    return pedidos.filter(pedido => {
+      if (!pedido) return false;
+      if (estado === 'activos') {
+        if (pedido.estado !== 'pendiente' && pedido.estado !== 'confirmado') return false;
+      } else if (estado !== 'todos' && pedido.estado !== estado) {
+        return false;
+      }
+      if (sucursal && pedido.sucursal_id !== sucursal) return false;
+      if (fecha === 'hoy' && !esPedidoDeHoy(pedido.created_at)) return false;
+      if (fecha === '7') {
+        const creado = new Date(pedido.created_at).getTime();
+        if (!Number.isFinite(creado) || creado < limite7Dias) return false;
+      }
+      return true;
+    });
+  }
+
+  function actualizarBadgePedidos() {
+    if (!el.pedidosBadge) return;
+    const pendientes = pedidos.filter(pedido => pedido && pedido.estado === 'pendiente').length;
+    el.pedidosBadge.textContent = String(pendientes);
+    el.pedidosBadge.hidden = pendientes === 0;
+  }
+
+  function renderPedidosLista() {
+    if (!el.pedidosLista) return;
+    const lista = pedidosFiltrados();
+
+    if (!lista.length) {
+      el.pedidosLista.innerHTML = '<p class="admin-vacio">No hay pedidos para estos filtros.</p>';
+      return;
+    }
+
+    el.pedidosLista.innerHTML = lista.map(pedido => {
+      const estado = ESTADOS_PEDIDO[pedido.estado] ? pedido.estado : 'desconocido';
+      const numero = PM.escaparHtml(pedido.numero_orden || 'Sin número');
+      const cliente = PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre');
+      const sucursal = PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id));
+      const modalidad = PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad));
+      const pago = PM.escaparHtml(pedido.metodo_pago || '-');
+      const hora = PM.escaparHtml(fechaHoraPedido(pedido.created_at));
+      const id = PM.escaparHtml(pedido.id);
+
+      return `<button type="button" class="admin-pedido-card" data-pedido-id="${id}">
+        <div class="admin-pedido-card-top">
+          <span class="admin-pedido-numero">#${numero}</span>
+          <span class="admin-pedido-estado estado-${estado}">${PM.escaparHtml(nombreEstadoPedido(pedido.estado))}</span>
+        </div>
+        <div class="admin-pedido-card-datos">
+          <span>${hora}</span>
+          <span>${cliente}</span>
+          <span>${modalidad}</span>
+        </div>
+        <div class="admin-pedido-card-bottom">
+          <span>${sucursal}</span>
+          <span>${pago}</span>
+          <strong>${formatearPrecio(pedido.total)}</strong>
+        </div>
+      </button>`;
+    }).join('');
+  }
+
+  function renderPedidoDetalle(pedido) {
+    if (!el.pedidoDetalleContenido) return;
+
+    if (!pedido) {
+      el.pedidoDetalleContenido.innerHTML = '';
+      return;
+    }
+
+    const telefono = telefonoSoloDigitos(pedido.cliente_telefono);
+    const items = Array.isArray(pedido.items_snapshot) ? pedido.items_snapshot : [];
+    const itemsHtml = items.map(item => {
+      const cantidad = Number(item && item.cantidad) || 0;
+      const nombre = PM.escaparHtml(item && item.nombre ? item.nombre : 'Producto');
+      const especificaciones = [];
+      if (item && item.variacion && item.variacion.nombre) {
+        especificaciones.push(PM.escaparHtml(item.variacion.nombre));
+      }
+      if (item && Array.isArray(item.adicionales)) {
+        item.adicionales.forEach(adicional => {
+          if (adicional && adicional.nombre) especificaciones.push(PM.escaparHtml(adicional.nombre));
+        });
+      }
+      const extrasHtml = especificaciones.length
+        ? `<div class="admin-pedido-item-extras">${especificaciones.join(' · ')}</div>`
+        : '';
+      return `<div class="admin-pedido-item">
+        <div class="admin-pedido-item-info">
+          <span class="admin-pedido-item-nombre">${cantidad} × ${nombre}</span>
+          ${extrasHtml}
+          <small>${formatearPrecio(item && item.precio_unitario)} c/u</small>
+        </div>
+        <strong>${formatearPrecio(item && item.subtotal)}</strong>
+      </div>`;
+    }).join('');
+
+    const tieneCoordenadas = Number.isFinite(Number(pedido.lat)) && Number.isFinite(Number(pedido.lng));
+    const enlaceMapa = tieneCoordenadas
+      ? `<a class="admin-pedido-mapa" href="https://www.google.com/maps?q=${encodeURIComponent(Number(pedido.lat))},${encodeURIComponent(Number(pedido.lng))}" target="_blank" rel="noopener">Ver en Google Maps</a>`
+      : '';
+    const direccionHtml = pedido.direccion
+      ? `<p class="admin-pedido-dato"><span>Dirección</span>${PM.escaparHtml(pedido.direccion)}</p>${enlaceMapa}`
+      : '<p class="admin-pedido-dato"><span>Dirección</span>Retiro en sucursal</p>';
+    const whatsappHtml = telefono
+      ? `<a class="btn-secundario admin-pedido-whatsapp" href="https://wa.me/${telefono}" target="_blank" rel="noopener">Abrir WhatsApp</a>`
+      : '';
+    const notasHtml = pedido.notas
+      ? `<div class="admin-pedido-notas"><span>Notas</span><p>${PM.escaparHtml(pedido.notas)}</p></div>`
+      : '';
+
+    const acciones = [];
+    if (pedido.estado === 'pendiente') {
+      acciones.push('<button type="button" class="btn-primario" data-pedido-accion="confirmado">Confirmar</button>');
+      acciones.push('<button type="button" class="btn-peligro" data-pedido-accion="cancelado">Cancelar</button>');
+    } else if (pedido.estado === 'confirmado') {
+      acciones.push('<button type="button" class="btn-primario" data-pedido-accion="entregado">Marcar entregado</button>');
+      acciones.push('<button type="button" class="btn-peligro" data-pedido-accion="cancelado">Cancelar</button>');
+    }
+
+    const estado = ESTADOS_PEDIDO[pedido.estado] ? pedido.estado : 'desconocido';
+
+    el.pedidoDetalleContenido.innerHTML = `
+      <div class="admin-pedido-detalle-head">
+        <span class="admin-pedido-estado estado-${estado}">${PM.escaparHtml(nombreEstadoPedido(pedido.estado))}</span>
+        <span class="admin-pedido-hora">${PM.escaparHtml(fechaHoraPedido(pedido.created_at))}</span>
+      </div>
+      <div class="admin-pedido-detalle-grid">
+        <p class="admin-pedido-dato"><span>Cliente</span>${PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre')}</p>
+        <p class="admin-pedido-dato"><span>Teléfono</span>${PM.escaparHtml(pedido.cliente_telefono || '-')}</p>
+        <p class="admin-pedido-dato"><span>Modalidad</span>${PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad))}</p>
+        <p class="admin-pedido-dato"><span>Sucursal</span>${PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id))}</p>
+        <p class="admin-pedido-dato"><span>Pago</span>${PM.escaparHtml(pedido.metodo_pago || '-')}</p>
+      </div>
+      ${direccionHtml}
+      <div class="admin-pedido-items"><span class="admin-pedido-bloque-titulo">Ítems</span>${itemsHtml || '<p class="admin-ayuda">Sin ítems.</p>'}</div>
+      ${notasHtml}
+      <div class="admin-pedido-totales">
+        <div><span>Subtotal</span><span>${formatearPrecio(pedido.subtotal)}</span></div>
+        <div><span>Descuento</span><span>- ${formatearPrecio(pedido.descuento)}</span></div>
+        <div><span>Envío</span><span>${formatearPrecio(pedido.costo_envio)}</span></div>
+        <div class="admin-pedido-total"><span>Total</span><span>${formatearPrecio(pedido.total)}</span></div>
+      </div>
+      <div class="admin-pedido-acciones">${whatsappHtml}${acciones.join('')}</div>`;
+
+    if (el.modalPedidoTitulo) {
+      el.modalPedidoTitulo.textContent = `Pedido #${pedido.numero_orden || ''}`;
+    }
+  }
+
+  function abrirDetallePedido(id) {
+    const pedido = pedidos.find(item => String(item.id) === String(id));
+    if (!pedido) return;
+    pedidoAbiertoId = pedido.id;
+    renderPedidoDetalle(pedido);
+    if (el.modalPedido) el.modalPedido.hidden = false;
+    document.body.classList.add('admin-modal-abierto');
+  }
+
+  function cerrarModalPedido() {
+    pedidoAbiertoId = null;
+    if (el.modalPedido) el.modalPedido.hidden = true;
+    document.body.classList.remove('admin-modal-abierto');
+  }
+
+  function errorEsDeSesion(error) {
+    const mensaje = String((error && (error.message || error.error_description)) || '').toLowerCase();
+    const codigo = String((error && error.code) || '');
+    return codigo === '401' || codigo === '403' || codigo === 'PGRST301'
+      || mensaje.includes('jwt') || mensaje.includes('permission')
+      || mensaje.includes('row-level security') || mensaje.includes('sesión')
+      || mensaje.includes('sesion') || mensaje.includes('no autorizado');
+  }
+
+  function mensajeErrorPedidos(error) {
+    const detalle = (error && (error.message || error.error_description))
+      ? String(error.message || error.error_description)
+      : 'Error de conexión.';
+    if (errorEsDeSesion(error)) {
+      return `Tu sesión venció o no tenés permisos para ver los pedidos. Volvé a iniciar sesión. (${detalle})`;
+    }
+    return `No se pudieron cargar los pedidos: ${detalle}`;
+  }
+
+  async function cargarPedidos(opciones = {}) {
+    if (!cliente || pedidosCargando) return;
+    pedidosCargando = true;
+    if (!opciones.silencioso) {
+      mostrarEstadoPedidos('Cargando pedidos...');
+      mostrarAvisoPedidos('');
+    }
+
+    try {
+      const { data, error } = await cliente
+        .from('pedidos')
+        .select('id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      pedidos = Array.isArray(data) ? data : [];
+      pedidosCargados = true;
+      renderPedidosLista();
+      actualizarBadgePedidos();
+
+      if (pedidoAbiertoId) {
+        const actual = pedidos.find(item => String(item.id) === String(pedidoAbiertoId));
+        if (actual) renderPedidoDetalle(actual);
+        else cerrarModalPedido();
+      }
+
+      if (!opciones.silencioso) mostrarEstadoPedidos('Pedidos actualizados.', 'ok');
+    } catch (error) {
+      console.warn('No se pudieron cargar los pedidos:', error);
+      mostrarEstadoPedidos('');
+      mostrarAvisoPedidos(mensajeErrorPedidos(error), 'error');
+    } finally {
+      pedidosCargando = false;
+    }
+  }
+
+  async function actualizarEstadoPedido(id, nuevoEstado, boton) {
+    if (!cliente) {
+      mostrarAvisoPedidos('Supabase no está disponible.', 'error');
+      return;
+    }
+
+    const pedido = pedidos.find(item => String(item.id) === String(id));
+    if (!pedido) return;
+
+    if (boton) boton.disabled = true;
+    try {
+      const { data, error } = await cliente
+        .from('pedidos')
+        .update({ estado: nuevoEstado })
+        .eq('id', id)
+        .select('id,estado')
+        .single();
+
+      if (error) throw error;
+
+      const indice = pedidos.findIndex(item => String(item.id) === String(id));
+      if (indice >= 0) {
+        pedidos[indice] = { ...pedidos[indice], estado: (data && data.estado) || nuevoEstado };
+      }
+      renderPedidosLista();
+      actualizarBadgePedidos();
+      const actual = pedidos.find(item => String(item.id) === String(id));
+      if (actual && String(pedidoAbiertoId) === String(id)) renderPedidoDetalle(actual);
+      mostrarEstadoPedidos('Pedido actualizado.', 'ok');
+      mostrarAvisoPedidos('');
+    } catch (error) {
+      console.warn('No se pudo actualizar el pedido:', error);
+      mostrarAvisoPedidos(mensajeErrorPedidos(error), 'error');
+    } finally {
+      if (boton) boton.disabled = false;
+    }
+  }
+
+  function reproducirSonidoPedido() {
+    if (!pedidosSonidoActivo || !audioContexto) return;
+    try {
+      const ahora = audioContexto.currentTime;
+      const oscilador = audioContexto.createOscillator();
+      const ganancia = audioContexto.createGain();
+      oscilador.type = 'sine';
+      oscilador.frequency.setValueAtTime(880, ahora);
+      oscilador.frequency.exponentialRampToValueAtTime(1320, ahora + 0.12);
+      ganancia.gain.setValueAtTime(0.0001, ahora);
+      ganancia.gain.exponentialRampToValueAtTime(0.16, ahora + 0.02);
+      ganancia.gain.exponentialRampToValueAtTime(0.0001, ahora + 0.28);
+      oscilador.connect(ganancia);
+      ganancia.connect(audioContexto.destination);
+      oscilador.start(ahora);
+      oscilador.stop(ahora + 0.3);
+    } catch (error) {
+      console.warn('No se pudo reproducir el sonido del pedido.', error);
+    }
+  }
+
+  function activarSonidoPedidos() {
+    try {
+      const ConstructorAudio = window.AudioContext || window.webkitAudioContext;
+      if (!ConstructorAudio) throw new Error('Este navegador no soporta sonidos.');
+      if (!audioContexto) audioContexto = new ConstructorAudio();
+      if (audioContexto.state === 'suspended') audioContexto.resume();
+      pedidosSonidoActivo = true;
+      if (el.btnPedidosActivarSonido) {
+        el.btnPedidosActivarSonido.textContent = 'Sonido activado';
+        el.btnPedidosActivarSonido.disabled = true;
+      }
+      reproducirSonidoPedido();
+    } catch (error) {
+      mostrarAvisoPedidos(`No se pudo activar el sonido: ${error.message || error}`, 'error');
+    }
+  }
+
+  function manejarPedidoInsertado(payload) {
+    const nuevo = payload && payload.new;
+    if (!nuevo || !nuevo.id) return;
+
+    const existe = pedidos.some(item => String(item.id) === String(nuevo.id));
+    if (!existe) {
+      pedidos.unshift(nuevo);
+      if (pedidos.length > 100) pedidos.length = 100;
+      reproducirSonidoPedido();
+      mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
+    }
+
+    renderPedidosLista();
+    actualizarBadgePedidos();
+  }
+
+  function manejarPedidoActualizado(payload) {
+    const actualizado = payload && payload.new;
+    if (!actualizado || !actualizado.id) return;
+
+    const indice = pedidos.findIndex(item => String(item.id) === String(actualizado.id));
+    if (indice >= 0) {
+      const estadoAnterior = pedidos[indice].estado;
+      pedidos[indice] = { ...pedidos[indice], ...actualizado };
+      renderPedidosLista();
+      actualizarBadgePedidos();
+      if (String(pedidoAbiertoId) === String(actualizado.id)) {
+        renderPedidoDetalle(pedidos[indice]);
+      }
+      if (estadoAnterior !== actualizado.estado) mostrarEstadoPedidos('Pedido actualizado.', 'ok');
+    } else {
+      cargarPedidos({ silencioso: true });
+    }
+  }
+
+  function iniciarRealtimePedidos() {
+    if (!cliente || pedidosCanal) return;
+    pedidosCanal = cliente
+      .channel('admin-pedidos')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos' }, manejarPedidoInsertado)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' }, manejarPedidoActualizado)
+      .subscribe((estado) => {
+        if (estado === 'SUBSCRIBED') {
+          if (el.pedidosAviso && el.pedidosAviso.dataset.tipo === 'error') mostrarAvisoPedidos('');
+        } else if (estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT' || estado === 'CLOSED') {
+          mostrarAvisoPedidos('El tiempo real no está disponible. Usá "Actualizar" o esperá el refresco automático.', 'error');
+        }
+      });
+  }
+
+  function detenerRealtimePedidos() {
+    if (pedidosCanal && cliente) {
+      try {
+        if (typeof cliente.removeChannel === 'function') cliente.removeChannel(pedidosCanal);
+        else pedidosCanal.unsubscribe();
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+    pedidosCanal = null;
+    if (pedidosTimer) {
+      clearInterval(pedidosTimer);
+      pedidosTimer = null;
+    }
+  }
+
+  function iniciarRefrescoPedidos() {
+    if (pedidosTimer) return;
+    pedidosTimer = setInterval(() => {
+      if (!cliente || !el.panel || el.panel.hidden) return;
+      cargarPedidos({ silencioso: true });
+    }, 60000);
+  }
+
+  function mostrarVistaAdmin(vista) {
+    const esPedidos = vista === 'pedidos';
+    el.tabsVista.forEach(tab => {
+      const activa = tab.dataset.adminVista === vista;
+      tab.classList.toggle('activa', activa);
+      tab.setAttribute('aria-selected', activa ? 'true' : 'false');
+    });
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos;
+    if (el.vistaPedidos) el.vistaPedidos.hidden = !esPedidos;
+    if (esPedidos && cliente) {
+      if (!pedidosCargados) cargarPedidos();
+      else renderPedidosLista();
+    }
+  }
+
   function conectarEventos() {
     if (el.formLogin) el.formLogin.addEventListener('submit', iniciarSesion);
     if (el.btnLogout) el.btnLogout.addEventListener('click', cerrarSesion);
@@ -1643,6 +2165,45 @@
       el.btnRecargar.addEventListener('click', async () => {
         if (cambiosPendientes && !window.confirm('Hay cambios sin guardar. ¿Recargar de todos modos?')) return;
         await cargarCarta();
+      });
+    }
+
+    el.tabsVista.forEach(tab => {
+      tab.addEventListener('click', () => mostrarVistaAdmin(tab.dataset.adminVista));
+    });
+
+    if (el.btnPedidosActualizar) {
+      el.btnPedidosActualizar.addEventListener('click', () => cargarPedidos());
+    }
+    if (el.btnPedidosActivarSonido) {
+      el.btnPedidosActivarSonido.addEventListener('click', activarSonidoPedidos);
+    }
+    if (el.pedidosFiltroEstado) el.pedidosFiltroEstado.addEventListener('change', renderPedidosLista);
+    if (el.pedidosFiltroSucursal) el.pedidosFiltroSucursal.addEventListener('change', renderPedidosLista);
+    if (el.pedidosFiltroFecha) el.pedidosFiltroFecha.addEventListener('change', renderPedidosLista);
+
+    if (el.pedidosLista) {
+      el.pedidosLista.addEventListener('click', (evento) => {
+        const tarjeta = evento.target.closest('[data-pedido-id]');
+        if (tarjeta) abrirDetallePedido(tarjeta.dataset.pedidoId);
+      });
+    }
+
+    if (el.pedidoDetalleContenido) {
+      el.pedidoDetalleContenido.addEventListener('click', async (evento) => {
+        const boton = evento.target.closest('[data-pedido-accion]');
+        if (!boton) return;
+        const nuevoEstado = boton.dataset.pedidoAccion;
+        if (nuevoEstado === 'cancelado' && !window.confirm('¿Cancelar este pedido?')) return;
+        if (nuevoEstado === 'entregado' && !window.confirm('¿Marcar este pedido como entregado?')) return;
+        if (pedidoAbiertoId) await actualizarEstadoPedido(pedidoAbiertoId, nuevoEstado, boton);
+      });
+    }
+
+    if (el.btnCerrarModalPedido) el.btnCerrarModalPedido.addEventListener('click', cerrarModalPedido);
+    if (el.modalPedido) {
+      el.modalPedido.addEventListener('click', (evento) => {
+        if (evento.target === el.modalPedido) cerrarModalPedido();
       });
     }
 
@@ -1794,6 +2355,10 @@
       if (evento.key !== 'Escape') return;
       if (el.modalCategoria && !el.modalCategoria.hidden) {
         cerrarModalCategoria();
+        return;
+      }
+      if (el.modalPedido && !el.modalPedido.hidden) {
+        cerrarModalPedido();
         return;
       }
       if (el.panelNuevoProducto && !el.panelNuevoProducto.hidden) cerrarFormularioProducto();

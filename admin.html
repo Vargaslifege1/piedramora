@@ -59,6 +59,15 @@
     </section>
 
     <section id="admin-panel" class="admin-panel" hidden>
+      <nav class="admin-tabs" aria-label="Secciones del panel">
+        <button type="button" class="admin-tab activa" data-admin-vista="carta">Carta</button>
+        <button type="button" class="admin-tab" data-admin-vista="pedidos">
+          Pedidos
+          <span id="pedidos-badge" class="admin-tab-badge" hidden>0</span>
+        </button>
+      </nav>
+
+      <div id="admin-vista-carta" class="admin-vista">
       <div class="admin-toolbar">
         <div class="admin-toolbar-info">
           <p class="admin-eyebrow">Panel de control</p>
@@ -203,6 +212,54 @@
           </div>
         </form>
       </section>
+      </div>
+
+      <section id="admin-vista-pedidos" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Pedidos</p>
+            <h2>Bandeja de pedidos</h2>
+            <p class="admin-ayuda">Últimos 100 pedidos, los más nuevos primero. Se actualiza en tiempo real.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-pedidos-activar-sonido" class="btn-secundario">Activar sonido</button>
+            <button type="button" id="btn-pedidos-actualizar" class="btn-secundario">Actualizar</button>
+          </div>
+        </div>
+
+        <p id="pedidos-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="pedidos-aviso" class="admin-aviso" hidden></div>
+
+        <div class="admin-pedidos-filtros">
+          <label class="admin-campo">
+            <span>Estado</span>
+            <select id="pedidos-filtro-estado">
+              <option value="activos">Pendientes y confirmados</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="confirmado">Confirmados</option>
+              <option value="entregado">Entregados</option>
+              <option value="cancelado">Cancelados</option>
+              <option value="todos">Todos</option>
+            </select>
+          </label>
+          <label class="admin-campo">
+            <span>Sucursal</span>
+            <select id="pedidos-filtro-sucursal">
+              <option value="">Todas</option>
+            </select>
+          </label>
+          <label class="admin-campo">
+            <span>Fecha</span>
+            <select id="pedidos-filtro-fecha">
+              <option value="hoy">Hoy</option>
+              <option value="7">Últimos 7 días</option>
+              <option value="todos">Todos</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="pedidos-lista" class="admin-pedidos-lista"></div>
+      </section>
     </section>
   </main>
 
@@ -242,6 +299,19 @@
           <button type="button" id="btn-cancelar-categoria" class="btn-secundario">Cancelar</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div id="modal-pedido" class="admin-modal-overlay" hidden>
+    <div class="admin-modal admin-modal-pedido" role="dialog" aria-modal="true" aria-labelledby="modal-pedido-titulo">
+      <div class="admin-modal-head">
+        <div>
+          <p class="admin-eyebrow">Pedido</p>
+          <h2 id="modal-pedido-titulo">Detalle del pedido</h2>
+        </div>
+        <button type="button" id="btn-cerrar-modal-pedido" class="btn-icono" aria-label="Cerrar detalle">×</button>
+      </div>
+      <div id="pedido-detalle-contenido" class="admin-pedido-detalle"></div>
     </div>
   </div>
 

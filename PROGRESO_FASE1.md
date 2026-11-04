@@ -389,4 +389,20 @@ Pendientes antes de dar 1C por cerrado:
 - El checkout llama a `cotizar_envio` con timeout de 8 segundos, muestra la línea "Envío" con el costo y las cuadras, y recotiza al cambiar dirección, sucursal o tipo de entrega.
 - El descuento por medio de pago se aplica solo a los productos, nunca al envío.
 - El total mostrado es `subtotal - descuento + envío`; el mensaje de WhatsApp usa los montos del servidor y muestra las cuadras cuando están disponibles.
-- Pendiente: bandeja de pedidos y sección **Envíos** en el admin, y guardar los SQL de `tramos_envio` y `cotizar_envio` como **migración 015**.
+- La tabla `tramos_envio` y la función `cotizar_envio` quedaron registradas en `supabase/migrations/015_envio_por_distancia.sql` (ya aplicadas a mano en Supabase).
+
+## Bandeja de pedidos en el admin (2026-11-03)
+
+- Nueva navegación **Carta / Pedidos** en `admin.html`, con pestañas y badge de pendientes.
+- La bandeja carga los últimos 100 pedidos, más nuevos primero.
+- Filtros: estado (por defecto pendientes y confirmados), sucursal y fecha (hoy, últimos 7 días, todos).
+- Cada pedido se abre en un detalle con ítems, variación, adicionales, notas, dirección con enlace a Google Maps y botón de WhatsApp.
+- Acciones por estado: pendiente → Confirmar/Cancelar; confirmado → Entregado/Cancelar. Cancelar y Entregado piden confirmación y actualizan solo la columna `estado`.
+- Realtime sobre INSERT y UPDATE de `pedidos`: los nuevos aparecen arriba, con aviso visual y sonido corto activado con un clic ("Activar sonido").
+- Si Realtime falla, quedan el botón **Actualizar** y el refresco automático cada 60 segundos.
+- Todos los datos escritos por el cliente se escapan con `PM.escaparHtml`; el teléfono de WhatsApp se arma solo con dígitos.
+- Si la sesión vence o no hay permisos, se muestra un aviso claro sin romper el resto del admin.
+
+Pendiente:
+- Aviso de privacidad (Ley 25.326) y pantalla "Pedido recibido" en el checkout.
+- Editor de tramos de envío y sección **Envíos** en el admin.
