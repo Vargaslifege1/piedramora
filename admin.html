@@ -65,6 +65,7 @@
           Pedidos
           <span id="pedidos-badge" class="admin-tab-badge" hidden>0</span>
         </button>
+        <button type="button" class="admin-tab" data-admin-vista="envios">Envíos</button>
       </nav>
 
       <div id="admin-vista-carta" class="admin-vista">
@@ -259,6 +260,107 @@
         </div>
 
         <div id="pedidos-lista" class="admin-pedidos-lista"></div>
+      </section>
+
+      <section id="admin-vista-envios" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Envíos</p>
+            <h2>Zonas y tramos</h2>
+            <p class="admin-ayuda" id="envios-ayuda">La distancia se mide en línea recta desde la sucursal. Una cuadra cuenta como 100 metros.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-envios-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <p id="envios-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="envios-aviso" class="admin-aviso" hidden></div>
+
+        <section class="admin-card">
+          <div class="admin-seccion-head">
+            <div>
+              <h3>Configuración general</h3>
+              <p class="admin-ayuda">Se aplica a la cotización y al tiempo estimado que ve el cliente.</p>
+            </div>
+          </div>
+          <form id="form-config-envios" class="admin-form admin-envios-config" novalidate>
+            <label class="admin-campo">
+              <span>Metros por cuadra</span>
+              <input id="envios-metros-cuadra" type="number" min="50" max="300" step="1" inputmode="numeric" placeholder="100">
+            </label>
+            <label class="admin-campo">
+              <span>Tiempo estimado de entrega (minutos)</span>
+              <input id="envios-tiempo-estimado" type="number" min="1" step="1" inputmode="numeric" placeholder="Vacío = sin estimado">
+            </label>
+            <label class="admin-campo">
+              <span>Descuento efectivo (%)</span>
+              <input id="envios-descuento-efectivo" type="number" min="0" max="100" step="1" inputmode="numeric">
+            </label>
+            <label class="admin-campo">
+              <span>Descuento transferencia (%)</span>
+              <input id="envios-descuento-transferencia" type="number" min="0" max="100" step="1" inputmode="numeric">
+            </label>
+            <div class="admin-form-acciones admin-envios-config-acciones">
+              <button type="submit" id="btn-guardar-config-envios" class="btn-primario">Guardar configuración</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="admin-card">
+          <div class="admin-seccion-head">
+            <div>
+              <h3>Costo base: Zona normal</h3>
+              <p class="admin-ayuda">Se cobra cuando no hay tramo aplicable o cuando no hay coordenadas de la dirección.</p>
+            </div>
+          </div>
+          <div id="zonas-normales-lista" class="admin-envios-zonas"></div>
+          <p id="zonas-normales-estado" class="admin-estado" aria-live="polite"></p>
+        </section>
+
+        <section class="admin-card">
+          <div class="admin-seccion-head">
+            <div>
+              <h3>Tramos por cuadras</h3>
+              <p class="admin-ayuda">Los tramos activos no deben superponerse. El último tramo activo debería llegar hasta 999 cuadras para no dejar envíos sin precio.</p>
+            </div>
+            <button type="button" id="btn-nuevo-tramo" class="btn-primario">+ Nuevo tramo</button>
+          </div>
+
+          <form id="form-tramo" class="admin-form admin-envios-tramo-form" hidden novalidate>
+            <input type="hidden" id="tramo-id">
+            <label class="admin-campo">
+              <span>Sucursal</span>
+              <select id="tramo-sucursal">
+                <option value="">Todas</option>
+              </select>
+            </label>
+            <label class="admin-campo">
+              <span>Desde (cuadras)</span>
+              <input id="tramo-desde" type="number" min="0" step="1" inputmode="numeric" required>
+            </label>
+            <label class="admin-campo">
+              <span>Hasta (cuadras)</span>
+              <input id="tramo-hasta" type="number" min="0" step="1" inputmode="numeric" required>
+            </label>
+            <label class="admin-campo">
+              <span>Costo</span>
+              <input id="tramo-costo" type="number" min="0" step="1" inputmode="decimal" required>
+            </label>
+            <label class="admin-campo admin-campo-check">
+              <input id="tramo-activa" type="checkbox" checked>
+              <span>Activo</span>
+            </label>
+            <p id="tramo-estado" class="admin-estado admin-envios-tramo-estado" aria-live="polite"></p>
+            <div class="admin-form-acciones admin-envios-tramo-acciones">
+              <button type="submit" id="btn-guardar-tramo" class="btn-primario">Guardar tramo</button>
+              <button type="button" id="btn-cancelar-tramo" class="btn-secundario">Cancelar</button>
+            </div>
+          </form>
+
+          <p id="tramos-estado" class="admin-estado" aria-live="polite"></p>
+          <div id="tramos-lista" class="admin-envios-tramos"></div>
+        </section>
       </section>
     </section>
   </main>

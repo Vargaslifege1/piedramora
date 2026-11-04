@@ -423,5 +423,21 @@ Pendientes antes de dar 1C por cerrado:
 - El botón "Volver a la carta" cierra el modal y el checkout. Se ve bien en celular y en escritorio.
 - Archivos: `index.html`, `style.css`, `main.js`.
 
+## Sección "Envíos" en el admin (2026-11-03)
+
+- Nueva pestaña **Envíos** en `admin.html`, junto a Carta y Pedidos.
+- **Configuración general** (`config_negocio`, upsert por `clave`):
+  - `metros_por_cuadra`: entero entre 50 y 300.
+  - `tiempo_estimado_entrega`: entero de minutos; vacío se guarda sin valor y se lee como `null` (la columna `valor` es `jsonb not null`, así que no admite `NULL` de SQL).
+  - `descuentos_pago`: objeto `{ efectivo, transferencia }`, ambos entre 0 y 100.
+- **Costo base Zona normal** (`zonas_envio`): se edita el costo, si usa tramos y si está activa, por sucursal.
+- **Tramos** (`tramos_envio`): listar, agregar, editar, activar/desactivar y borrar con confirmación.
+- Validaciones de tramos: enteros >= 0, `hasta >= desde`, costo >= 0 y sin superposición entre tramos activos del mismo alcance (todos o sucursal).
+- Si el último tramo activo no llega a 999 cuadras, se muestra un aviso para no dejar envíos sin precio.
+- Referencia visible: "La distancia se mide en línea recta desde la sucursal. Una cuadra cuenta como X metros", con X leído de `config_negocio`.
+- Los errores de carga, guardado y permisos se muestran como avisos claros. Toda lectura pública y escritura admin vía RLS existente.
+- Archivos: `admin.html`, `admin.js`, `admin.css`.
+
 Pendiente:
-- Editor de tramos de envío y sección **Envíos** en el admin.
+- Probar la sección Envíos en la nube y ajustar tramos reales si hace falta.
+- Confirmar que no queden claves o variables sin usar en otros módulos.

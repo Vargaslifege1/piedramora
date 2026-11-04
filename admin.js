@@ -78,6 +78,32 @@
     tabsVista: document.querySelectorAll('[data-admin-vista]'),
     vistaCarta: document.getElementById('admin-vista-carta'),
     vistaPedidos: document.getElementById('admin-vista-pedidos'),
+    vistaEnvios: document.getElementById('admin-vista-envios'),
+    enviosAyuda: document.getElementById('envios-ayuda'),
+    btnEnviosRecargar: document.getElementById('btn-envios-recargar'),
+    enviosEstado: document.getElementById('envios-estado'),
+    enviosAviso: document.getElementById('envios-aviso'),
+    formConfigEnvios: document.getElementById('form-config-envios'),
+    enviosMetrosCuadra: document.getElementById('envios-metros-cuadra'),
+    enviosTiempoEstimado: document.getElementById('envios-tiempo-estimado'),
+    enviosDescuentoEfectivo: document.getElementById('envios-descuento-efectivo'),
+    enviosDescuentoTransferencia: document.getElementById('envios-descuento-transferencia'),
+    btnGuardarConfigEnvios: document.getElementById('btn-guardar-config-envios'),
+    zonasNormalesLista: document.getElementById('zonas-normales-lista'),
+    zonasNormalesEstado: document.getElementById('zonas-normales-estado'),
+    btnNuevoTramo: document.getElementById('btn-nuevo-tramo'),
+    formTramo: document.getElementById('form-tramo'),
+    tramoId: document.getElementById('tramo-id'),
+    tramoSucursal: document.getElementById('tramo-sucursal'),
+    tramoDesde: document.getElementById('tramo-desde'),
+    tramoHasta: document.getElementById('tramo-hasta'),
+    tramoCosto: document.getElementById('tramo-costo'),
+    tramoActiva: document.getElementById('tramo-activa'),
+    tramoEstado: document.getElementById('tramo-estado'),
+    btnGuardarTramo: document.getElementById('btn-guardar-tramo'),
+    btnCancelarTramo: document.getElementById('btn-cancelar-tramo'),
+    tramosEstado: document.getElementById('tramos-estado'),
+    tramosLista: document.getElementById('tramos-lista'),
     pedidosBadge: document.getElementById('pedidos-badge'),
     btnPedidosActivarSonido: document.getElementById('btn-pedidos-activar-sonido'),
     btnPedidosActualizar: document.getElementById('btn-pedidos-actualizar'),
@@ -113,6 +139,12 @@
   let pedidosTimer = null;
   let pedidosSonidoActivo = false;
   let audioContexto = null;
+
+  let enviosCargados = false;
+  let enviosCargando = false;
+  let tramosEnvios = [];
+  let zonasNormales = [];
+  let configEnvios = { metrosPorCuadra: 100, tiempoEstimado: null, descuentos: { efectivo: 0, transferencia: 0 } };
 
   let modalCategoriaModo = 'crear';
   let categoriaEditandoId = null;
@@ -408,6 +440,7 @@
       if (!SUCURSALES_NOMBRES[id]) SUCURSALES_NOMBRES[id] = id;
     });
     poblarFiltroSucursalesPedidos();
+    poblarSelectSucursalesEnvios();
   }
 
   function inicializarCliente() {
@@ -432,7 +465,9 @@
     if (el.passwordInput) el.passwordInput.value = '';
     cerrarModalCategoria();
     cerrarModalPedido();
+    cerrarFormTramo();
     detenerRealtimePedidos();
+    enviosCargados = false;
     actualizarBotonGuardar();
   }
 
@@ -2141,18 +2176,503 @@
     }, 60000);
   }
 
+  /* ===== Fase 1: seccion Envios ===== */
+
+  function mostrarEstadoEnvios(texto, tipo = '') {
+    mostrarEstado(el.enviosEstado, texto, tipo);
+  }
+
+  function mostrarAvisoEnvios(texto, tipo = 'info') {
+    if (!el.enviosAviso) return;
+    if (!texto) {
+      el.enviosAviso.hidden = true;
+      el.enviosAviso.textContent = '';
+      return;
+    }
+    el.enviosAviso.hidden = false;
+    el.enviosAviso.dataset.tipo = tipo;
+    el.enviosAviso.textContent = texto;
+  }
+
+  function mensajeErrorEnvios(error, accion) {
+    const detalle = (error && (error.message || error.error_description))
+      ? String(error.message || error.error_description)
+      : 'Error de conexión.';
+    if (errorEsDeSesion(error)) {
+      return `Tu sesión venció o no tenés permisos para ${accion || 'editar'} envíos. Volvé a iniciar sesión. (${detalle})`;
+    }
+    return `No se pudieron ${accion || 'cargar'} los envíos: ${detalle}`;
+  }
+
+  function etiquetaSucursalEnvios(id) {
+    if (!id) return 'Todas';
+    return SUCURSALES_NOMBRES[id] || id;
+  }
+
+  function poblarSelectSucursalesEnvios() {
+    if (!el.tramoSucursal) return;
+    const actual = el.tramoSucursal.value;
+    const opciones = Object.keys(SUCURSALES_NOMBRES)
+      .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
+      .map(id => `<option value="${escaparHtml(id)}">${escaparHtml(SUCURSALES_NOMBRES[id])}</option>`)
+      .join('');
+    el.tramoSucursal.innerHTML = `<option value="">Todas</option>${opciones}`;
+    if (actual) el.tramoSucursal.value = actual;
+  }
+
+  function numeroConfig(valor, porDefecto = null) {
+    if (valor === null || valor === undefined || valor === '') return porDefecto;
+    const numero = Number(valor);
+    return Number.isFinite(numero) ? numero : porDefecto;
+  }
+
+  function renderConfigEnvios() {
+    if (el.enviosMetrosCuadra) el.enviosMetrosCuadra.value = String(configEnvios.metrosPorCuadra || 100);
+    if (el.enviosTiempoEstimado) {
+      el.enviosTiempoEstimado.value = configEnvios.tiempoEstimado ? String(configEnvios.tiempoEstimado) : '';
+    }
+    if (el.enviosDescuentoEfectivo) el.enviosDescuentoEfectivo.value = String(configEnvios.descuentos.efectivo || 0);
+    if (el.enviosDescuentoTransferencia) {
+      el.enviosDescuentoTransferencia.value = String(configEnvios.descuentos.transferencia || 0);
+    }
+    if (el.enviosAyuda) {
+      const metros = configEnvios.metrosPorCuadra || 100;
+      el.enviosAyuda.textContent = `La distancia se mide en línea recta desde la sucursal. Una cuadra cuenta como ${metros} metros.`;
+    }
+  }
+
+  function renderZonasNormales() {
+    if (!el.zonasNormalesLista) return;
+    if (!zonasNormales.length) {
+      el.zonasNormalesLista.innerHTML = '<p class="admin-envios-vacio">No hay filas de Zona normal. Revisá la configuración de zonas en la base.</p>';
+      return;
+    }
+
+    el.zonasNormalesLista.innerHTML = zonasNormales.map(zona => {
+      const id = escaparHtml(zona.id);
+      return `<div class="admin-envios-zona" data-zona-id="${id}">
+        <div class="admin-envios-zona-nombre">
+          <strong>${escaparHtml(zona.nombre || 'Zona normal')}</strong>
+          <small>${escaparHtml(etiquetaSucursalEnvios(zona.sucursal_id))}</small>
+        </div>
+        <label class="admin-campo">
+          <span>Costo base</span>
+          <input type="number" min="0" step="1" inputmode="decimal" data-zona-costo value="${Number(zona.costo) || 0}">
+        </label>
+        <label class="admin-campo admin-campo-check">
+          <input type="checkbox" data-zona-tramos ${zona.aplica_tramos ? 'checked' : ''}>
+          <span>Usar tramos</span>
+        </label>
+        <label class="admin-campo admin-campo-check">
+          <input type="checkbox" data-zona-activa ${zona.activa ? 'checked' : ''}>
+          <span>Activa</span>
+        </label>
+        <button type="button" class="btn-primario" data-zona-guardar>Guardar</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderTramosEnvios() {
+    if (!el.tramosLista) return;
+    if (!tramosEnvios.length) {
+      el.tramosLista.innerHTML = '<p class="admin-envios-vacio">Todavía no hay tramos cargados.</p>';
+      return;
+    }
+
+    const ordenados = [...tramosEnvios].sort((a, b) => {
+      const sa = a.sucursal_id || '';
+      const sb = b.sucursal_id || '';
+      if (sa !== sb) {
+        if (!sa) return -1;
+        if (!sb) return 1;
+        return sa.localeCompare(sb, 'es');
+      }
+      return Number(a.desde_cuadras) - Number(b.desde_cuadras);
+    });
+
+    el.tramosLista.innerHTML = ordenados.map(tramo => {
+      const id = escaparHtml(tramo.id);
+      const activa = !!tramo.activa;
+      return `<div class="admin-envios-tramo ${activa ? '' : 'inactivo'}" data-tramo-id="${id}">
+        <div class="admin-envios-tramo-dato">
+          <small>Sucursal</small>
+          <span>${escaparHtml(etiquetaSucursalEnvios(tramo.sucursal_id))}</span>
+        </div>
+        <div class="admin-envios-tramo-dato">
+          <small>Desde</small>
+          <span>${Number(tramo.desde_cuadras) || 0} cuadras</span>
+        </div>
+        <div class="admin-envios-tramo-dato">
+          <small>Hasta</small>
+          <span>${Number(tramo.hasta_cuadras) || 0} cuadras</span>
+        </div>
+        <div class="admin-envios-tramo-dato">
+          <small>Costo</small>
+          <span>${formatearPrecio(tramo.costo)}</span>
+        </div>
+        <div class="admin-envios-tramo-acciones">
+          <span class="admin-envios-tramo-badge ${activa ? 'activa' : 'inactiva'}">${activa ? 'Activo' : 'Inactivo'}</span>
+          <button type="button" class="btn-secundario" data-tramo-accion="editar">Editar</button>
+          <button type="button" class="btn-secundario" data-tramo-accion="toggle">${activa ? 'Desactivar' : 'Activar'}</button>
+          <button type="button" class="btn-peligro" data-tramo-accion="eliminar">Borrar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function cargarEnvios(opciones = {}) {
+    if (!cliente || enviosCargando) return;
+    enviosCargando = true;
+    if (!opciones.silencioso) {
+      mostrarEstadoEnvios('Cargando envíos...');
+      mostrarAvisoEnvios('');
+    }
+
+    try {
+      const [configResp, tramosResp, zonasResp] = await Promise.all([
+        cliente
+          .from('config_negocio')
+          .select('clave,valor')
+          .in('clave', ['metros_por_cuadra', 'tiempo_estimado_entrega', 'descuentos_pago']),
+        cliente
+          .from('tramos_envio')
+          .select('id,sucursal_id,desde_cuadras,hasta_cuadras,costo,activa'),
+        cliente
+          .from('zonas_envio')
+          .select('id,sucursal_id,nombre,costo,activa,aplica_tramos')
+          .ilike('nombre', 'Zona normal')
+      ]);
+
+      if (configResp.error) throw configResp.error;
+      if (tramosResp.error) throw tramosResp.error;
+      if (zonasResp.error) throw zonasResp.error;
+
+      const filasConfig = Array.isArray(configResp.data) ? configResp.data : [];
+      const valorClave = (clave) => {
+        const fila = filasConfig.find(item => item && item.clave === clave);
+        return fila ? fila.valor : null;
+      };
+
+      const descuentos = valorClave('descuentos_pago');
+      configEnvios = {
+        metrosPorCuadra: numeroConfig(valorClave('metros_por_cuadra'), 100),
+        tiempoEstimado: numeroConfig(valorClave('tiempo_estimado_entrega'), null),
+        descuentos: {
+          efectivo: numeroConfig(descuentos && descuentos.efectivo, 0),
+          transferencia: numeroConfig(descuentos && descuentos.transferencia, 0)
+        }
+      };
+
+      tramosEnvios = Array.isArray(tramosResp.data) ? tramosResp.data : [];
+      zonasNormales = Array.isArray(zonasResp.data) ? zonasResp.data : [];
+
+      renderConfigEnvios();
+      renderZonasNormales();
+      renderTramosEnvios();
+      enviosCargados = true;
+
+      if (!opciones.silencioso) mostrarEstadoEnvios('Envíos actualizados.', 'ok');
+    } catch (error) {
+      console.warn('No se pudieron cargar los envíos:', error);
+      mostrarEstadoEnvios('');
+      mostrarAvisoEnvios(mensajeErrorEnvios(error, 'cargar'), 'error');
+    } finally {
+      enviosCargando = false;
+    }
+  }
+
+  async function guardarConfigEnvios(evento) {
+    if (evento) evento.preventDefault();
+    if (!cliente) {
+      mostrarAvisoEnvios('Supabase no está disponible.', 'error');
+      return;
+    }
+
+    const metros = Number(el.enviosMetrosCuadra && el.enviosMetrosCuadra.value);
+    if (!Number.isInteger(metros) || metros < 50 || metros > 300) {
+      mostrarAvisoEnvios('Los metros por cuadra deben ser un número entero entre 50 y 300.', 'error');
+      return;
+    }
+
+    const tiempoTexto = el.enviosTiempoEstimado ? String(el.enviosTiempoEstimado.value).trim() : '';
+    const tiempo = tiempoTexto === '' ? null : Number(tiempoTexto);
+    if (tiempo !== null && (!Number.isInteger(tiempo) || tiempo < 1)) {
+      mostrarAvisoEnvios('El tiempo estimado debe ser un número entero de minutos mayor a cero, o quedar vacío.', 'error');
+      return;
+    }
+
+    const efectivo = Number(el.enviosDescuentoEfectivo && el.enviosDescuentoEfectivo.value);
+    const transferencia = Number(el.enviosDescuentoTransferencia && el.enviosDescuentoTransferencia.value);
+    if (!Number.isFinite(efectivo) || efectivo < 0 || efectivo > 100
+      || !Number.isFinite(transferencia) || transferencia < 0 || transferencia > 100) {
+      mostrarAvisoEnvios('Los descuentos deben ser números entre 0 y 100.', 'error');
+      return;
+    }
+
+    if (el.btnGuardarConfigEnvios) el.btnGuardarConfigEnvios.disabled = true;
+    try {
+      const filas = [
+        { clave: 'metros_por_cuadra', valor: metros },
+        { clave: 'descuentos_pago', valor: { efectivo, transferencia } }
+      ];
+      if (tiempo !== null) filas.push({ clave: 'tiempo_estimado_entrega', valor: tiempo });
+
+      const { error } = await cliente.from('config_negocio').upsert(filas, { onConflict: 'clave' });
+      if (error) throw error;
+
+      if (tiempo === null) {
+        const { error: errorTiempo } = await cliente
+          .from('config_negocio')
+          .delete()
+          .eq('clave', 'tiempo_estimado_entrega');
+        if (errorTiempo) throw errorTiempo;
+      }
+
+      configEnvios = {
+        metrosPorCuadra: metros,
+        tiempoEstimado: tiempo,
+        descuentos: { efectivo, transferencia }
+      };
+      renderConfigEnvios();
+      mostrarAvisoEnvios('');
+      mostrarEstadoEnvios('Configuración guardada.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo guardar la configuración de envíos:', error);
+      mostrarAvisoEnvios(mensajeErrorEnvios(error, 'guardar'), 'error');
+    } finally {
+      if (el.btnGuardarConfigEnvios) el.btnGuardarConfigEnvios.disabled = false;
+    }
+  }
+
+  async function guardarZonaNormal(id) {
+    if (!cliente || !id) return;
+    const contenedor = el.zonasNormalesLista
+      ? el.zonasNormalesLista.querySelector(`[data-zona-id="${id}"]`)
+      : null;
+    if (!contenedor) return;
+
+    const costoInput = contenedor.querySelector('[data-zona-costo]');
+    const tramosInput = contenedor.querySelector('[data-zona-tramos]');
+    const activaInput = contenedor.querySelector('[data-zona-activa]');
+    const costo = Number(costoInput && costoInput.value);
+
+    if (!Number.isFinite(costo) || costo < 0) {
+      if (el.zonasNormalesEstado) mostrarEstado(el.zonasNormalesEstado, 'El costo base debe ser un número mayor o igual a 0.', 'error');
+      return;
+    }
+
+    const boton = contenedor.querySelector('[data-zona-guardar]');
+    if (boton) boton.disabled = true;
+    try {
+      const { error } = await cliente
+        .from('zonas_envio')
+        .update({
+          costo,
+          aplica_tramos: !!(tramosInput && tramosInput.checked),
+          activa: !!(activaInput && activaInput.checked)
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      if (el.zonasNormalesEstado) mostrarEstado(el.zonasNormalesEstado, 'Costo base guardado.', 'ok');
+      await cargarEnvios({ silencioso: true });
+    } catch (error) {
+      console.warn('No se pudo guardar la zona normal:', error);
+      if (el.zonasNormalesEstado) mostrarEstado(el.zonasNormalesEstado, mensajeErrorEnvios(error, 'guardar'), 'error');
+    } finally {
+      if (boton) boton.disabled = false;
+    }
+  }
+
+  function abrirFormTramo(tramo) {
+    if (!el.formTramo) return;
+    el.formTramo.hidden = false;
+    if (el.tramoId) el.tramoId.value = tramo && tramo.id ? tramo.id : '';
+    if (el.tramoSucursal) el.tramoSucursal.value = tramo && tramo.sucursal_id ? tramo.sucursal_id : '';
+    if (el.tramoDesde) el.tramoDesde.value = tramo ? String(tramo.desde_cuadras) : '';
+    if (el.tramoHasta) el.tramoHasta.value = tramo ? String(tramo.hasta_cuadras) : '';
+    if (el.tramoCosto) el.tramoCosto.value = tramo ? String(tramo.costo) : '';
+    if (el.tramoActiva) el.tramoActiva.checked = tramo ? !!tramo.activa : true;
+    if (el.btnGuardarTramo) el.btnGuardarTramo.textContent = tramo ? 'Guardar cambios' : 'Guardar tramo';
+    if (el.tramoEstado) mostrarEstado(el.tramoEstado, '');
+    if (el.tramoDesde) el.tramoDesde.focus();
+  }
+
+  function cerrarFormTramo() {
+    if (!el.formTramo) return;
+    el.formTramo.hidden = true;
+    if (el.tramoId) el.tramoId.value = '';
+    if (el.tramoDesde) el.tramoDesde.value = '';
+    if (el.tramoHasta) el.tramoHasta.value = '';
+    if (el.tramoCosto) el.tramoCosto.value = '';
+    if (el.tramoActiva) el.tramoActiva.checked = true;
+    if (el.tramoEstado) mostrarEstado(el.tramoEstado, '');
+  }
+
+  function validarTramo(datos, idExcluir) {
+    if (!Number.isInteger(datos.desde_cuadras) || datos.desde_cuadras < 0) {
+      throw new Error('Desde debe ser un número entero mayor o igual a 0.');
+    }
+    if (!Number.isInteger(datos.hasta_cuadras) || datos.hasta_cuadras < 0) {
+      throw new Error('Hasta debe ser un número entero mayor o igual a 0.');
+    }
+    if (datos.hasta_cuadras < datos.desde_cuadras) {
+      throw new Error('Hasta debe ser mayor o igual que Desde.');
+    }
+    if (!Number.isFinite(datos.costo) || datos.costo < 0) {
+      throw new Error('El costo debe ser un número mayor o igual a 0.');
+    }
+
+    if (!datos.activa) return;
+
+    const clave = datos.sucursal_id || '';
+    const otros = tramosEnvios.filter(tramo => {
+      if (String(tramo.id) === String(idExcluir)) return false;
+      if (!tramo.activa) return false;
+      return (tramo.sucursal_id || '') === clave;
+    });
+
+    const choque = otros.find(tramo =>
+      datos.desde_cuadras <= Number(tramo.hasta_cuadras)
+      && datos.hasta_cuadras >= Number(tramo.desde_cuadras)
+    );
+
+    if (choque) {
+      throw new Error(`El tramo se superpone con el tramo activo de ${choque.desde_cuadras} a ${choque.hasta_cuadras} cuadras.`);
+    }
+  }
+
+  function avisoHuecoFinal(sucursalId) {
+    const clave = sucursalId || '';
+    const activos = tramosEnvios.filter(tramo => tramo.activa && (tramo.sucursal_id || '') === clave);
+    if (!activos.length) return '';
+    const maximo = Math.max(...activos.map(tramo => Number(tramo.hasta_cuadras) || 0));
+    if (maximo >= 999) return '';
+    return `Aviso: el último tramo activo llega hasta ${maximo} cuadras. Conviene que llegue a 999 para no dejar envíos sin precio.`;
+  }
+
+  async function guardarTramo(evento) {
+    if (evento) evento.preventDefault();
+    if (!cliente) {
+      mostrarAvisoEnvios('Supabase no está disponible.', 'error');
+      return;
+    }
+
+    const id = el.tramoId ? el.tramoId.value : '';
+    const datos = {
+      sucursal_id: el.tramoSucursal && el.tramoSucursal.value ? el.tramoSucursal.value : null,
+      desde_cuadras: Number(el.tramoDesde && el.tramoDesde.value),
+      hasta_cuadras: Number(el.tramoHasta && el.tramoHasta.value),
+      costo: Number(el.tramoCosto && el.tramoCosto.value),
+      activa: !!(el.tramoActiva && el.tramoActiva.checked)
+    };
+
+    try {
+      validarTramo(datos, id);
+    } catch (error) {
+      if (el.tramoEstado) mostrarEstado(el.tramoEstado, error.message, 'error');
+      return;
+    }
+
+    if (el.btnGuardarTramo) el.btnGuardarTramo.disabled = true;
+    try {
+      let respuesta;
+      if (id) {
+        respuesta = await cliente.from('tramos_envio').update(datos).eq('id', id);
+      } else {
+        respuesta = await cliente.from('tramos_envio').insert(datos);
+      }
+      if (respuesta.error) throw respuesta.error;
+
+      cerrarFormTramo();
+      await cargarEnvios({ silencioso: true });
+      mostrarEstadoEnvios(id ? 'Tramo actualizado.' : 'Tramo agregado.', 'ok');
+      mostrarAvisoEnvios(avisoHuecoFinal(datos.sucursal_id), 'info');
+    } catch (error) {
+      console.warn('No se pudo guardar el tramo:', error);
+      if (el.tramoEstado) mostrarEstado(el.tramoEstado, mensajeErrorEnvios(error, 'guardar'), 'error');
+    } finally {
+      if (el.btnGuardarTramo) el.btnGuardarTramo.disabled = false;
+    }
+  }
+
+  async function toggleTramo(id) {
+    if (!cliente) return;
+    const tramo = tramosEnvios.find(item => String(item.id) === String(id));
+    if (!tramo) return;
+
+    const actualizado = { ...tramo, activa: !tramo.activa };
+    if (actualizado.activa) {
+      try {
+        validarTramo({
+          sucursal_id: actualizado.sucursal_id,
+          desde_cuadras: Number(actualizado.desde_cuadras),
+          hasta_cuadras: Number(actualizado.hasta_cuadras),
+          costo: Number(actualizado.costo),
+          activa: true
+        }, id);
+      } catch (error) {
+        mostrarAvisoEnvios(error.message, 'error');
+        return;
+      }
+    }
+
+    try {
+      const { error } = await cliente
+        .from('tramos_envio')
+        .update({ activa: actualizado.activa })
+        .eq('id', id);
+      if (error) throw error;
+
+      await cargarEnvios({ silencioso: true });
+      mostrarEstadoEnvios(actualizado.activa ? 'Tramo activado.' : 'Tramo desactivado.', 'ok');
+      mostrarAvisoEnvios(avisoHuecoFinal(actualizado.sucursal_id), 'info');
+    } catch (error) {
+      console.warn('No se pudo cambiar el estado del tramo:', error);
+      mostrarAvisoEnvios(mensajeErrorEnvios(error, 'actualizar'), 'error');
+    }
+  }
+
+  async function eliminarTramo(id) {
+    if (!cliente) return;
+    const tramo = tramosEnvios.find(item => String(item.id) === String(id));
+    if (!tramo) return;
+    if (!window.confirm(`¿Borrar el tramo de ${tramo.desde_cuadras} a ${tramo.hasta_cuadras} cuadras de ${etiquetaSucursalEnvios(tramo.sucursal_id)}?`)) return;
+
+    try {
+      const { error } = await cliente.from('tramos_envio').delete().eq('id', id);
+      if (error) throw error;
+      await cargarEnvios({ silencioso: true });
+      mostrarEstadoEnvios('Tramo borrado.', 'ok');
+      mostrarAvisoEnvios('');
+    } catch (error) {
+      console.warn('No se pudo borrar el tramo:', error);
+      mostrarAvisoEnvios(mensajeErrorEnvios(error, 'borrar'), 'error');
+    }
+  }
+
   function mostrarVistaAdmin(vista) {
     const esPedidos = vista === 'pedidos';
+    const esEnvios = vista === 'envios';
     el.tabsVista.forEach(tab => {
       const activa = tab.dataset.adminVista === vista;
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios;
     if (el.vistaPedidos) el.vistaPedidos.hidden = !esPedidos;
+    if (el.vistaEnvios) el.vistaEnvios.hidden = !esEnvios;
     if (esPedidos && cliente) {
       if (!pedidosCargados) cargarPedidos();
       else renderPedidosLista();
+    }
+    if (esEnvios && cliente) {
+      if (!enviosCargados) cargarEnvios();
+      else {
+        renderConfigEnvios();
+        renderZonasNormales();
+        renderTramosEnvios();
+      }
     }
   }
 
@@ -2204,6 +2724,42 @@
     if (el.modalPedido) {
       el.modalPedido.addEventListener('click', (evento) => {
         if (evento.target === el.modalPedido) cerrarModalPedido();
+      });
+    }
+
+    if (el.btnEnviosRecargar) {
+      el.btnEnviosRecargar.addEventListener('click', () => cargarEnvios());
+    }
+    if (el.formConfigEnvios) el.formConfigEnvios.addEventListener('submit', guardarConfigEnvios);
+    if (el.btnNuevoTramo) el.btnNuevoTramo.addEventListener('click', () => abrirFormTramo(null));
+    if (el.btnCancelarTramo) el.btnCancelarTramo.addEventListener('click', cerrarFormTramo);
+    if (el.formTramo) el.formTramo.addEventListener('submit', guardarTramo);
+
+    if (el.tramosLista) {
+      el.tramosLista.addEventListener('click', async (evento) => {
+        const boton = evento.target.closest('[data-tramo-accion]');
+        if (!boton) return;
+        const contenedor = boton.closest('[data-tramo-id]');
+        if (!contenedor) return;
+        const id = contenedor.dataset.tramoId;
+        const accion = boton.dataset.tramoAccion;
+        if (accion === 'editar') {
+          const tramo = tramosEnvios.find(item => String(item.id) === String(id));
+          if (tramo) abrirFormTramo(tramo);
+        } else if (accion === 'toggle') {
+          await toggleTramo(id);
+        } else if (accion === 'eliminar') {
+          await eliminarTramo(id);
+        }
+      });
+    }
+
+    if (el.zonasNormalesLista) {
+      el.zonasNormalesLista.addEventListener('click', async (evento) => {
+        const boton = evento.target.closest('[data-zona-guardar]');
+        if (!boton) return;
+        const contenedor = boton.closest('[data-zona-id]');
+        if (contenedor) await guardarZonaNormal(contenedor.dataset.zonaId);
       });
     }
 
