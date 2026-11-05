@@ -115,6 +115,11 @@
     btnPedidosActualizar: document.getElementById('btn-pedidos-actualizar'),
     pedidosEstado: document.getElementById('pedidos-estado'),
     pedidosAviso: document.getElementById('pedidos-aviso'),
+    agotadosSucursalCampo: document.getElementById('agotados-sucursal-campo'),
+    agotadosSucursal: document.getElementById('agotados-sucursal'),
+    agotadosEstado: document.getElementById('agotados-estado'),
+    agotadosAviso: document.getElementById('agotados-aviso'),
+    agotadosLista: document.getElementById('agotados-lista'),
     pedidosFiltroPeriodo: document.getElementById('pedidos-filtro-periodo'),
     pedidosPeriodoEtiqueta: document.getElementById('pedidos-periodo-etiqueta'),
     btnPedidosAnterior: document.getElementById('btn-pedidos-anterior'),
@@ -171,6 +176,10 @@
   let pedidosPeriodo = 'dia';
   let pedidosFechaDia = '';
   let pedidosSoportaPagos = true;
+
+  let agotadosCargados = false;
+  let agotadosCargando = false;
+  let agotadosProductos = new Set();
 
   let enviosCargados = false;
   let enviosCargando = false;
@@ -508,6 +517,7 @@
     });
     poblarFiltroSucursalesPedidos();
     poblarSelectSucursalesEnvios();
+    poblarSelectAgotados();
   }
 
   function inicializarCliente() {
@@ -539,6 +549,8 @@
     detenerRealtimePedidos();
     detenerAlertaPedidos();
     enviosCargados = false;
+    agotadosCargados = false;
+    agotadosProductos = new Set();
     actualizarBotonGuardar();
   }
 
@@ -586,14 +598,14 @@
     if (el.sesion) el.sesion.hidden = false;
     if (el.sesionEmail) el.sesionEmail.textContent = usuario.email || 'Administrador';
 
-    aplicarPermisosRol();
-
     if (!yaVisible) {
       await cargarCarta();
       await cargarPedidos({ silencioso: true });
       iniciarRealtimePedidos();
       iniciarRefrescoPedidos();
     }
+
+    aplicarPermisosRol();
   }
 
   function aplicarPermisosRol() {
@@ -605,6 +617,7 @@
 
     poblarFiltroSucursalesPedidos();
     poblarSelectSucursalesEnvios();
+    poblarSelectAgotados();
 
     if (el.formConfigEnvios) el.formConfigEnvios.hidden = restringido;
     const seccionConfig = el.formConfigEnvios ? el.formConfigEnvios.closest('.admin-card') : null;
@@ -3091,6 +3104,166 @@
     }, 60000);
   }
 
+  /* ===== Agotados por sucursal ===== */
+
+  function mostrarEstadoAgotados(texto, tipo = '') {
+    mostrarEstado(el.agotadosEstado, texto, tipo);
+  }
+
+  function mostrarAvisoAgotados(texto, tipo = 'info') {
+    if (!el.agotadosAviso) return;
+    if (!texto) {
+      el.agotadosAviso.hidden = true;
+      el.agotadosAviso.textContent = '';
+      return;
+    }
+    el.agotadosAviso.hidden = false;
+    el.agotadosAviso.dataset.tipo = tipo;
+    el.agotadosAviso.textContent = texto;
+  }
+
+  function poblarSelectAgotados() {
+    if (!el.agotadosSucursal) return;
+    if (el.agotadosSucursalCampo) el.agotadosSucursalCampo.hidden = esAdminSucursal();
+    if (esAdminSucursal()) {
+      el.agotadosSucursal.disabled = true;
+      if (!adminSucursalId) {
+        el.agotadosSucursal.innerHTML = '<option value="">Sin sucursal asignada</option>';
+        el.agotadosSucursal.value = '';
+        return;
+      }
+      const nombre = SUCURSALES_NOMBRES[adminSucursalId] || adminSucursalId;
+      el.agotadosSucursal.innerHTML = `<option value="${escaparHtml(adminSucursalId)}">${escaparHtml(nombre)}</option>`;
+      el.agotadosSucursal.value = adminSucursalId;
+      return;
+    }
+    el.agotadosSucursal.disabled = false;
+    const actual = el.agotadosSucursal.value;
+    const opciones = Object.keys(SUCURSALES_NOMBRES)
+      .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
+      .map(id => `<option value="${escaparHtml(id)}">${escaparHtml(SUCURSALES_NOMBRES[id])}</option>`)
+      .join('');
+    el.agotadosSucursal.innerHTML = opciones;
+    if (actual) el.agotadosSucursal.value = actual;
+  }
+
+  function sucursalAgotadosSeleccionada() {
+    if (esAdminSucursal()) return adminSucursalId || '';
+    return (el.agotadosSucursal && el.agotadosSucursal.value) || '';
+  }
+
+  function productosCartaDeSucursal(sucursalId) {
+    if (!carta || !Array.isArray(carta.productos) || !sucursalId) return [];
+    return carta.productos
+      .filter(producto => Array.isArray(producto.sucursales) && producto.sucursales.includes(sucursalId))
+      .sort((a, b) => {
+        const categoriaA = nombreCategoria(a.categoria);
+        const categoriaB = nombreCategoria(b.categoria);
+        if (categoriaA !== categoriaB) return categoriaA.localeCompare(categoriaB, 'es');
+        return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+      });
+  }
+
+  function renderAgotados() {
+    if (!el.agotadosLista) return;
+    const sucursalId = sucursalAgotadosSeleccionada();
+    if (!sucursalId) {
+      el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">Sin sucursal asignada. Recargá la página o pedile al dueño que asigne una sucursal.</p>';
+      return;
+    }
+
+    const productos = productosCartaDeSucursal(sucursalId);
+    if (!productos.length) {
+      el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">No hay productos cargados para esta sucursal.</p>';
+      return;
+    }
+
+    el.agotadosLista.innerHTML = productos.map(producto => {
+      const id = String(producto.id);
+      const marcado = agotadosProductos.has(id);
+      return `<label class="admin-agotado-item">
+        <input type="checkbox" data-agotado-id="${escaparHtml(id)}"${marcado ? ' checked' : ''}>
+        <span>
+          <strong>${escaparHtml(producto.nombre || id)}</strong>
+          <small>${escaparHtml(nombreCategoria(producto.categoria))}</small>
+        </span>
+      </label>`;
+    }).join('');
+  }
+
+  async function cargarAgotados(opciones = {}) {
+    if (!cliente || agotadosCargando) return;
+    const sucursalId = sucursalAgotadosSeleccionada();
+    if (!sucursalId) {
+      agotadosProductos = new Set();
+      renderAgotados();
+      return;
+    }
+    if (!carta) await cargarCarta();
+
+    agotadosCargando = true;
+    if (!opciones.silencioso) {
+      mostrarEstadoAgotados('Cargando agotados...');
+      mostrarAvisoAgotados('');
+    }
+
+    try {
+      const { data, error } = await cliente
+        .from('agotados_sucursal')
+        .select('producto_id,sucursal_id')
+        .eq('sucursal_id', sucursalId);
+      if (error) throw error;
+
+      agotadosProductos = new Set((Array.isArray(data) ? data : [])
+        .map(item => item && item.producto_id ? String(item.producto_id) : '')
+        .filter(Boolean));
+      agotadosCargados = true;
+      renderAgotados();
+      if (!opciones.silencioso) mostrarEstadoAgotados('Agotados actualizados.', 'ok');
+    } catch (error) {
+      console.warn('No se pudieron cargar los agotados:', error);
+      mostrarEstadoAgotados('');
+      mostrarAvisoAgotados(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : `No se pudieron cargar los agotados: ${error.message || 'error de conexión'}`, 'error');
+    } finally {
+      agotadosCargando = false;
+    }
+  }
+
+  async function cambiarAgotado(productoId, marcar, checkbox) {
+    const sucursalId = sucursalAgotadosSeleccionada();
+    if (!cliente || !productoId || !sucursalId) return;
+    if (checkbox) checkbox.disabled = true;
+
+    try {
+      let error = null;
+      if (marcar) {
+        const respuesta = await cliente
+          .from('agotados_sucursal')
+          .upsert({ producto_id: productoId, sucursal_id: sucursalId }, { onConflict: 'producto_id,sucursal_id' });
+        error = respuesta.error;
+      } else {
+        const respuesta = await cliente
+          .from('agotados_sucursal')
+          .delete()
+          .eq('producto_id', productoId)
+          .eq('sucursal_id', sucursalId);
+        error = respuesta.error;
+      }
+      if (error) throw error;
+
+      if (marcar) agotadosProductos.add(String(productoId));
+      else agotadosProductos.delete(String(productoId));
+      mostrarEstadoAgotados(marcar ? 'Producto marcado como agotado.' : 'Producto reactivado.', 'ok');
+      mostrarAvisoAgotados('');
+    } catch (error) {
+      console.warn('No se pudo cambiar el agotado:', error);
+      if (checkbox) checkbox.checked = !marcar;
+      mostrarAvisoAgotados(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : `No se pudo guardar el agotado: ${error.message || 'error de conexión'}`, 'error');
+    } finally {
+      if (checkbox) checkbox.disabled = false;
+    }
+  }
+
   /* ===== Fase 1: seccion Envios ===== */
 
   function mostrarEstadoEnvios(texto, tipo = '') {
@@ -3657,6 +3830,8 @@
     if (esPedidos && cliente) {
       if (!pedidosCargados) cargarPedidos();
       else renderPedidos();
+      if (!agotadosCargados) cargarAgotados();
+      else renderAgotados();
     }
     if (esEnvios && cliente) {
       if (!enviosCargados) cargarEnvios();
@@ -3734,6 +3909,19 @@
       });
     });
     if (el.btnPedidosExportar) el.btnPedidosExportar.addEventListener('click', exportarPedidosCsv);
+    if (el.agotadosSucursal) {
+      el.agotadosSucursal.addEventListener('change', () => {
+        agotadosCargados = false;
+        cargarAgotados();
+      });
+    }
+    if (el.agotadosLista) {
+      el.agotadosLista.addEventListener('change', async (evento) => {
+        const checkbox = evento.target.closest('[data-agotado-id]');
+        if (!checkbox) return;
+        await cambiarAgotado(checkbox.dataset.agotadoId, checkbox.checked, checkbox);
+      });
+    }
 
     if (el.pedidosContenedor) {
       el.pedidosContenedor.addEventListener('click', async (evento) => {

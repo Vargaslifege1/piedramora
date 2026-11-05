@@ -236,6 +236,23 @@
         <p id="pedidos-estado" class="admin-estado" aria-live="polite"></p>
         <div id="pedidos-aviso" class="admin-aviso" hidden></div>
 
+        <section id="admin-agotados" class="admin-card admin-agotados">
+          <div class="admin-seccion-head">
+            <div>
+              <p class="admin-eyebrow">Disponibilidad</p>
+              <h3>Agotados (hasta que los reactives)</h3>
+              <p class="admin-ayuda">Marcá los productos que no tienen stock en esta sucursal. Se ocultan como agotados en la carta pública.</p>
+            </div>
+            <label id="agotados-sucursal-campo" class="admin-campo admin-agotados-sucursal" hidden>
+              <span>Sucursal</span>
+              <select id="agotados-sucursal"></select>
+            </label>
+          </div>
+          <p id="agotados-estado" class="admin-estado" aria-live="polite"></p>
+          <div id="agotados-aviso" class="admin-aviso" hidden></div>
+          <div id="agotados-lista" class="admin-agotados-lista"></div>
+        </section>
+
         <div class="admin-pedidos-toolbar">
           <div class="admin-pedidos-periodo">
             <label class="admin-pedidos-periodo-select">

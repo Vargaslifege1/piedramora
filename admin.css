@@ -2365,3 +2365,60 @@ p {
     padding-top: 4px;
   }
 }
+
+/* Agotados por sucursal */
+.admin-agotados {
+  margin-bottom: 1.25rem;
+}
+
+.admin-agotados-sucursal {
+  min-width: 220px;
+}
+
+.admin-agotados-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow: auto;
+  margin-top: 0.75rem;
+  padding-right: 0.25rem;
+}
+
+.admin-agotado-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--admin-borde);
+  border-radius: var(--admin-radio-chico);
+  background: var(--admin-panel-2);
+  cursor: pointer;
+}
+
+.admin-agotado-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.admin-agotado-item strong {
+  font-size: 0.95rem;
+  color: var(--admin-texto);
+}
+
+.admin-agotado-item small {
+  font-size: 0.78rem;
+  color: var(--admin-texto-tenue);
+}
+
+.admin-agotado-item input {
+  accent-color: var(--admin-rojo);
+}
+
+@media (max-width: 700px) {
+  .admin-agotados-lista {
+    grid-template-columns: 1fr;
+  }
+}
