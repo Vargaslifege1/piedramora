@@ -728,3 +728,18 @@ Archivos tocados: `admin.html`, `admin.js`, `admin.css`. Sin SQL.
 - `node --check admin.js` sin errores.
 
 Cómo probar: abrir "Nuevo cupón" (scroll al formulario), cancelar con los tres botones y con Escape; guardar uno válido (cierra y baja a la lista); repetir un código (queda abierto con el error).
+
+## Fase 3D-1: fidelidad y premios (base de datos, migración 019 — NO aplicada todavía)
+
+Archivo nuevo: `supabase/migrations/019_fidelidad_premios.sql`. Sin cambios de frontend. **Hacer backup antes de aplicarla.**
+
+- Ciclo de 10 pedidos entregados: 5.º → 30% en un pedido futuro (sin tope); 10.º → Cheeseburger gratis (`burger_cheeseburger`, variación SIMPLE). Vencen a 30 días, un solo uso.
+- Cuentan solo pedidos entregados con `sincronizado` distinto de false y `pedidos.subtotal >= 10000` (subtotal de productos, antes de descuentos y sin envío).
+- Config en `config_negocio.fidelidad` (solo reglas; escritura solo `es_dueno()` desde la 017). `pm_fidelidad_config()` valida y, si falta/está mal/inactiva, el programa queda inactivo.
+- Tablas/columnas: `premios` (RLS: solo el dueño lee, sin escritura directa), `fidelidad_intentos` (anti-spam, sin acceso), `pedidos.fidelidad_contado`, `pedidos.premio_id`, `clientes.fidelidad_pedidos`.
+- Trigger `pm_pedidos_actualizar_clientes()` extendido (solo se agregó el bloque de fidelidad al pasar a `entregado`, no por cambio de teléfono). Trigger nuevo `pedidos_liberar_premio`: cancelar libera el premio si no venció.
+- RPC públicas: `mis_premios(p_telefono)` y `mi_progreso_fidelidad(p_telefono)` (anti-spam 10/10 min por teléfono, 30/10 min por IP, 100/5 min global; error genérico).
+- `crear_pedido` pasa a 14 argumentos (`p_premio_id uuid default null`); con premio se ignoran cupón y descuento por pago; premio + cupón se rechaza; el canje bloquea la fila (`FOR UPDATE`) y marca el premio usado en la misma transacción.
+- Limitaciones documentadas en la migración: el contador no se resta al revertir/cancelar un pedido ya contado; sin backfill de pedidos históricos; si falla la acreditación se loguea un WARNING y no se bloquea el cambio de estado.
+- La migración incluye rollback comentado y casos de prueba (a–q).
+- Pendiente (3D-2): frontend (checkout con premio, "mis premios", progreso) y panel del dueño.
