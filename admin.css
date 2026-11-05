@@ -2153,6 +2153,84 @@ p {
   padding: 14px 0;
 }
 
+/* Cupones (3B) */
+.admin-cupon-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid var(--admin-borde-fuerte);
+  border-radius: var(--admin-radio-chico);
+  background: var(--admin-panel-2);
+}
+
+.admin-cupon-nota {
+  grid-column: 1 / -1;
+}
+
+.admin-cupon-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(4, minmax(0, 0.8fr)) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--admin-borde);
+  border-radius: var(--admin-radio-chico);
+  background: var(--admin-panel-2);
+}
+
+.admin-cupon-fila.pausado,
+.admin-cupon-fila.vencido,
+.admin-cupon-fila.agotado {
+  opacity: 0.65;
+}
+
+.admin-cupon-fila .admin-envios-tramo-dato span {
+  white-space: normal;
+}
+
+.admin-cupon-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--admin-texto-suave);
+  border: 1px solid var(--admin-borde);
+}
+
+.admin-cupon-badge.activo {
+  background: rgba(37, 211, 102, 0.14);
+  color: #5ee08d;
+  border-color: rgba(37, 211, 102, 0.35);
+}
+
+.admin-cupon-badge.programado {
+  background: rgba(80, 160, 255, 0.14);
+  color: #8cc2ff;
+  border-color: rgba(80, 160, 255, 0.35);
+}
+
+.admin-cupon-badge.vencido,
+.admin-cupon-badge.agotado {
+  background: rgba(255, 90, 90, 0.12);
+  color: #ff8a8a;
+  border-color: rgba(255, 90, 90, 0.35);
+}
+
+@media (max-width: 860px) {
+  .admin-cupon-form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-cupon-fila {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 860px) {
   .admin-envios-config,
   .admin-envios-tramo-form {

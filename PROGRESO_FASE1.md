@@ -693,3 +693,26 @@ Archivos tocados: `index.html`, `style.css`, `main.js`. No se tocó SQL.
 2. Escribir un código inexistente → mensaje de error del RPC, sin aplicar nada.
 3. Con `LICHI` aplicado, cambiar el medio de pago a uno con más descuento que el cupón → se revalida solo, el servidor devuelve que gana el medio de pago, y el cupón se quita con aviso.
 4. Borrar el teléfono y tocar "Aplicar" → "Completá tu teléfono primero.", sin llamar al servidor.
+
+## Fase 3B: pestaña "Cupones" en el admin (018 ya aplicada)
+
+Archivos tocados: `admin.html`, `admin.js`, `admin.css`. No se tocó SQL ni migraciones.
+
+- Pestaña "Cupones" visible solo si `adminRol === 'dueno'` y el rol se verificó (`puedeVerCupones()`). Si `mi_rol` falla, queda oculta; `mostrarVistaAdmin('cupones')` redirige a Pedidos si no hay permiso.
+- Listado desde `cupones` (RLS `es_dueno`): código, "10%" o "$2.000", estado, vigencia, `usos / máximo` y total descontado.
+- Usos y total: `cupon_usos` con `pedidos(estado)` embebido; se agrupa en el cliente excluyendo pedidos `cancelado`. Si el embed falla, se cuentan todos y se muestra un aviso visible ("incluyen pedidos cancelados").
+- Estado solo visual, comparando instantes con la hora del navegador: pausado > vencido > agotado > programado (inicio futuro) > activo. El servidor sigue decidiendo la validez real.
+- Fechas: se muestran con `timeZone: 'America/Argentina/Buenos_Aires'` y se envían con offset `-03:00`.
+- Formulario crear/editar: código en mayúsculas y sin espacios (deshabilitado al editar), tipo, valor (porcentaje 1-100, monto entero > 0), activo, fechas, usos máximos, usos por cliente, compra mínima, primera compra, sucursal (Todas/Lascano/Maestro Quiroga → `null` o un solo elemento), modalidad (Todas/delivery/retiro) y acumulable con pago. Si el cupón ya tiene usos, se muestra "Los usos anteriores conservan el descuento que tuvieron".
+- Errores del servidor traducidos: `23505` (código duplicado), `23514` (check constraints por nombre), `23503` ("Tiene usos registrados: pausalo en vez de borrarlo"), 403/42501 ("No tenés permiso para hacer esto.").
+- Acciones: Pausar/Activar con un clic, Borrar con `confirm()` (avisa si hay usos y sugiere pausar). Nunca se borran usos desde el cliente.
+- Todo lo dinámico pasa por `escaparHtml`. `node --check admin.js` sin errores.
+
+### Cómo probar
+
+1. Entrar al admin como dueño → aparece la pestaña "Cupones". Entrar como admin de sucursal (o forzar un fallo de `mi_rol`) → no aparece.
+2. "Nuevo cupón": crear `PRUEBA10` (10%). Repetir el código → "Ya existe un cupón con ese código." Probar porcentaje 101 y vencimiento anterior al inicio → errores claros en el formulario.
+3. Editar un cupón: el código está bloqueado. Si ya tiene usos, aparece la nota de usos anteriores.
+4. Pausar/Activar con un clic; crear uno con inicio futuro (Programado) y otro ya vencido (Vencido); uno con usos máximos 1 y un pedido aplicado (Agotado).
+5. Usar un cupón en un pedido y cancelar ese pedido → el contador de usos y el total descontado no lo cuentan.
+6. Borrar un cupón sin usos → se borra. Borrar uno con usos → falla con "Tiene usos registrados: pausalo en vez de borrarlo."

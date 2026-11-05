@@ -66,6 +66,7 @@
           <span id="pedidos-badge" class="admin-tab-badge" hidden>0</span>
         </button>
         <button type="button" class="admin-tab" data-admin-vista="envios">Envíos</button>
+        <button type="button" class="admin-tab" data-admin-vista="cupones" hidden>Cupones</button>
       </nav>
 
       <div id="admin-vista-carta" class="admin-vista">
@@ -405,6 +406,100 @@
 
           <p id="tramos-estado" class="admin-estado" aria-live="polite"></p>
           <div id="tramos-lista" class="admin-envios-tramos"></div>
+        </section>
+      </section>
+
+      <section id="admin-vista-cupones" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Cupones</p>
+            <h2>Códigos de descuento</h2>
+            <p class="admin-ayuda">El descuento se calcula sobre los productos (sin envío). Fechas en horario de Argentina.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-nuevo-cupon" class="btn-primario">+ Nuevo cupón</button>
+            <button type="button" id="btn-cupones-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <p id="cupones-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="cupones-aviso" class="admin-aviso" hidden></div>
+
+        <section class="admin-card">
+          <form id="form-cupon" class="admin-form admin-cupon-form" hidden novalidate>
+            <input type="hidden" id="cupon-id">
+            <label class="admin-campo">
+              <span>Código</span>
+              <input id="cupon-codigo" type="text" maxlength="40" autocomplete="off" placeholder="LICHI">
+            </label>
+            <label class="admin-campo">
+              <span>Tipo</span>
+              <select id="cupon-tipo">
+                <option value="porcentaje">Porcentaje (%)</option>
+                <option value="monto_fijo">Monto fijo ($)</option>
+              </select>
+            </label>
+            <label class="admin-campo">
+              <span id="cupon-valor-etiqueta">Valor (1 a 100)</span>
+              <input id="cupon-valor" type="number" min="0" step="1" inputmode="decimal">
+            </label>
+            <label class="admin-campo">
+              <span>Compra mínima ($)</span>
+              <input id="cupon-compra-minima" type="number" min="0" step="1" inputmode="decimal" placeholder="0">
+            </label>
+            <label class="admin-campo">
+              <span>Válido desde</span>
+              <input id="cupon-fecha-inicio" type="datetime-local">
+            </label>
+            <label class="admin-campo">
+              <span>Vence</span>
+              <input id="cupon-fecha-vencimiento" type="datetime-local">
+            </label>
+            <label class="admin-campo">
+              <span>Usos máximos totales</span>
+              <input id="cupon-usos-total" type="number" min="0" step="1" inputmode="numeric" placeholder="Vacío = sin límite">
+            </label>
+            <label class="admin-campo">
+              <span>Usos por cliente</span>
+              <input id="cupon-usos-cliente" type="number" min="0" step="1" inputmode="numeric" placeholder="Vacío = sin límite">
+            </label>
+            <label class="admin-campo">
+              <span>Sucursales</span>
+              <select id="cupon-sucursales">
+                <option value="">Todas</option>
+                <option value="intendente-lascano">Lascano</option>
+                <option value="maestro-quiroga">Maestro Quiroga</option>
+              </select>
+            </label>
+            <label class="admin-campo">
+              <span>Modalidad</span>
+              <select id="cupon-modalidades">
+                <option value="">Todas</option>
+                <option value="delivery">Delivery</option>
+                <option value="retiro">Retiro</option>
+              </select>
+            </label>
+            <label class="admin-campo admin-campo-check">
+              <input id="cupon-activo" type="checkbox" checked>
+              <span>Activo</span>
+            </label>
+            <label class="admin-campo admin-campo-check">
+              <input id="cupon-primera-compra" type="checkbox">
+              <span>Solo primera compra</span>
+            </label>
+            <label class="admin-campo admin-campo-check">
+              <input id="cupon-acumulable" type="checkbox">
+              <span>Acumulable con descuento por medio de pago</span>
+            </label>
+            <p id="cupon-nota-usos" class="admin-ayuda admin-cupon-nota" hidden>Los usos anteriores conservan el descuento que tuvieron</p>
+            <p id="cupon-form-estado" class="admin-estado admin-cupon-nota" aria-live="polite"></p>
+            <div class="admin-form-acciones admin-cupon-nota">
+              <button type="submit" id="btn-guardar-cupon" class="btn-primario">Guardar cupón</button>
+              <button type="button" id="btn-cancelar-cupon" class="btn-secundario">Cancelar</button>
+            </div>
+          </form>
+
+          <div id="cupones-lista" class="admin-envios-tramos"></div>
         </section>
       </section>
     </section>

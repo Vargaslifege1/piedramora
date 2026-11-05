@@ -82,6 +82,32 @@
     vistaCarta: document.getElementById('admin-vista-carta'),
     vistaPedidos: document.getElementById('admin-vista-pedidos'),
     vistaEnvios: document.getElementById('admin-vista-envios'),
+    vistaCupones: document.getElementById('admin-vista-cupones'),
+    btnNuevoCupon: document.getElementById('btn-nuevo-cupon'),
+    btnCuponesRecargar: document.getElementById('btn-cupones-recargar'),
+    cuponesEstado: document.getElementById('cupones-estado'),
+    cuponesAviso: document.getElementById('cupones-aviso'),
+    cuponesLista: document.getElementById('cupones-lista'),
+    formCupon: document.getElementById('form-cupon'),
+    cuponId: document.getElementById('cupon-id'),
+    cuponCodigo: document.getElementById('cupon-codigo'),
+    cuponTipo: document.getElementById('cupon-tipo'),
+    cuponValor: document.getElementById('cupon-valor'),
+    cuponValorEtiqueta: document.getElementById('cupon-valor-etiqueta'),
+    cuponCompraMinima: document.getElementById('cupon-compra-minima'),
+    cuponFechaInicio: document.getElementById('cupon-fecha-inicio'),
+    cuponFechaVencimiento: document.getElementById('cupon-fecha-vencimiento'),
+    cuponUsosTotal: document.getElementById('cupon-usos-total'),
+    cuponUsosCliente: document.getElementById('cupon-usos-cliente'),
+    cuponSucursales: document.getElementById('cupon-sucursales'),
+    cuponModalidades: document.getElementById('cupon-modalidades'),
+    cuponActivo: document.getElementById('cupon-activo'),
+    cuponPrimeraCompra: document.getElementById('cupon-primera-compra'),
+    cuponAcumulable: document.getElementById('cupon-acumulable'),
+    cuponNotaUsos: document.getElementById('cupon-nota-usos'),
+    cuponFormEstado: document.getElementById('cupon-form-estado'),
+    btnGuardarCupon: document.getElementById('btn-guardar-cupon'),
+    btnCancelarCupon: document.getElementById('btn-cancelar-cupon'),
     enviosAyuda: document.getElementById('envios-ayuda'),
     btnEnviosRecargar: document.getElementById('btn-envios-recargar'),
     enviosEstado: document.getElementById('envios-estado'),
@@ -184,6 +210,10 @@
   let agotadosRealtimeTimer = null;
 
   let enviosCargados = false;
+  let cuponesLista = [];
+  let cuponesUsos = [];
+  let cuponesCargados = false;
+  let cuponesCargando = false;
   let enviosCargando = false;
   let tramosEnvios = [];
   let zonasNormales = [];
@@ -617,6 +647,7 @@
 
     el.tabsVista.forEach(tab => {
       if (tab.dataset.adminVista === 'carta') tab.hidden = restringido;
+      if (tab.dataset.adminVista === 'cupones') tab.hidden = !puedeVerCupones();
     });
 
     poblarFiltroSucursalesPedidos();
@@ -631,6 +662,9 @@
     if (restringido && !adminSucursalId) cerrarFormTramo();
 
     if (restringido && el.vistaCarta && !el.vistaCarta.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    if (!puedeVerCupones() && el.vistaCupones && !el.vistaCupones.hidden) {
       mostrarVistaAdmin('pedidos');
     }
 
@@ -3861,15 +3895,369 @@
     }
   }
 
+  // ---------------------------------------------------------------
+  // Cupones (solo dueño). El servidor valida todo: acá solo se muestra.
+  // ---------------------------------------------------------------
+  const ZONA_AR = 'America/Argentina/Buenos_Aires';
+
+  function puedeVerCupones() {
+    return adminRol === 'dueno' && !adminRolError;
+  }
+
+  function mostrarEstadoCupones(texto, tipo = '') {
+    mostrarEstado(el.cuponesEstado, texto, tipo);
+  }
+
+  function mostrarAvisoCupones(texto, tipo = 'info') {
+    if (!el.cuponesAviso) return;
+    if (!texto) {
+      el.cuponesAviso.hidden = true;
+      el.cuponesAviso.textContent = '';
+      return;
+    }
+    el.cuponesAviso.hidden = false;
+    el.cuponesAviso.dataset.tipo = tipo;
+    el.cuponesAviso.textContent = texto;
+  }
+
+  function formatearFechaCupon(iso) {
+    if (!iso) return '';
+    const fecha = new Date(iso);
+    if (Number.isNaN(fecha.getTime())) return '';
+    return new Intl.DateTimeFormat('es-AR', {
+      timeZone: ZONA_AR, day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).format(fecha);
+  }
+
+  // timestamptz -> valor de <input type="datetime-local"> en hora Argentina.
+  function isoAInputLocal(iso) {
+    if (!iso) return '';
+    const fecha = new Date(iso);
+    if (Number.isNaN(fecha.getTime())) return '';
+    const partes = {};
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: ZONA_AR, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(fecha).forEach(p => { partes[p.type] = p.value; });
+    return `${partes.year}-${partes.month}-${partes.day}T${partes.hour}:${partes.minute}`;
+  }
+
+  // Valor de datetime-local (hora Argentina) -> ISO con offset -03:00.
+  function inputLocalAIso(valor) {
+    const limpio = String(valor || '').trim();
+    if (!limpio) return null;
+    return `${limpio.length === 16 ? `${limpio}:00` : limpio}-03:00`;
+  }
+
+  function vigenciaCupon(cupon) {
+    const desde = formatearFechaCupon(cupon.fecha_inicio);
+    const hasta = formatearFechaCupon(cupon.fecha_vencimiento);
+    if (!desde && !hasta) return 'Sin límite';
+    if (desde && hasta) return `${desde} → ${hasta}`;
+    return desde ? `Desde ${desde}` : `Hasta ${hasta}`;
+  }
+
+  function valorCupon(cupon) {
+    const valor = Number(cupon.valor);
+    return cupon.tipo === 'porcentaje' ? `${valor}%` : formatearPrecio(valor);
+  }
+
+  // Prioridad: pausado > vencido > agotado > programado > activo.
+  // Se comparan instantes con la hora del navegador; el servidor decide la validez real.
+  function estadoCupon(cupon, usos) {
+    if (!cupon.activo) return 'pausado';
+    const ahora = new Date();
+    if (cupon.fecha_vencimiento && new Date(cupon.fecha_vencimiento) < ahora) return 'vencido';
+    if (cupon.usos_maximos_total !== null && cupon.usos_maximos_total !== undefined
+      && usos >= Number(cupon.usos_maximos_total)) return 'agotado';
+    if (cupon.fecha_inicio && new Date(cupon.fecha_inicio) > ahora) return 'programado';
+    return 'activo';
+  }
+
+  const ETIQUETA_ESTADO_CUPON = {
+    activo: 'Activo', pausado: 'Pausado', vencido: 'Vencido', agotado: 'Agotado', programado: 'Programado'
+  };
+
+  function resumenUsosCupon(cuponId) {
+    const id = String(cuponId);
+    let cantidad = 0;
+    let total = 0;
+    cuponesUsos.forEach(uso => {
+      if (String(uso.cupon_id) !== id) return;
+      const pedido = Array.isArray(uso.pedidos) ? uso.pedidos[0] : uso.pedidos;
+      if (pedido && pedido.estado === 'cancelado') return;
+      cantidad += 1;
+      total += Number(uso.monto_descontado) || 0;
+    });
+    return { cantidad, total };
+  }
+
+  function mensajeErrorCupones(error, accion) {
+    if (esErrorPermiso(error)) return 'No tenés permiso para hacer esto.';
+    const codigo = String((error && error.code) || '');
+    const detalle = String((error && (error.message || error.error_description)) || 'Error de conexión.');
+    if (codigo === '23505') return 'Ya existe un cupón con ese código.';
+    if (codigo === '23503') return 'Tiene usos registrados: pausalo en vez de borrarlo.';
+    if (codigo === '23514') {
+      if (detalle.includes('cupones_valor_porcentaje_chk')) return 'El porcentaje no puede superar 100.';
+      if (detalle.includes('cupones_valor_chk')) return 'El valor tiene que ser mayor a 0.';
+      if (detalle.includes('cupones_fechas_chk')) return 'El vencimiento no puede ser anterior al inicio.';
+      if (detalle.includes('cupones_usos_')) return 'Los usos máximos tienen que ser números enteros, 0 o más.';
+      if (detalle.includes('cupones_compra_minima_chk')) return 'La compra mínima no puede ser negativa.';
+      if (detalle.includes('cupones_codigo')) return 'El código tiene que tener entre 1 y 40 caracteres, en mayúsculas y sin espacios.';
+      return `Algún dato no cumple las reglas del cupón. (${detalle})`;
+    }
+    return `No se pudo ${accion || 'cargar'} el cupón: ${detalle}`;
+  }
+
+  function renderCupones() {
+    if (!el.cuponesLista) return;
+    if (!cuponesLista.length) {
+      el.cuponesLista.innerHTML = '<p class="admin-envios-vacio">Todavía no hay cupones cargados.</p>';
+      return;
+    }
+    el.cuponesLista.innerHTML = cuponesLista.map(cupon => {
+      const { cantidad, total } = resumenUsosCupon(cupon.id);
+      const estado = estadoCupon(cupon, cantidad);
+      const max = cupon.usos_maximos_total === null || cupon.usos_maximos_total === undefined
+        ? '∞' : String(Number(cupon.usos_maximos_total));
+      return `<div class="admin-cupon-fila ${escaparHtml(estado)}" data-cupon-id="${escaparHtml(cupon.id)}">
+        <div class="admin-envios-tramo-dato">
+          <small>Código</small>
+          <span>${escaparHtml(cupon.codigo)}</span>
+        </div>
+        <div class="admin-envios-tramo-dato">
+          <small>Descuento</small>
+          <span>${escaparHtml(valorCupon(cupon))}</span>
+        </div>
+        <div class="admin-envios-tramo-dato">
+          <small>Estado</small>
+          <span><span class="admin-cupon-badge ${escaparHtml(estado)}">${escaparHtml(ETIQUETA_ESTADO_CUPON[estado])}</span></span>
+        </div>
+        <div class="admin-envios-tramo-dato">
+          <small>Vigencia</small>
+          <span>${escaparHtml(vigenciaCupon(cupon))}</span>
+        </div>
+        <div class="admin-envios-tramo-dato">
+          <small>Usos · Descontado</small>
+          <span>${cantidad} / ${escaparHtml(max)} · ${escaparHtml(formatearPrecio(total))}</span>
+        </div>
+        <div class="admin-envios-tramo-acciones">
+          <button type="button" class="btn-secundario" data-cupon-accion="editar">Editar</button>
+          <button type="button" class="btn-secundario" data-cupon-accion="toggle">${cupon.activo ? 'Pausar' : 'Activar'}</button>
+          <button type="button" class="btn-peligro" data-cupon-accion="eliminar">Borrar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function cargarCupones(opciones = {}) {
+    if (!cliente || cuponesCargando || !puedeVerCupones()) return;
+    cuponesCargando = true;
+    if (!opciones.silencioso) {
+      mostrarEstadoCupones('Cargando cupones...');
+      mostrarAvisoCupones('');
+    }
+    try {
+      const cuponesResp = await cliente
+        .from('cupones')
+        .select('*')
+        .order('creado_en', { ascending: false });
+      if (cuponesResp.error) throw cuponesResp.error;
+
+      let usosResp = await cliente
+        .from('cupon_usos')
+        .select('cupon_id, monto_descontado, pedidos(estado)');
+      let sinEstado = false;
+      if (usosResp.error) {
+        console.warn('No se pudo traer el estado de los pedidos de los usos:', usosResp.error);
+        usosResp = await cliente.from('cupon_usos').select('cupon_id, monto_descontado');
+        sinEstado = true;
+      }
+      if (usosResp.error) throw usosResp.error;
+
+      cuponesLista = cuponesResp.data || [];
+      cuponesUsos = usosResp.data || [];
+      cuponesCargados = true;
+      renderCupones();
+      mostrarEstadoCupones('');
+      mostrarAvisoCupones(sinEstado
+        ? 'No se pudo leer el estado de los pedidos: los usos y el total descontado incluyen pedidos cancelados.'
+        : '', 'info');
+    } catch (error) {
+      console.warn('No se pudieron cargar los cupones:', error);
+      mostrarEstadoCupones('');
+      mostrarAvisoCupones(mensajeErrorCupones(error, 'cargar'), 'error');
+    } finally {
+      cuponesCargando = false;
+    }
+  }
+
+  function actualizarEtiquetaValorCupon() {
+    if (!el.cuponValorEtiqueta || !el.cuponTipo) return;
+    el.cuponValorEtiqueta.textContent = el.cuponTipo.value === 'porcentaje'
+      ? 'Valor (1 a 100)' : 'Valor en pesos (mayor a 0)';
+  }
+
+  function abrirFormCupon(cupon) {
+    if (!el.formCupon) return;
+    el.formCupon.hidden = false;
+    const editando = !!cupon;
+    const nulo = valor => (valor === null || valor === undefined ? '' : Number(valor));
+    const unico = lista => (Array.isArray(lista) && lista.length === 1 ? lista[0] : '');
+    el.cuponId.value = editando ? cupon.id : '';
+    el.cuponCodigo.value = editando ? cupon.codigo : '';
+    el.cuponCodigo.disabled = editando;
+    el.cuponTipo.value = editando ? cupon.tipo : 'porcentaje';
+    el.cuponValor.value = editando ? Number(cupon.valor) : '';
+    el.cuponCompraMinima.value = editando && Number(cupon.compra_minima) ? Number(cupon.compra_minima) : '';
+    el.cuponFechaInicio.value = editando ? isoAInputLocal(cupon.fecha_inicio) : '';
+    el.cuponFechaVencimiento.value = editando ? isoAInputLocal(cupon.fecha_vencimiento) : '';
+    el.cuponUsosTotal.value = editando ? nulo(cupon.usos_maximos_total) : '';
+    el.cuponUsosCliente.value = editando ? nulo(cupon.usos_por_cliente) : '';
+    el.cuponSucursales.value = editando ? unico(cupon.sucursales_permitidas) : '';
+    el.cuponModalidades.value = editando ? unico(cupon.modalidades_permitidas) : '';
+    el.cuponActivo.checked = editando ? !!cupon.activo : true;
+    el.cuponPrimeraCompra.checked = editando ? !!cupon.primera_compra : false;
+    el.cuponAcumulable.checked = editando ? !!cupon.acumulable_con_pago : false;
+    if (el.cuponNotaUsos) {
+      el.cuponNotaUsos.hidden = !(editando && resumenUsosCupon(cupon.id).cantidad > 0);
+    }
+    mostrarEstado(el.cuponFormEstado, '');
+    actualizarEtiquetaValorCupon();
+    (editando ? el.cuponValor : el.cuponCodigo).focus();
+  }
+
+  function cerrarFormCupon() {
+    if (!el.formCupon) return;
+    el.formCupon.hidden = true;
+    mostrarEstado(el.cuponFormEstado, '');
+  }
+
+  function enteroOpcional(valor) {
+    const texto = String(valor || '').trim();
+    if (texto === '') return { vacio: true };
+    const n = Number(texto);
+    return { vacio: false, n, ok: Number.isInteger(n) && n >= 0 };
+  }
+
+  async function guardarCupon(evento) {
+    evento.preventDefault();
+    if (!cliente || !puedeVerCupones()) return;
+    const fallo = mensaje => { mostrarEstado(el.cuponFormEstado, mensaje, 'error'); };
+
+    const id = el.cuponId.value;
+    const codigo = el.cuponCodigo.value.replace(/\s+/g, '').toUpperCase();
+    if (!id) {
+      if (!codigo) return fallo('Escribí un código.');
+      if (codigo.length > 40) return fallo('El código no puede tener más de 40 caracteres.');
+    }
+
+    const tipo = el.cuponTipo.value;
+    const valor = Number(el.cuponValor.value);
+    if (!Number.isFinite(valor) || valor <= 0) return fallo('El valor tiene que ser mayor a 0.');
+    if (tipo === 'porcentaje' && (valor < 1 || valor > 100)) return fallo('El porcentaje tiene que estar entre 1 y 100.');
+    if (tipo === 'monto_fijo' && !Number.isInteger(valor)) return fallo('El monto fijo tiene que ser en pesos enteros.');
+
+    const compra = String(el.cuponCompraMinima.value).trim() === '' ? 0 : Number(el.cuponCompraMinima.value);
+    if (!Number.isFinite(compra) || compra < 0) return fallo('La compra mínima no puede ser negativa.');
+
+    const total = enteroOpcional(el.cuponUsosTotal.value);
+    const porCliente = enteroOpcional(el.cuponUsosCliente.value);
+    if (!total.vacio && !total.ok) return fallo('Los usos máximos totales tienen que ser un entero, 0 o más.');
+    if (!porCliente.vacio && !porCliente.ok) return fallo('Los usos por cliente tienen que ser un entero, 0 o más.');
+
+    const inicio = inputLocalAIso(el.cuponFechaInicio.value);
+    const vence = inputLocalAIso(el.cuponFechaVencimiento.value);
+    if (inicio && Number.isNaN(new Date(inicio).getTime())) return fallo('La fecha de inicio no es válida.');
+    if (vence && Number.isNaN(new Date(vence).getTime())) return fallo('La fecha de vencimiento no es válida.');
+    if (inicio && vence && new Date(vence) < new Date(inicio)) return fallo('El vencimiento no puede ser anterior al inicio.');
+
+    const datos = {
+      tipo,
+      valor,
+      activo: el.cuponActivo.checked,
+      fecha_inicio: inicio,
+      fecha_vencimiento: vence,
+      usos_maximos_total: total.vacio ? null : total.n,
+      usos_por_cliente: porCliente.vacio ? null : porCliente.n,
+      compra_minima: compra,
+      primera_compra: el.cuponPrimeraCompra.checked,
+      sucursales_permitidas: el.cuponSucursales.value ? [el.cuponSucursales.value] : null,
+      modalidades_permitidas: el.cuponModalidades.value ? [el.cuponModalidades.value] : null,
+      acumulable_con_pago: el.cuponAcumulable.checked
+    };
+
+    el.btnGuardarCupon.disabled = true;
+    mostrarEstado(el.cuponFormEstado, 'Guardando...');
+    try {
+      const consulta = id
+        ? cliente.from('cupones').update(datos).eq('id', id)
+        : cliente.from('cupones').insert({ ...datos, codigo });
+      const { error: errorGuardar } = await consulta;
+      if (errorGuardar) throw errorGuardar;
+      cerrarFormCupon();
+      await cargarCupones({ silencioso: true });
+      mostrarEstadoCupones(id ? 'Cupón actualizado.' : 'Cupón creado.', 'ok');
+    } catch (errorGuardar) {
+      console.warn('No se pudo guardar el cupón:', errorGuardar);
+      mostrarEstado(el.cuponFormEstado, mensajeErrorCupones(errorGuardar, 'guardar'), 'error');
+    } finally {
+      el.btnGuardarCupon.disabled = false;
+    }
+  }
+
+  async function alternarCupon(id) {
+    const cupon = cuponesLista.find(item => String(item.id) === String(id));
+    if (!cupon || !cliente || !puedeVerCupones()) return;
+    try {
+      const { error } = await cliente.from('cupones').update({ activo: !cupon.activo }).eq('id', id);
+      if (error) throw error;
+      await cargarCupones({ silencioso: true });
+      mostrarEstadoCupones(cupon.activo ? 'Cupón pausado.' : 'Cupón activado.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo cambiar el estado del cupón:', error);
+      mostrarAvisoCupones(mensajeErrorCupones(error, 'actualizar'), 'error');
+    }
+  }
+
+  async function borrarCupon(id) {
+    const cupon = cuponesLista.find(item => String(item.id) === String(id));
+    if (!cupon || !cliente || !puedeVerCupones()) return;
+    const usos = resumenUsosCupon(id).cantidad;
+    const aviso = usos > 0
+      ? `El cupón ${cupon.codigo} tiene ${usos} uso(s) registrado(s). Con historial no se puede borrar: mejor pausalo. ¿Intentar borrarlo igual?`
+      : `¿Borrar el cupón ${cupon.codigo}? No se puede deshacer.`;
+    if (!window.confirm(aviso)) return;
+    try {
+      const { error } = await cliente.from('cupones').delete().eq('id', id);
+      if (error) throw error;
+      await cargarCupones({ silencioso: true });
+      mostrarEstadoCupones('Cupón borrado.', 'ok');
+      mostrarAvisoCupones('');
+    } catch (error) {
+      console.warn('No se pudo borrar el cupón:', error);
+      mostrarAvisoCupones(mensajeErrorCupones(error, 'borrar'), 'error');
+    }
+  }
+
   function mostrarVistaAdmin(vista) {
+    if (vista === 'cupones' && !puedeVerCupones()) vista = 'pedidos';
     const esPedidos = vista === 'pedidos';
     const esEnvios = vista === 'envios';
+    const esCupones = vista === 'cupones';
     el.tabsVista.forEach(tab => {
       const activa = tab.dataset.adminVista === vista;
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones;
+    if (el.vistaCupones) el.vistaCupones.hidden = !esCupones;
+    if (esCupones && cliente) {
+      if (!cuponesCargados) cargarCupones();
+      else renderCupones();
+    }
     if (el.vistaPedidos) el.vistaPedidos.hidden = !esPedidos;
     if (el.vistaEnvios) el.vistaEnvios.hidden = !esEnvios;
     if (esPedidos && cliente) {
@@ -4015,6 +4403,28 @@
     }
     if (el.formConfigEnvios) el.formConfigEnvios.addEventListener('submit', guardarConfigEnvios);
     if (el.btnNuevoTramo) el.btnNuevoTramo.addEventListener('click', () => abrirFormTramo(null));
+    if (el.btnNuevoCupon) el.btnNuevoCupon.addEventListener('click', () => abrirFormCupon(null));
+    if (el.btnCuponesRecargar) el.btnCuponesRecargar.addEventListener('click', () => cargarCupones());
+    if (el.btnCancelarCupon) el.btnCancelarCupon.addEventListener('click', cerrarFormCupon);
+    if (el.formCupon) el.formCupon.addEventListener('submit', guardarCupon);
+    if (el.cuponTipo) el.cuponTipo.addEventListener('change', actualizarEtiquetaValorCupon);
+    if (el.cuponesLista) {
+      el.cuponesLista.addEventListener('click', async (evento) => {
+        const boton = evento.target.closest('[data-cupon-accion]');
+        const fila = boton && boton.closest('[data-cupon-id]');
+        if (!fila) return;
+        const id = fila.dataset.cuponId;
+        const accion = boton.dataset.cuponAccion;
+        if (accion === 'editar') {
+          const cupon = cuponesLista.find(item => String(item.id) === String(id));
+          if (cupon) abrirFormCupon(cupon);
+        } else if (accion === 'toggle') {
+          await alternarCupon(id);
+        } else if (accion === 'eliminar') {
+          await borrarCupon(id);
+        }
+      });
+    }
     if (el.btnCancelarTramo) el.btnCancelarTramo.addEventListener('click', cerrarFormTramo);
     if (el.formTramo) el.formTramo.addEventListener('submit', guardarTramo);
 
