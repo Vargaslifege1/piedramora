@@ -627,6 +627,9 @@
     const seccionConfig = el.formConfigEnvios ? el.formConfigEnvios.closest('.admin-card') : null;
     if (seccionConfig) seccionConfig.hidden = restringido;
 
+    if (el.btnNuevoTramo) el.btnNuevoTramo.hidden = restringido && !adminSucursalId;
+    if (restringido && !adminSucursalId) cerrarFormTramo();
+
     if (restringido && el.vistaCarta && !el.vistaCarta.hidden) {
       mostrarVistaAdmin('pedidos');
     }
