@@ -673,3 +673,23 @@ Archivo nuevo: `supabase/migrations/018_cupones.sql`. **No fue ejecutado.** Hace
 - `valida_cupon` y `crear_pedido` con `p_cupon`. El mínimo de compra se muestra sin decimales (`$10.000`).
 - `pm_calcular_pedido` no se modifica: sigue la de 017.
 - `main.js` todavía no manda el cupón. Queda para la siguiente parte.
+
+## Fase 3C: cupón en el checkout (frontend, 018 ya aplicada)
+
+Archivos tocados: `index.html`, `style.css`, `main.js`. No se tocó SQL.
+
+- Campo "¿Tenés un código?" + botón "Aplicar" arriba del resumen de totales (reusa `.pedix-input-wrap`/`.pedix-btn-buscar`/`.pedix-ayuda-texto` ya usados por el buscador de dirección). Nueva línea `#linea-cupon` en `.checkout-totales` con botón "✕" para quitarlo.
+- `validarCuponActual()` llama a `rpc('valida_cupon', {...})`. Exige teléfono (mínimo 8 dígitos) y sucursal cargada antes de llamar al servidor; si faltan, avisa sin pegarle al RPC.
+- Se revalida solo (debounce de 500 ms) cuando ya hay un cupón aplicado y cambia: medio de pago, tipo de entrega/modalidad, teléfono o el carrito (hooks en `actualizarEtiquetasPago`'s listener, `cotizarEnvioCheckout`, `renderizarListaCheckout` y el input de teléfono). Si deja de ser válido, se quita y se avisa con el mensaje del servidor.
+- La vista previa del total (`actualizarResumenPago`) resta el descuento de `valida_cupon` en vez de sumarlo al de medio de pago (el cliente no sabe si el cupón es acumulable; el servidor decide el ganador real). Queda comentado en el código que el total final siempre lo fija `crear_pedido`.
+- Al enviar, se manda `p_cupon` a `crear_pedido`. Si el servidor rechaza el pedido por un motivo propio del cupón (mensajes de `pm_validar_cupon`: no válido, vencido, ya usado, mínimo de compra, solo primera compra, sin usos disponibles, pierde contra el descuento por pago, no vigente), se avisa en el checkout con `mostrarEstadoCupon` (sin `alert()`) y se reintenta `crear_pedido` una sola vez sin el cupón, con la misma `idempotency_key`, sin perder el carrito. Cualquier otro rechazo sigue el flujo existente (agotado / confirmar envío sin registrar).
+- El mensaje de WhatsApp y el modal "Pedido recibido" siguen usando únicamente el `descuento`/`total` que devuelve `crear_pedido`; solo cambia la etiqueta de la línea de descuento a "Cupón `<código>`" cuando el pedido guardado efectivamente se mandó con cupón (dato que ya tiene el cliente, no un cálculo nuevo).
+- Fallback local (Supabase caído o el pedido no se pudo registrar ni con reintento): el total/descuento mostrado sigue siendo solo el de medio de pago (`totalesCliente`, sin cambios), nunca con el descuento de cupón calculado en el navegador. Si había un cupón intentado, el mensaje de WhatsApp agrega una línea aclarando que no se aplicó.
+- `node --check main.js` sin errores.
+
+### Cómo probar
+
+1. Cargar un producto al carrito, completar teléfono y sucursal. Escribir `LICHI`, tocar "Aplicar" → mensaje "Cupón aplicado." en verde, aparece la línea "Cupón LICHI: -$N" y el total de vista previa baja. Confirmar el pedido y revisar que el modal y el mensaje de WhatsApp muestran el total/descuento que devolvió el servidor.
+2. Escribir un código inexistente → mensaje de error del RPC, sin aplicar nada.
+3. Con `LICHI` aplicado, cambiar el medio de pago a uno con más descuento que el cupón → se revalida solo, el servidor devuelve que gana el medio de pago, y el cupón se quita con aviso.
+4. Borrar el teléfono y tocar "Aplicar" → "Completá tu teléfono primero.", sin llamar al servidor.

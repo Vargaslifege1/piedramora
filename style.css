@@ -2133,6 +2133,20 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
   font-variant-numeric: tabular-nums;
 }
 
+.btn-quitar-cupon {
+  margin-left: 6px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.btn-quitar-cupon:hover {
+  opacity: 1;
+}
+
 .btn-ubicacion-gps {
   margin-top: 4px;
   padding: 9px 12px;

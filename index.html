@@ -491,6 +491,16 @@
           <textarea id="cliente-notas" rows="2" placeholder="Ej: Sin cebolla, timbre 2B"></textarea>
         </div>
 
+        <div class="form-grupo">
+          <label for="cliente-cupon">¿Tenés un código?</label>
+          <div class="pedix-input-wrap">
+            <input type="text" id="cliente-cupon" autocomplete="off" maxlength="40"
+                   placeholder="Ej: LICHI" aria-describedby="cupon-estado">
+            <button type="button" id="btn-aplicar-cupon" class="pedix-btn-buscar">Aplicar</button>
+          </div>
+          <p id="cupon-estado" class="pedix-ayuda-texto" role="status" aria-live="polite"></p>
+        </div>
+
         <!-- Resumen de Totales -->
         <div class="checkout-totales" aria-live="polite">
           <div class="linea-total">
@@ -511,6 +521,12 @@
           <div class="linea-total linea-descuento" hidden>
             <span>Descuento <span id="checkout-descuento-label">(Efectivo)</span></span>
             <span id="checkout-descuento">$ 0</span>
+          </div>
+          <div class="linea-total linea-descuento linea-cupon" id="linea-cupon" hidden>
+            <span>Cupón <strong id="checkout-cupon-codigo"></strong>
+              <button type="button" id="btn-quitar-cupon" class="btn-quitar-cupon" aria-label="Quitar cupón">✕</button>
+            </span>
+            <span id="checkout-cupon">-$ 0</span>
           </div>
           <div class="linea-total gran-total">
             <span>Total a pagar</span>

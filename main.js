@@ -230,6 +230,9 @@ let refrescoCartaTimer = null;
 let CARRITO = [];
 let pedidoEnviando = false;
 let checkoutIdempotencyKey = null;
+let cuponAplicado = null; // { codigo, descuento, mensaje } o null
+let cuponValidandoEnCurso = false;
+let cuponRevalidarTimer = null;
 
 function crearConfiguracionAppPorDefecto() {
   return {
@@ -1306,6 +1309,9 @@ function vaciarCarrito(opciones = {}) {
   CARRITO = [];
   cartaModalidadSeleccionada = null;
   if (opciones.resetDireccion) resetearDireccionCheckout();
+  cuponAplicado = null;
+  mostrarLineaCupon(false);
+  mostrarEstadoCupon('');
   actualizarBotonFlotanteWhatsapp();
 }
 
@@ -2272,6 +2278,8 @@ function cerrarModalCheckout() {
       panel.hidden = true;
     }, 200);
   }
+  quitarCuponAplicado();
+  mostrarEstadoCupon('');
 }
 
 document.getElementById('checkout-cerrar')?.addEventListener('click', (e) => {
@@ -2545,15 +2553,140 @@ function actualizarResumenPago(subtotal) {
   }
 
   const envio = actualizarLineaEnvio();
-  const totalFinal = Math.max(0, totales.total + (envio.costo || 0));
+  let totalFinal = Math.max(0, totales.total + (envio.costo || 0));
+
+  // Vista previa únicamente: valida_cupon ya compara server-side el descuento
+  // del cupón contra el de medio de pago (gana el mayor, salvo acumulable), pero
+  // no nos dice cuál ganó. Por eso en pantalla el cupón reemplaza la línea de
+  // descuento por pago en vez de sumarse. El total real y definitivo siempre lo
+  // decide crear_pedido en el servidor al confirmar el pedido.
+  if (cuponAplicado) {
+    totalFinal = Math.max(0, totales.subtotal - cuponAplicado.descuento + (envio.costo || 0));
+  }
   if (elTotal) elTotal.textContent = formatearPrecioAR(totalFinal);
 
   if (lineaDescuento) {
-    const hayDescuento = totales.descuento > 0;
+    const hayDescuento = totales.descuento > 0 && !cuponAplicado;
     lineaDescuento.hidden = !hayDescuento;
     lineaDescuento.style.display = hayDescuento ? 'flex' : 'none'; // Se oculta completamente si no hay descuento
   }
   return { ...totales, costo_envio: envio.costo || 0, total: totalFinal };
+}
+
+function mostrarEstadoCupon(texto, tipo = '') {
+  const estado = document.getElementById('cupon-estado');
+  if (!estado) return;
+  estado.textContent = texto;
+  estado.classList.toggle('pedix-estado-error', tipo === 'error');
+  estado.classList.toggle('pedix-estado-ok', tipo === 'ok');
+}
+
+function mostrarLineaCupon(visible, montoDescuento, codigo) {
+  const linea = document.getElementById('linea-cupon');
+  const elMonto = document.getElementById('checkout-cupon');
+  const elCodigo = document.getElementById('checkout-cupon-codigo');
+  if (!linea) return;
+  linea.hidden = !visible;
+  linea.style.display = visible ? 'flex' : 'none';
+  if (visible) {
+    if (elCodigo) elCodigo.textContent = codigo;
+    if (elMonto) elMonto.textContent = `- ${formatearPrecioAR(montoDescuento)}`;
+  }
+}
+
+function quitarCuponAplicado() {
+  cuponAplicado = null;
+  const input = document.getElementById('cliente-cupon');
+  if (input) input.value = '';
+  mostrarLineaCupon(false);
+  actualizarResumenPago(obtenerSubtotalCarrito());
+}
+
+function programarRevalidarCupon() {
+  if (!cuponAplicado) return;
+  clearTimeout(cuponRevalidarTimer);
+  cuponRevalidarTimer = setTimeout(() => validarCuponActual(cuponAplicado.codigo), 500);
+}
+
+async function validarCuponActual(codigoForzado) {
+  const input = document.getElementById('cliente-cupon');
+  const codigo = String(codigoForzado ?? input?.value ?? '').trim().toUpperCase();
+
+  if (!codigo) {
+    cuponAplicado = null;
+    mostrarLineaCupon(false);
+    mostrarEstadoCupon('');
+    actualizarResumenPago(obtenerSubtotalCarrito());
+    return;
+  }
+
+  const telefonoDigitos = String(document.getElementById('cliente-telefono')?.value || '').replace(/\D/g, '');
+  if (telefonoDigitos.length < 8) {
+    cuponAplicado = null;
+    mostrarLineaCupon(false);
+    mostrarEstadoCupon('Completá tu teléfono primero.', 'error');
+    actualizarResumenPago(obtenerSubtotalCarrito());
+    return;
+  }
+  if (!cartaActualSucursalId) {
+    cuponAplicado = null;
+    mostrarLineaCupon(false);
+    mostrarEstadoCupon('Elegí tu sucursal primero.', 'error');
+    actualizarResumenPago(obtenerSubtotalCarrito());
+    return;
+  }
+
+  if (cuponValidandoEnCurso) return;
+  cuponValidandoEnCurso = true;
+  const boton = document.getElementById('btn-aplicar-cupon');
+  if (boton) boton.disabled = true;
+  mostrarEstadoCupon('Validando cupón...', '');
+
+  try {
+    await cargarConfigNube();
+    const clienteNube = obtenerClienteNube();
+    if (!clienteNube) {
+      cuponAplicado = null;
+      mostrarLineaCupon(false);
+      mostrarEstadoCupon('No se pudo validar el cupón ahora. Probá de nuevo en un momento.', 'error');
+      return;
+    }
+
+    const tipoEntregaActivo = document.querySelector('[data-tipo-entrega].activa');
+    const modalidad = tipoEntregaActivo?.dataset.tipoEntrega === 'delivery' ? 'delivery' : 'retiro';
+    const pago = obtenerPagoSeleccionado();
+    const subtotal = obtenerSubtotalCarrito();
+
+    const { data, error } = await conTiempoLimite(clienteNube.rpc('valida_cupon', {
+      p_codigo: codigo,
+      p_telefono: telefonoDigitos,
+      p_subtotal: subtotal,
+      p_sucursal_id: cartaActualSucursalId,
+      p_modalidad: modalidad,
+      p_metodo_pago: pago.tipo
+    }), 10000);
+
+    if (error) throw error;
+
+    if (data && data.ok) {
+      cuponAplicado = { codigo, descuento: Number(data.descuento) || 0, mensaje: data.mensaje || 'Cupón aplicado.' };
+      mostrarEstadoCupon(data.mensaje || 'Cupón aplicado.', 'ok');
+      mostrarLineaCupon(true, cuponAplicado.descuento, codigo);
+    } else {
+      cuponAplicado = null;
+      mostrarLineaCupon(false);
+      mostrarEstadoCupon((data && data.mensaje) || 'El cupón no es válido.', 'error');
+    }
+  } catch (err) {
+    console.warn('No se pudo validar el cupón.', err);
+    cuponAplicado = null;
+    mostrarLineaCupon(false);
+    mostrarEstadoCupon('No se pudo validar el cupón. Probá de nuevo.', 'error');
+  } finally {
+    cuponValidandoEnCurso = false;
+    if (boton) boton.disabled = false;
+    actualizarResumenPago(obtenerSubtotalCarrito());
+  }
 }
 
 async function cotizarEnvioCheckout() {
@@ -2566,6 +2699,7 @@ async function cotizarEnvioCheckout() {
     envioCotizado = null;
     envioCotizando = false;
     actualizarResumenPago(obtenerSubtotalCarrito());
+    programarRevalidarCupon();
     return;
   }
 
@@ -2599,6 +2733,7 @@ async function cotizarEnvioCheckout() {
     if (token === envioCotizacionToken) {
       envioCotizando = false;
       actualizarResumenPago(obtenerSubtotalCarrito());
+      programarRevalidarCupon();
     }
   }
 }
@@ -2673,6 +2808,7 @@ function renderizarListaCheckout() {
 
   if (elSubtotal) elSubtotal.textContent = formatearPrecioAR(totalGeneral);
   actualizarResumenPago(totalGeneral);
+  programarRevalidarCupon();
 }
 
 function sincronizarCheckoutConModalidad() {
@@ -2717,8 +2853,13 @@ document.querySelectorAll('[data-tipo-pago]').forEach(btn => {
     actualizarEtiquetasPago();
     const subtotal = CARRITO.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
     actualizarResumenPago(subtotal);
+    programarRevalidarCupon();
   });
 });
+
+document.getElementById('btn-aplicar-cupon')?.addEventListener('click', () => validarCuponActual());
+document.getElementById('btn-quitar-cupon')?.addEventListener('click', quitarCuponAplicado);
+document.getElementById('cliente-telefono')?.addEventListener('input', programarRevalidarCupon);
 
 actualizarEtiquetasPago();
 
@@ -3210,7 +3351,9 @@ function construirMensajePedido({
   totales,
   numeroOrden,
   cuadrasEnvio,
-  sinRegistrar
+  sinRegistrar,
+  cuponAplicadoEnPedido,
+  cuponNoAplicado
 }) {
   const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
   const cabecera = `*NUEVO PEDIDO - ${nombreNegocio}*\n\n`;
@@ -3244,7 +3387,10 @@ function construirMensajePedido({
   const total = Number(totales.total) || 0;
   mensaje += `\n*Subtotal:* ${formatearPrecioAR(subtotal)}\n`;
   if (descuento > 0) {
-    mensaje += `*Descuento (${pago.nombre} ${porcentaje}%):* - ${formatearPrecioAR(descuento)}\n`;
+    const etiquetaDescuento = cuponAplicadoEnPedido
+      ? `Cupón ${cuponAplicadoEnPedido}`
+      : `${pago.nombre} ${porcentaje}%`;
+    mensaje += `*Descuento (${etiquetaDescuento}):* - ${formatearPrecioAR(descuento)}\n`;
   }
   if (envio > 0) {
     const cuadras = Number(cuadrasEnvio);
@@ -3254,6 +3400,9 @@ function construirMensajePedido({
     mensaje += `*Envío:* ${formatearPrecioAR(envio)}${detalleCuadras}\n`;
   }
   mensaje += `*TOTAL:* ${formatearPrecioAR(total)}`;
+  if (cuponNoAplicado) {
+    mensaje += '\n_Cupón no aplicado: no se pudo validar sin registrar el pedido. Se envió sin ese descuento._';
+  }
   return mensaje;
 }
 
@@ -3301,6 +3450,28 @@ function esRechazoPedido(error) {
 
 function esRechazoPorAgotado(error) {
   return /agotad/i.test(String((error && error.message) || ''));
+}
+
+// Mensajes exactos que puede devolver pm_validar_cupon al rechazar un cupón
+// (ver supabase/migrations/018_cupones.sql). Solo si el rechazo es por el cupón
+// se reintenta crear_pedido sin él; cualquier otro motivo sigue el flujo normal.
+function esRechazoPorCupon(error) {
+  const mensaje = String((error && error.message) || '')
+    .normalize('NFD')
+    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+    .toLowerCase();
+  if (!mensaje) return false;
+  const patrones = [
+    'cupon no es valido',
+    'vencido',
+    'ya usaste',
+    'minimo',
+    'primera compra',
+    'usos disponibles',
+    'ya tenes un descuento mayor',
+    'vigente'
+  ];
+  return patrones.some((patron) => mensaje.includes(patron));
 }
 
 function extraerProductoAgotado(mensaje) {
@@ -3438,34 +3609,56 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     await cargarConfigNube();
     const clienteNube = obtenerClienteNube();
 
+    const codigoCuponOriginal = cuponAplicado ? cuponAplicado.codigo : null;
+    let codigoCuponConfirmado = codigoCuponOriginal;
+
     if (!clienteNube) {
       console.warn('Supabase no está configurado. Se continúa con WhatsApp sin registrar el pedido.');
     } else {
+      const payloadPedido = {
+        p_sucursal_id: cartaActualSucursalId,
+        p_modalidad: tipoEntrega === 'Delivery' ? 'delivery' : 'retiro',
+        p_cliente_nombre: nombre,
+        p_cliente_telefono: telefono,
+        p_direccion: direccionTexto || null,
+        p_lat: lat,
+        p_lng: lng,
+        p_metodo_pago: pago.tipo,
+        p_zona_envio: null,
+        p_notas: notas || null,
+        p_items: CARRITO.map((item) => ({
+          producto_id: item.productoBaseId,
+          variacion_id: item.variacion ? item.variacion.id : null,
+          adicionales_ids: (item.adicionalesLista || []).map(adicional => adicional.id),
+          cantidad: item.cantidad
+        })),
+        p_idempotency_key: idempotencyKey,
+        p_cupon: codigoCuponConfirmado
+      };
+
       try {
-        const { data, error } = await conTiempoLimite(clienteNube.rpc('crear_pedido', {
-          p_sucursal_id: cartaActualSucursalId,
-          p_modalidad: tipoEntrega === 'Delivery' ? 'delivery' : 'retiro',
-          p_cliente_nombre: nombre,
-          p_cliente_telefono: telefono,
-          p_direccion: direccionTexto || null,
-          p_lat: lat,
-          p_lng: lng,
-          p_metodo_pago: pago.tipo,
-          p_zona_envio: null,
-          p_notas: notas || null,
-          p_items: CARRITO.map((item) => ({
-            producto_id: item.productoBaseId,
-            variacion_id: item.variacion ? item.variacion.id : null,
-            adicionales_ids: (item.adicionalesLista || []).map(adicional => adicional.id),
-            cantidad: item.cantidad
-          })),
-          p_idempotency_key: idempotencyKey
-        }), 10000);
+        const { data, error } = await conTiempoLimite(clienteNube.rpc('crear_pedido', payloadPedido), 10000);
 
         if (error) throw error;
         pedidoGuardado = data;
       } catch (error) {
-        if (esRechazoPorAgotado(error)) {
+        if (codigoCuponConfirmado && esRechazoPorCupon(error)) {
+          const mensajeCupon = String(error.message || 'El cupón ya no es válido.');
+          quitarCuponAplicado();
+          mostrarEstadoCupon(`${mensajeCupon} Tu pedido se envía sin el cupón.`, 'error');
+          codigoCuponConfirmado = null;
+
+          try {
+            const { data: dataReintento, error: errorReintento } = await conTiempoLimite(
+              clienteNube.rpc('crear_pedido', { ...payloadPedido, p_cupon: null }),
+              10000
+            );
+            if (errorReintento) throw errorReintento;
+            pedidoGuardado = dataReintento;
+          } catch (errorReintento) {
+            console.warn('No se pudo guardar el pedido tampoco sin cupón. Se continúa con WhatsApp.', errorReintento);
+          }
+        } else if (esRechazoPorAgotado(error)) {
           const mensajeRechazo = String(error.message || 'El servidor rechazó el pedido.');
           const productoAgotado = extraerProductoAgotado(mensajeRechazo);
           const avisoRespaldo = cartaDesdeRespaldoLocal
@@ -3499,9 +3692,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
             alert(`No pudimos quitar "${productoAgotado}" automáticamente. Quitalo manualmente del carrito y volvé a intentar.`);
           }
           return;
-        }
-
-        if (esRechazoPedido(error)) {
+        } else if (esRechazoPedido(error)) {
           const mensajeRechazo = String(error.message || 'El servidor rechazó el pedido.');
           const continuar = window.confirm(`No pudimos registrar tu pedido: ${mensajeRechazo}. ¿Querés enviarlo igual por WhatsApp?`);
           if (!continuar) {
@@ -3558,7 +3749,9 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       totales: totalesMensaje,
       numeroOrden,
       cuadrasEnvio: cuadrasServidor,
-      sinRegistrar: !pedidoGuardado
+      sinRegistrar: !pedidoGuardado,
+      cuponAplicadoEnPedido: pedidoGuardado ? codigoCuponConfirmado : null,
+      cuponNoAplicado: !pedidoGuardado && !!codigoCuponOriginal
     });
 
     const mensajeLimpio = normalizarTextoMensaje(mensaje).normalize('NFC');
