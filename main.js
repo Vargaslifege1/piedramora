@@ -225,6 +225,8 @@ let SUCURSALES = {};
 let CARTAS_UNIFICADAS = { categorias: [], productos: [] };
 let CARTA_CACHE_LOADED = false;
 let cartaCargaPromise = null;
+let cartaDesdeRespaldoLocal = false;
+let refrescoCartaTimer = null;
 let CARRITO = [];
 let pedidoEnviando = false;
 let checkoutIdempotencyKey = null;
@@ -576,6 +578,71 @@ async function cargarCartaDesdeNube() {
   return data.contenido;
 }
 
+async function obtenerCartaPorSucursal(sucursalId) {
+  if (!sucursalId) return null;
+
+  try {
+    await cargarConfigNube();
+    const cliente = obtenerClienteNube();
+    if (!cliente) throw new Error('Supabase no está configurado');
+
+    const { data, error } = await conTiempoLimite(
+      cliente.rpc('carta_por_sucursal', { p_sucursal_id: sucursalId }),
+      8000
+    );
+    if (error) throw error;
+    if (!data) throw new Error('La carta por sucursal llegó vacía');
+
+    return { datos: normalizarDatosCarta(data), desdeNube: true };
+  } catch (error) {
+    console.warn('No se pudo cargar la carta por sucursal desde Supabase:', error.message || error);
+  }
+
+  try {
+    const resp = await fetch('data/cartas.json', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('No se pudo cargar cartas.json');
+    const datos = await resp.json();
+    return { datos: normalizarDatosCarta(datos), desdeNube: false };
+  } catch (error) {
+    console.warn('No se pudo cargar la carta de respaldo:', error.message || error);
+    return null;
+  }
+}
+
+async function cargarCartaPorSucursal(sucursalId) {
+  const resultado = await obtenerCartaPorSucursal(sucursalId);
+  if (!resultado) return null;
+
+  CARTAS_UNIFICADAS = resultado.datos;
+  CARTA_CACHE_LOADED = true;
+  cartaDesdeRespaldoLocal = !resultado.desdeNube;
+  return resultado;
+}
+
+async function refrescarCartaActual() {
+  const sucursalId = cartaActualSucursalId;
+  if (!sucursalId) return;
+  if (!cartaAbierta && CARRITO.length === 0) return;
+
+  const resultado = await obtenerCartaPorSucursal(sucursalId);
+  if (!resultado || cartaActualSucursalId !== sucursalId) return;
+
+  cartaDesdeRespaldoLocal = !resultado.desdeNube;
+  aplicarCartaRemota(resultado.datos);
+}
+
+function programarRefrescoCarta() {
+  if (refrescoCartaTimer) return;
+  refrescoCartaTimer = setInterval(() => {
+    if (document.visibilityState === 'hidden') return;
+    refrescarCartaActual();
+  }, 60000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refrescarCartaActual();
+  });
+}
+
 function iniciarSuscripcionNube() {
   if (nubeSuscripcion || !NUBE_CONECTADA || !NUBE_CONFIG) return;
   const cliente = obtenerClienteNube();
@@ -593,7 +660,11 @@ function iniciarSuscripcionNube() {
       filter: `id=eq.${filaId}`
     }, (payload) => {
       if (payload && payload.new && payload.new.contenido) {
-        aplicarCartaRemota(payload.new.contenido);
+        if (cartaActualSucursalId && (cartaAbierta || CARRITO.length > 0)) {
+          refrescarCartaActual();
+        } else {
+          aplicarCartaRemota(payload.new.contenido);
+        }
       }
     })
     .subscribe((estado) => {
@@ -663,7 +734,8 @@ function cargarCartasEnSegundoPlano() {
       datos = await resp.json();
     }
 
-    CARTAS_UNIFICADAS = normalizarDatosCarta(datos);
+    const cartasNormalizadas = normalizarDatosCarta(datos);
+    if (!cartaActualSucursalId) CARTAS_UNIFICADAS = cartasNormalizadas;
     CARTA_CACHE_LOADED = true;
 
     if (NUBE_CONFIG && obtenerClienteNube()) {
@@ -3227,6 +3299,35 @@ function esRechazoPedido(error) {
   return /[áéíóúñü¿¡]/i.test(String(error.message || ''));
 }
 
+function esRechazoPorAgotado(error) {
+  return /agotad/i.test(String((error && error.message) || ''));
+}
+
+function extraerProductoAgotado(mensaje) {
+  const coincidencia = String(mensaje || '').match(/"([^"]+)"\s+(?:está|esta)\s+agotad/i);
+  return coincidencia ? coincidencia[1] : '';
+}
+
+function normalizarNombreProducto(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function quitarProductoAgotadoDelCarrito(nombre) {
+  const clave = normalizarNombreProducto(nombre);
+  if (!clave) return 0;
+  const cantidadAnterior = CARRITO.length;
+  CARRITO = CARRITO.filter(item => {
+    if (normalizarNombreProducto(item.nombre) === clave) return false;
+    const producto = CARTAS_UNIFICADAS.productos.find(prod => prod.id === item.productoBaseId);
+    return normalizarNombreProducto(producto && producto.nombre) !== clave;
+  });
+  return cantidadAnterior - CARRITO.length;
+}
+
 function cerrarVentanaPedido(ventana) {
   if (ventana && !ventana.closed) {
     try { ventana.close(); } catch (error) {}
@@ -3364,6 +3465,42 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
         if (error) throw error;
         pedidoGuardado = data;
       } catch (error) {
+        if (esRechazoPorAgotado(error)) {
+          const mensajeRechazo = String(error.message || 'El servidor rechazó el pedido.');
+          const productoAgotado = extraerProductoAgotado(mensajeRechazo);
+          const avisoRespaldo = cartaDesdeRespaldoLocal
+            ? ' La carta que estabas viendo estaba desactualizada.'
+            : '';
+
+          if (!productoAgotado) {
+            alert(`Un producto de tu pedido se agotó.${avisoRespaldo} Quitalo del carrito y volvé a intentar.`);
+            cerrarVentanaPedido(ventanaWhatsapp);
+            return;
+          }
+
+          const continuar = window.confirm(`"${productoAgotado}" está agotado.${avisoRespaldo}\n\n¿Querés quitarlo del carrito y reintentar sin perder el resto del pedido?`);
+          if (!continuar) {
+            cerrarVentanaPedido(ventanaWhatsapp);
+            return;
+          }
+
+          const quitados = quitarProductoAgotadoDelCarrito(productoAgotado);
+          cerrarVentanaPedido(ventanaWhatsapp);
+          checkoutIdempotencyKey = null;
+
+          if (quitados > 0) {
+            if (CARRITO.length === 0) cerrarModalCheckout();
+            else {
+              actualizarVistaCarrito();
+              renderizarListaCheckout();
+            }
+            alert(`Quitamos "${productoAgotado}" del carrito. Revisá el pedido y volvé a enviarlo.`);
+          } else {
+            alert(`No pudimos quitar "${productoAgotado}" automáticamente. Quitalo manualmente del carrito y volvé a intentar.`);
+          }
+          return;
+        }
+
         if (esRechazoPedido(error)) {
           const mensajeRechazo = String(error.message || 'El servidor rechazó el pedido.');
           const continuar = window.confirm(`No pudimos registrar tu pedido: ${mensajeRechazo}. ¿Querés enviarlo igual por WhatsApp?`);
@@ -3652,7 +3789,9 @@ async function abrirCartaDosEtapas(sucursalId) {
   const retomaCarrito = CARRITO.length > 0 && cartaActualSucursalId === sucursalId;
   const modalidadRetomada = retomaCarrito ? cartaModalidadSeleccionada : null;
 
-  await Promise.all([cargarConfiguracionApp(), cargarCartasEnSegundoPlano()]);
+  await cargarConfiguracionApp();
+  const cargaCarta = await cargarCartaPorSucursal(sucursalId);
+  if (!cargaCarta) await cargarCartasEnSegundoPlano();
   cartaActualSucursalId = sucursalId;
   cartaModalidadSeleccionada = modoCartaForzado || modalidadRetomada;
   actualizarAvisoPrivacidad();
@@ -3893,6 +4032,7 @@ if (document.readyState === 'loading') {
 } else {
   precargarCartas();
 }
+programarRefrescoCarta();
 
 /* ===== Inicio ===== */
 aplicarConfiguracionMarca();

@@ -180,6 +180,8 @@
   let agotadosCargados = false;
   let agotadosCargando = false;
   let agotadosProductos = new Set();
+  let agotadosCanal = null;
+  let agotadosRealtimeTimer = null;
 
   let enviosCargados = false;
   let enviosCargando = false;
@@ -547,6 +549,7 @@
     cerrarModalPedido();
     cerrarFormTramo();
     detenerRealtimePedidos();
+    detenerRealtimeAgotados();
     detenerAlertaPedidos();
     enviosCargados = false;
     agotadosCargados = false;
@@ -602,6 +605,7 @@
       await cargarCarta();
       await cargarPedidos({ silencioso: true });
       iniciarRealtimePedidos();
+      iniciarRealtimeAgotados();
       iniciarRefrescoPedidos();
     }
 
@@ -2659,6 +2663,7 @@
         else cerrarModalPedido();
       }
 
+      if (adminRolError) aplicarAvisoRol();
       if (!opciones.silencioso) mostrarEstadoPedidos('Pedidos actualizados.', 'ok');
     } catch (error) {
       console.warn('No se pudieron cargar los pedidos:', error);
@@ -3264,6 +3269,42 @@
     }
   }
 
+  function programarRecargaAgotados() {
+    if (agotadosRealtimeTimer) clearTimeout(agotadosRealtimeTimer);
+    agotadosRealtimeTimer = setTimeout(() => {
+      agotadosRealtimeTimer = null;
+      if (agotadosCargados) cargarAgotados({ silencioso: true });
+    }, 300);
+  }
+
+  function iniciarRealtimeAgotados() {
+    if (!cliente || agotadosCanal) return;
+    agotadosCanal = cliente
+      .channel('admin-agotados')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agotados_sucursal' }, programarRecargaAgotados)
+      .subscribe((estado) => {
+        if (estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT') {
+          console.warn('Realtime de agotados no disponible:', estado);
+        }
+      });
+  }
+
+  function detenerRealtimeAgotados() {
+    if (agotadosCanal && cliente) {
+      try {
+        if (typeof cliente.removeChannel === 'function') cliente.removeChannel(agotadosCanal);
+        else agotadosCanal.unsubscribe();
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+    agotadosCanal = null;
+    if (agotadosRealtimeTimer) {
+      clearTimeout(agotadosRealtimeTimer);
+      agotadosRealtimeTimer = null;
+    }
+  }
+
   /* ===== Fase 1: seccion Envios ===== */
 
   function mostrarEstadoEnvios(texto, tipo = '') {
@@ -3486,6 +3527,7 @@
       renderTramosEnvios();
       enviosCargados = true;
 
+      if (adminRolError) aplicarAvisoRol();
       if (!opciones.silencioso) {
         mostrarEstadoEnvios('Envíos actualizados.', 'ok');
         mostrarAvisoEnvios(avisoHuecoFinalTodas(), 'info');
