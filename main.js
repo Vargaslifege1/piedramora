@@ -234,6 +234,16 @@ let cuponAplicado = null; // { codigo, descuento, mensaje } o null
 let cuponValidandoEnCurso = false;
 let cuponRevalidarTimer = null;
 
+// Fidelidad (3D-2). Se declaran acá arriba para evitar problemas de orden de carga.
+let fidelidadConfig = null;            // config válida y activa, o null
+let fidelidadConfigPromesa = null;
+let fidelidadEtapaVisible = false;     // la tarjeta solo se ve en categorías/productos
+let fidelidadConsultaToken = 0;
+let premioElegido = null;              // premio seleccionado en el checkout, o null
+let premiosCheckout = [];
+let premiosCheckoutTimer = null;
+let premiosCheckoutToken = 0;
+
 function crearConfiguracionAppPorDefecto() {
   return {
     negocio: { nombre: 'Piedra Mora', ciudad: 'San Fernando del Valle de Catamarca' },
@@ -1199,18 +1209,21 @@ function mostrarEtapaModalidad() {
   if (cartaEtapaModalidad) cartaEtapaModalidad.classList.add('carta-etapa-activa');
   if (cartaEtapaCategorias) cartaEtapaCategorias.classList.remove('carta-etapa-activa');
   if (cartaEtapaProductos) cartaEtapaProductos.classList.remove('carta-etapa-activa');
+  try { fidelidadSetEtapaVisible(false); } catch (e) {}
 }
 
 function mostrarEtapaCategorias() {
   if (cartaEtapaModalidad) cartaEtapaModalidad.classList.remove('carta-etapa-activa');
   if (cartaEtapaCategorias) cartaEtapaCategorias.classList.add('carta-etapa-activa');
   if (cartaEtapaProductos) cartaEtapaProductos.classList.remove('carta-etapa-activa');
+  try { fidelidadSetEtapaVisible(true); } catch (e) {}
 }
 
 function mostrarEtapaProductos() {
   if (cartaEtapaModalidad) cartaEtapaModalidad.classList.remove('carta-etapa-activa');
   if (cartaEtapaCategorias) cartaEtapaCategorias.classList.remove('carta-etapa-activa');
   if (cartaEtapaProductos) cartaEtapaProductos.classList.add('carta-etapa-activa');
+  try { fidelidadSetEtapaVisible(true); } catch (e) {}
 }
 
 function esCartaSoloLectura() {
@@ -1353,6 +1366,7 @@ function cerrarCarta(e) {
   if (cartaEtapaModalidad) cartaEtapaModalidad.classList.remove('carta-etapa-activa');
   if (cartaEtapaCategorias) cartaEtapaCategorias.classList.remove('carta-etapa-activa');
   if (cartaEtapaProductos) cartaEtapaProductos.classList.remove('carta-etapa-activa');
+  try { fidelidadSetEtapaVisible(false); } catch (e) {}
   if (CARRITO.length === 0) cartaModalidadSeleccionada = null;
   cartaRequiereModalidad = false;
   document.body.classList.remove('carta-modo-mesa');
@@ -2257,6 +2271,7 @@ function abrirModalCheckout() {
   renderizarListaCheckout();
   programarCotizacionEnvio();
   refrescarDescuentosPagoCheckout();
+  try { fidelidadProgramarConsultaPremios(); } catch (e) {}
 
   overlay.hidden = false;
   panel.hidden = false;
@@ -2278,6 +2293,7 @@ function cerrarModalCheckout() {
       panel.hidden = true;
     }, 200);
   }
+  try { fidelidadResetCheckout(); } catch (e) {}
   quitarCuponAplicado();
   mostrarEstadoCupon('');
 }
@@ -2359,7 +2375,7 @@ function cerrarPedidoRecibido() {
   }, 200);
 }
 
-function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad }) {
+function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad, premioTexto }) {
   const overlay = document.getElementById('pedido-recibido-overlay');
   const panel = document.getElementById('pedido-recibido');
   if (!overlay || !panel) return;
@@ -2397,6 +2413,11 @@ function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad }) {
   }
   if (filaTiempo) filaTiempo.hidden = true;
   if (tiempoEl) tiempoEl.textContent = '';
+  const premioEl = document.getElementById('pedido-recibido-premio');
+  if (premioEl) {
+    premioEl.textContent = premioTexto ? `Premio aplicado: ${premioTexto}` : '';
+    premioEl.hidden = !premioTexto;
+  }
 
   overlay.hidden = false;
   panel.hidden = false;
@@ -2563,10 +2584,15 @@ function actualizarResumenPago(subtotal) {
   if (cuponAplicado) {
     totalFinal = Math.max(0, totales.subtotal - cuponAplicado.descuento + (envio.costo || 0));
   }
+  // Premio de fidelidad: reemplaza el descuento por pago (el servidor ignora ambos si hay premio).
+  if (premioElegido) {
+    totalFinal = Math.max(0, totales.subtotal - fidelidadDescuentoPremio(totales.subtotal) + (envio.costo || 0));
+  }
   if (elTotal) elTotal.textContent = formatearPrecioAR(totalFinal);
+  try { fidelidadActualizarLineaPremio(); } catch (e) {}
 
   if (lineaDescuento) {
-    const hayDescuento = totales.descuento > 0 && !cuponAplicado;
+    const hayDescuento = totales.descuento > 0 && !cuponAplicado && !premioElegido;
     lineaDescuento.hidden = !hayDescuento;
     lineaDescuento.style.display = hayDescuento ? 'flex' : 'none'; // Se oculta completamente si no hay descuento
   }
@@ -2611,6 +2637,13 @@ function programarRevalidarCupon() {
 async function validarCuponActual(codigoForzado) {
   const input = document.getElementById('cliente-cupon');
   const codigo = String(codigoForzado ?? input?.value ?? '').trim().toUpperCase();
+
+  if (premioElegido) {
+    cuponAplicado = null;
+    mostrarLineaCupon(false);
+    mostrarEstadoCupon('Con un premio no se puede usar un cupón.', 'error');
+    return;
+  }
 
   if (!codigo) {
     cuponAplicado = null;
@@ -3353,6 +3386,7 @@ function construirMensajePedido({
   cuadrasEnvio,
   sinRegistrar,
   cuponAplicadoEnPedido,
+  premioAplicadoEnPedido,
   cuponNoAplicado
 }) {
   const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
@@ -3387,9 +3421,11 @@ function construirMensajePedido({
   const total = Number(totales.total) || 0;
   mensaje += `\n*Subtotal:* ${formatearPrecioAR(subtotal)}\n`;
   if (descuento > 0) {
-    const etiquetaDescuento = cuponAplicadoEnPedido
-      ? `Cupón ${cuponAplicadoEnPedido}`
-      : `${pago.nombre} ${porcentaje}%`;
+    const etiquetaDescuento = premioAplicadoEnPedido
+      ? `Premio ${premioAplicadoEnPedido}`
+      : (cuponAplicadoEnPedido
+        ? `Cupón ${cuponAplicadoEnPedido}`
+        : `${pago.nombre} ${porcentaje}%`);
     mensaje += `*Descuento (${etiquetaDescuento}):* - ${formatearPrecioAR(descuento)}\n`;
   }
   if (envio > 0) {
@@ -3400,6 +3436,10 @@ function construirMensajePedido({
     mensaje += `*Envío:* ${formatearPrecioAR(envio)}${detalleCuadras}\n`;
   }
   mensaje += `*TOTAL:* ${formatearPrecioAR(total)}`;
+  if (premioAplicadoEnPedido && descuento <= 0) {
+    mensaje += `
+*Premio de fidelidad:* ${premioAplicadoEnPedido}`;
+  }
   if (cuponNoAplicado) {
     mensaje += '\n_Cupón no aplicado: no se pudo validar sin registrar el pedido. Se envió sin ese descuento._';
   }
@@ -3588,7 +3628,10 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     costo_envio: costoEnvioCliente,
     total: Math.max(0, totalesBase.total + costoEnvioCliente)
   };
-  const totalMostrado = totalesCliente.total;
+  const totalMostrado = premioElegido
+    ? Math.max(0, totalesCliente.subtotal - fidelidadDescuentoPremio(totalesCliente.subtotal) + costoEnvioCliente)
+    : totalesCliente.total;
+  const premioUsado = premioElegido ? { ...premioElegido } : null;
 
   pedidoEnviando = true;
   const idempotencyKey = obtenerIdempotencyKeyPedido();
@@ -3633,7 +3676,9 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           cantidad: item.cantidad
         })),
         p_idempotency_key: idempotencyKey,
-        p_cupon: codigoCuponConfirmado
+        p_cupon: premioUsado ? null : codigoCuponConfirmado,
+        p_premio_id: premioUsado ? premioUsado.id : null,
+        p_acepta_promos: document.getElementById('cliente-acepta-promos')?.checked ? true : null
       };
 
       try {
@@ -3642,7 +3687,16 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
         if (error) throw error;
         pedidoGuardado = data;
       } catch (error) {
-        if (codigoCuponConfirmado && esRechazoPorCupon(error)) {
+        if (premioUsado && /premio/i.test(String((error && error.message) || ''))) {
+          const mensajePremio = String(error.message || 'El premio ya no es válido.');
+          try { fidelidadInvalidarCache(); } catch (e) {}
+          fidelidadElegirPremio(null);
+          fidelidadProgramarConsultaPremios();
+          checkoutIdempotencyKey = null;
+          cerrarVentanaPedido(ventanaWhatsapp);
+          alert(`${mensajePremio} Revisá tu pedido y volvé a enviarlo.`);
+          return;
+        } else if (codigoCuponConfirmado && esRechazoPorCupon(error)) {
           const mensajeCupon = String(error.message || 'El cupón ya no es válido.');
           quitarCuponAplicado();
           mostrarEstadoCupon(`${mensajeCupon} Tu pedido se envía sin el cupón.`, 'error');
@@ -3750,7 +3804,8 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       numeroOrden,
       cuadrasEnvio: cuadrasServidor,
       sinRegistrar: !pedidoGuardado,
-      cuponAplicadoEnPedido: pedidoGuardado ? codigoCuponConfirmado : null,
+      cuponAplicadoEnPedido: pedidoGuardado && !premioUsado ? codigoCuponConfirmado : null,
+      premioAplicadoEnPedido: pedidoGuardado && premioUsado ? fidelidadDescribirPremio(premioUsado) : null,
       cuponNoAplicado: !pedidoGuardado && !!codigoCuponOriginal
     });
 
@@ -3763,11 +3818,13 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       pedido: pedidoGuardado,
       esFallback: !pedidoGuardado,
       total: totalesMensaje.total,
-      modalidad: tipoEntrega
+      modalidad: tipoEntrega,
+      premioTexto: pedidoGuardado && premioUsado ? fidelidadDescribirPremio(premioUsado) : ''
     });
 
     if (pedidoGuardado) {
       checkoutIdempotencyKey = null;
+      try { fidelidadTrasPedido(); } catch (e) {}
       vaciarCarrito({ resetDireccion: true });
       cerrarModalCheckout();
       actualizarVistaCarrito();
@@ -4226,6 +4283,579 @@ if (document.readyState === 'loading') {
   precargarCartas();
 }
 programarRefrescoCarta();
+
+/* ===== Fidelidad (3D-2): tarjeta, registro, progreso y premios ===== */
+// Todo lo que cuente plata (descuento, premio, canje) lo resuelve el servidor:
+// acá solo se muestra y se manda p_premio_id / p_acepta_promos a crear_pedido.
+
+const FIDELIDAD_CACHE_MS = 5 * 60 * 1000;
+const FIDELIDAD_CLAVE_LOCAL = 'pm_fidelidad_cliente';
+const FIDELIDAD_MSG_ERROR = 'No pudimos consultar tus datos ahora. Probá de nuevo en unos minutos.';
+let fidelidadCache = { telefono: '', progreso: null, progresoEn: 0, premios: null, premiosEn: 0 };
+let fidelidadVista = 'invitacion'; // invitacion | form | progreso
+let fidelidadOcupada = false;
+let fidelidadActualizarBloqueadoHasta = 0;
+
+function fidelidadEl(id) {
+  return document.getElementById(id);
+}
+
+function fidelidadTelefonoDigitos(valor) {
+  return String(valor == null ? '' : valor).replace(/\D/g, '');
+}
+
+function fidelidadLeerCliente() {
+  try {
+    const crudo = window.localStorage.getItem(FIDELIDAD_CLAVE_LOCAL);
+    if (!crudo) return null;
+    const dato = JSON.parse(crudo);
+    const telefono = fidelidadTelefonoDigitos(dato && dato.telefono);
+    if (telefono.length < 8) return null;
+    return {
+      nombre: String((dato && dato.nombre) || '').slice(0, 60),
+      apellido: String((dato && dato.apellido) || '').slice(0, 60),
+      telefono
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function fidelidadGuardarCliente(cliente) {
+  try { window.localStorage.setItem(FIDELIDAD_CLAVE_LOCAL, JSON.stringify(cliente)); } catch (error) {}
+}
+
+function fidelidadOlvidarCliente() {
+  try { window.localStorage.removeItem(FIDELIDAD_CLAVE_LOCAL); } catch (error) {}
+}
+
+function fidelidadInvalidarCache() {
+  fidelidadCache = { telefono: '', progreso: null, progresoEn: 0, premios: null, premiosEn: 0 };
+}
+
+// Valida lo mínimo para dibujar; si algo no cierra, el programa queda oculto.
+function fidelidadNormalizarConfig(valor) {
+  try {
+    if (!valor || typeof valor !== 'object' || valor.activo !== true) return null;
+    const ciclo = Number(valor.ciclo);
+    if (!Number.isInteger(ciclo) || ciclo < 1 || ciclo > 1000) return null;
+    const minimo = Number(valor.pedido_minimo);
+    if (!Number.isFinite(minimo) || minimo < 0) return null;
+    if (!Array.isArray(valor.niveles) || valor.niveles.length < 1) return null;
+    const niveles = [];
+    for (const nivel of valor.niveles) {
+      const en = Number(nivel && nivel.en);
+      if (!Number.isInteger(en) || en < 1 || en > ciclo) return null;
+      if (nivel.tipo !== 'descuento_porcentaje' && nivel.tipo !== 'producto_gratis') return null;
+      niveles.push({ en, tipo: nivel.tipo, valor: Number(nivel.valor) || 0 });
+    }
+    niveles.sort((a, b) => a.en - b.en);
+    return { ciclo, pedidoMinimo: minimo, niveles };
+  } catch (error) {
+    return null;
+  }
+}
+
+function fidelidadCargarConfig() {
+  if (fidelidadConfig) return Promise.resolve(fidelidadConfig);
+  if (fidelidadConfigPromesa) return fidelidadConfigPromesa;
+
+  fidelidadConfigPromesa = (async () => {
+    try {
+      await cargarConfigNube();
+      const clienteNube = obtenerClienteNube();
+      if (!clienteNube) return null;
+      const { data, error } = await conTiempoLimite(
+        clienteNube.from('config_negocio').select('valor').eq('clave', 'fidelidad').maybeSingle(),
+        6000
+      );
+      if (error || !data) return null;
+      return fidelidadNormalizarConfig(data.valor);
+    } catch (error) {
+      return null;
+    }
+  })().then((config) => {
+    fidelidadConfigPromesa = null;
+    if (config) fidelidadConfig = config;
+    return config;
+  });
+
+  return fidelidadConfigPromesa;
+}
+
+function fidelidadFormatearVencimiento(valor) {
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return '';
+  return fecha.toLocaleDateString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric'
+  });
+}
+
+function fidelidadDescribirPremio(premio) {
+  if (!premio) return 'Premio';
+  if (premio.tipo === 'producto_gratis') {
+    return `${String(premio.producto_nombre || 'Producto')} gratis`;
+  }
+  return `${Number(premio.valor) || 0}% de descuento`;
+}
+
+function fidelidadDescribirProximo(proximo) {
+  if (!proximo) return '';
+  if (proximo.tipo === 'producto_gratis') return `${String(proximo.producto || 'un producto')} gratis`;
+  return `${Number(proximo.valor) || 0}% de descuento`;
+}
+
+function fidelidadTextoNiveles(config) {
+  const partes = config.niveles.map((nivel) => (
+    nivel.tipo === 'producto_gratis'
+      ? `al pedido ${nivel.en} un producto gratis`
+      : `al pedido ${nivel.en} un ${nivel.valor}% de descuento`
+  ));
+  return `Sumá pedidos de ${formatearPrecioAR(config.pedidoMinimo)} o más: ${partes.join(', ')}. Se reinicia cada ${config.ciclo} pedidos.`;
+}
+
+function fidelidadMostrarEstado(texto, esError) {
+  const el = fidelidadEl('fidelidad-estado');
+  if (!el) return;
+  el.textContent = texto || '';
+  el.hidden = !texto;
+  el.classList.toggle('es-error', !!esError);
+}
+
+function fidelidadMostrarVista(vista) {
+  fidelidadVista = vista;
+  const inv = fidelidadEl('fidelidad-vista-invitacion');
+  const form = fidelidadEl('fidelidad-form');
+  const prog = fidelidadEl('fidelidad-vista-progreso');
+  if (inv) inv.hidden = vista !== 'invitacion';
+  if (form) form.hidden = vista !== 'form';
+  if (prog) prog.hidden = vista !== 'progreso';
+}
+
+function fidelidadSetEtapaVisible(visible) {
+  try {
+    fidelidadEtapaVisible = !!visible;
+    fidelidadActualizarTarjeta();
+  } catch (error) {
+    console.warn('Fidelidad: no se pudo actualizar la tarjeta.', error);
+  }
+}
+
+function fidelidadActualizarTarjeta() {
+  try {
+    const tarjeta = fidelidadEl('fidelidad-tarjeta');
+    if (!tarjeta) return;
+
+    if (!fidelidadEtapaVisible || !cartaPermitePedidos()) {
+      tarjeta.hidden = true;
+      return;
+    }
+
+    if (!fidelidadConfig) {
+      tarjeta.hidden = true;
+      fidelidadCargarConfig().then((config) => {
+        if (config) fidelidadActualizarTarjeta();
+      }).catch(() => {});
+      return;
+    }
+
+    tarjeta.hidden = false;
+    const textoNiveles = fidelidadEl('fidelidad-texto-niveles');
+    if (textoNiveles) textoNiveles.textContent = fidelidadTextoNiveles(fidelidadConfig);
+
+    // Si el formulario o el progreso ya están a la vista, no se pisan.
+    if (fidelidadVista === 'form' || fidelidadVista === 'progreso') return;
+    fidelidadMostrarVista('invitacion');
+  } catch (error) {
+    console.warn('Fidelidad: error al dibujar la tarjeta.', error);
+  }
+}
+
+async function fidelidadRpc(nombre, parametros) {
+  await cargarConfigNube();
+  const clienteNube = obtenerClienteNube();
+  if (!clienteNube) throw new Error('sin-cliente');
+  const { data, error } = await conTiempoLimite(clienteNube.rpc(nombre, parametros), 10000);
+  if (error) throw error;
+  return data;
+}
+
+function fidelidadCacheParaTelefono(tel) {
+  if (fidelidadCache.telefono !== tel) {
+    fidelidadCache = { telefono: tel, progreso: null, progresoEn: 0, premios: null, premiosEn: 0 };
+  }
+  return fidelidadCache;
+}
+
+// Solo premios (para el checkout y la tarjeta). Caché de 5 minutos por teléfono.
+async function fidelidadObtenerPremios(telefono, forzar) {
+  const tel = fidelidadTelefonoDigitos(telefono);
+  const cache = fidelidadCacheParaTelefono(tel);
+  if (!forzar && cache.premios && Date.now() - cache.premiosEn <= FIDELIDAD_CACHE_MS) {
+    return cache.premios;
+  }
+  const data = await fidelidadRpc('mis_premios', { p_telefono: tel });
+  if (!data || !data.ok) throw new Error('premios-no-ok');
+  cache.premios = Array.isArray(data.premios) ? data.premios : [];
+  cache.premiosEn = Date.now();
+  return cache.premios;
+}
+
+// Devuelve { progreso, premios } usando caché de 5 minutos por teléfono.
+async function fidelidadObtenerDatos(telefono, forzar) {
+  const tel = fidelidadTelefonoDigitos(telefono);
+  const cache = fidelidadCacheParaTelefono(tel);
+  const tareas = [];
+  if (forzar || !cache.progreso || Date.now() - cache.progresoEn > FIDELIDAD_CACHE_MS) {
+    tareas.push(fidelidadRpc('mi_progreso_fidelidad', { p_telefono: tel }).then((d) => {
+      if (!d || !d.ok) throw new Error('progreso-no-ok');
+      cache.progreso = d;
+      cache.progresoEn = Date.now();
+    }));
+  }
+  tareas.push(fidelidadObtenerPremios(tel, !!forzar));
+  await Promise.all(tareas);
+  return { progreso: cache.progreso, premios: cache.premios || [] };
+}
+
+function fidelidadDibujarProgreso(cliente, datos) {
+  const saludo = fidelidadEl('fidelidad-saludo');
+  const sellos = fidelidadEl('fidelidad-sellos');
+  const faltan = fidelidadEl('fidelidad-faltan');
+  const premiosEl = fidelidadEl('fidelidad-premios');
+  const progreso = datos.progreso || {};
+  const pos = Number(progreso.pedidos_en_ciclo) || 0;
+
+  if (saludo) saludo.textContent = cliente.nombre ? `¡Hola, ${cliente.nombre}!` : '¡Hola!';
+
+  if (sellos) {
+    sellos.textContent = '';
+    const config = fidelidadConfig;
+    if (config && config.ciclo <= 24) {
+      const marcas = new Set(config.niveles.map((n) => n.en));
+      for (let i = 1; i <= config.ciclo; i++) {
+        const sello = document.createElement('span');
+        sello.className = 'fidelidad-sello';
+        if (i <= pos) sello.classList.add('lleno');
+        if (marcas.has(i)) sello.classList.add('premio');
+        sellos.appendChild(sello);
+      }
+      sellos.setAttribute('aria-label', `${pos} de ${config.ciclo} pedidos del ciclo`);
+    } else {
+      sellos.setAttribute('aria-label', `${pos} pedidos en el ciclo`);
+    }
+  }
+
+  if (faltan) {
+    if (progreso.activo === false) {
+      faltan.textContent = 'El programa de fidelidad no está activo por ahora.';
+    } else {
+      const n = Number(progreso.faltan_para_proximo);
+      const premio = fidelidadDescribirProximo(progreso.proximo_premio);
+      faltan.textContent = Number.isFinite(n) && premio
+        ? `Llevás ${pos} ${pos === 1 ? 'pedido' : 'pedidos'}. ${n === 1 ? 'Te falta 1 pedido' : `Te faltan ${n} pedidos`} para: ${premio}.`
+        : `Llevás ${pos} ${pos === 1 ? 'pedido' : 'pedidos'}.`;
+    }
+  }
+
+  if (premiosEl) {
+    premiosEl.textContent = '';
+    const ahora = Date.now();
+    (datos.premios || []).forEach((premio) => {
+      if (new Date(premio.vencimiento).getTime() <= ahora) return;
+      const item = document.createElement('div');
+      item.className = 'fidelidad-premio-item';
+      const venc = fidelidadFormatearVencimiento(premio.vencimiento);
+      item.textContent = `🎁 ${fidelidadDescribirPremio(premio)}${venc ? ` — vence el ${venc}` : ''}`;
+      premiosEl.appendChild(item);
+    });
+  }
+}
+
+async function fidelidadMostrarProgreso(forzar) {
+  const cliente = fidelidadLeerCliente();
+  if (!cliente) { fidelidadMostrarVista('form'); return; }
+  const token = ++fidelidadConsultaToken;
+  fidelidadMostrarEstado('Consultando tu progreso...', false);
+  try {
+    const datos = await fidelidadObtenerDatos(cliente.telefono, !!forzar);
+    if (token !== fidelidadConsultaToken) return;
+    fidelidadDibujarProgreso(cliente, datos);
+    fidelidadMostrarVista('progreso');
+    fidelidadMostrarEstado('', false);
+  } catch (error) {
+    if (token !== fidelidadConsultaToken) return;
+    console.warn('Fidelidad: no se pudo consultar el progreso.', error);
+    fidelidadMostrarEstado(FIDELIDAD_MSG_ERROR, true);
+  }
+}
+
+function fidelidadMostrarErrorForm(texto) {
+  const el = fidelidadEl('fidelidad-form-error');
+  if (!el) return;
+  el.textContent = texto || '';
+  el.hidden = !texto;
+}
+
+async function fidelidadEnviarFormulario(evento) {
+  evento.preventDefault();
+  if (fidelidadOcupada) return;
+  const nombre = normalizarTextoMensaje(fidelidadEl('fidelidad-nombre')?.value, true);
+  const apellido = normalizarTextoMensaje(fidelidadEl('fidelidad-apellido')?.value, true);
+  const telefono = fidelidadTelefonoDigitos(fidelidadEl('fidelidad-telefono')?.value);
+  const acepta = !!fidelidadEl('fidelidad-acepta-promos')?.checked;
+
+  if (nombre.length < 2) { fidelidadMostrarErrorForm('Ingresá tu nombre.'); return; }
+  if (apellido.length < 2) { fidelidadMostrarErrorForm('Ingresá tu apellido.'); return; }
+  if (telefono.length < 8 || telefono.length > 15) { fidelidadMostrarErrorForm('Ingresá un teléfono válido (solo números).'); return; }
+  fidelidadMostrarErrorForm('');
+
+  const boton = fidelidadEl('fidelidad-btn-enviar');
+  fidelidadOcupada = true;
+  if (boton) boton.disabled = true;
+  try {
+    const data = await fidelidadRpc('registrar_cliente', {
+      p_nombre: nombre, p_apellido: apellido, p_telefono: telefono, p_acepta_promos: acepta
+    });
+    if (!data || !data.ok) {
+      fidelidadMostrarErrorForm((data && data.mensaje) || FIDELIDAD_MSG_ERROR);
+      return;
+    }
+    fidelidadGuardarCliente({ nombre, apellido, telefono });
+    fidelidadInvalidarCache();
+    await fidelidadMostrarProgreso(true);
+  } catch (error) {
+    console.warn('Fidelidad: no se pudo registrar.', error);
+    fidelidadMostrarErrorForm(FIDELIDAD_MSG_ERROR);
+  } finally {
+    fidelidadOcupada = false;
+    if (boton) boton.disabled = false;
+  }
+}
+
+async function fidelidadBorrarDatos() {
+  if (fidelidadOcupada) return;
+  const cliente = fidelidadLeerCliente();
+  if (!cliente) { fidelidadMostrarVista('invitacion'); return; }
+  let decision = 'cancelar';
+  try {
+    decision = await confirmarAccion({
+      titulo: 'Borrar mis datos',
+      mensaje: 'Vamos a quitar tu consentimiento y borrar tu registro si nunca hiciste un pedido. Tus pedidos anteriores se conservan. ¿Continuar?',
+      textoAceptar: 'Borrar',
+      textoCancelar: 'Cancelar'
+    });
+  } catch (error) {}
+  if (decision !== 'aceptar') return;
+
+  fidelidadOcupada = true;
+  fidelidadMostrarEstado('Borrando tus datos...', false);
+  try {
+    const data = await fidelidadRpc('borrar_mis_datos', { p_telefono: cliente.telefono });
+    if (!data || !data.ok) {
+      fidelidadMostrarEstado((data && data.mensaje) || FIDELIDAD_MSG_ERROR, true);
+      return;
+    }
+    fidelidadOlvidarCliente();
+    fidelidadInvalidarCache();
+    fidelidadMostrarVista('invitacion');
+    fidelidadMostrarEstado('Listo, borramos tus datos.', false);
+  } catch (error) {
+    console.warn('Fidelidad: no se pudieron borrar los datos.', error);
+    fidelidadMostrarEstado(FIDELIDAD_MSG_ERROR, true);
+  } finally {
+    fidelidadOcupada = false;
+  }
+}
+
+function fidelidadClickVer() {
+  fidelidadMostrarEstado('', false);
+  if (fidelidadLeerCliente()) fidelidadMostrarProgreso(false);
+  else {
+    fidelidadMostrarErrorForm('');
+    fidelidadMostrarVista('form');
+  }
+}
+
+function fidelidadClickActualizar() {
+  const ahora = Date.now();
+  if (ahora < fidelidadActualizarBloqueadoHasta) return;
+  fidelidadActualizarBloqueadoHasta = ahora + 10000;
+  fidelidadMostrarProgreso(true);
+}
+
+/* --- Premios en el checkout --- */
+
+function fidelidadDescuentoPremio(subtotal) {
+  // Solo vista previa: el descuento real lo calcula crear_pedido.
+  if (!premioElegido || premioElegido.tipo !== 'descuento_porcentaje') return 0;
+  const base = Number(subtotal) || 0;
+  let monto = Math.round(base * (Number(premioElegido.valor) || 0) / 100);
+  const tope = Number(premioElegido.tope_en_pesos);
+  if (Number.isFinite(tope) && tope > 0) monto = Math.min(monto, tope);
+  return Math.max(0, Math.min(monto, base));
+}
+
+function fidelidadActualizarLineaPremio() {
+  const linea = fidelidadEl('linea-premio');
+  if (!linea) return;
+  const etiqueta = fidelidadEl('checkout-premio-etiqueta');
+  const monto = fidelidadEl('checkout-premio-monto');
+  linea.hidden = !premioElegido;
+  linea.style.display = premioElegido ? 'flex' : 'none';
+  if (!premioElegido) return;
+  if (etiqueta) etiqueta.textContent = `Premio: ${fidelidadDescribirPremio(premioElegido)}`;
+  if (monto) {
+    monto.textContent = premioElegido.tipo === 'producto_gratis'
+      ? 'Sin cargo'
+      : `- ${formatearPrecioAR(fidelidadDescuentoPremio(obtenerSubtotalCarrito()))}`;
+  }
+}
+
+function fidelidadBloquearCupon(bloquear) {
+  const input = fidelidadEl('cliente-cupon');
+  const boton = fidelidadEl('btn-aplicar-cupon');
+  if (input) input.disabled = !!bloquear;
+  if (boton) boton.disabled = !!bloquear;
+}
+
+function fidelidadElegirPremio(premio) {
+  premioElegido = premio || null;
+  if (premioElegido) {
+    quitarCuponAplicado();
+    mostrarEstadoCupon('Con un premio no se puede usar un cupón.', '');
+    fidelidadBloquearCupon(true);
+  } else {
+    fidelidadBloquearCupon(false);
+    mostrarEstadoCupon('');
+  }
+  fidelidadActualizarLineaPremio();
+  actualizarResumenPago(obtenerSubtotalCarrito());
+  document.querySelectorAll('#checkout-premios-lista .checkout-premio-opcion').forEach((op) => {
+    const radio = op.querySelector('input');
+    op.classList.toggle('activa', !!(radio && radio.checked));
+  });
+}
+
+function fidelidadDibujarPremiosCheckout(premios) {
+  const contenedor = fidelidadEl('checkout-premios');
+  const lista = fidelidadEl('checkout-premios-lista');
+  if (!contenedor || !lista) return;
+  lista.textContent = '';
+
+  const ahora = Date.now();
+  premiosCheckout = (premios || []).filter((p) => p && p.id && new Date(p.vencimiento).getTime() > ahora);
+  if (premioElegido) {
+    const vigente = premiosCheckout.find((p) => p.id === premioElegido.id);
+    if (!vigente) fidelidadElegirPremio(null);
+  }
+  if (premiosCheckout.length === 0) {
+    contenedor.hidden = true;
+    return;
+  }
+
+  const agregar = (valorId, texto, premio) => {
+    const label = document.createElement('label');
+    label.className = 'checkout-premio-opcion';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'checkout-premio';
+    radio.value = valorId;
+    radio.checked = premio ? !!(premioElegido && premioElegido.id === premio.id) : !premioElegido;
+    radio.addEventListener('change', () => { if (radio.checked) fidelidadElegirPremio(premio); });
+    const span = document.createElement('span');
+    span.textContent = texto;
+    label.append(radio, span);
+    label.classList.toggle('activa', radio.checked);
+    lista.appendChild(label);
+  };
+
+  agregar('', 'No usar premio', null);
+  premiosCheckout.forEach((premio) => {
+    const venc = fidelidadFormatearVencimiento(premio.vencimiento);
+    agregar(String(premio.id), `${fidelidadDescribirPremio(premio)}${venc ? ` (vence el ${venc})` : ''}`, premio);
+  });
+  contenedor.hidden = false;
+}
+
+function fidelidadResetCheckout() {
+  premiosCheckoutToken++;
+  clearTimeout(premiosCheckoutTimer);
+  premiosCheckout = [];
+  if (premioElegido) {
+    premioElegido = null;
+    fidelidadBloquearCupon(false);
+    fidelidadActualizarLineaPremio();
+  }
+  const contenedor = fidelidadEl('checkout-premios');
+  const lista = fidelidadEl('checkout-premios-lista');
+  const estado = fidelidadEl('checkout-premios-estado');
+  if (contenedor) contenedor.hidden = true;
+  if (lista) lista.textContent = '';
+  if (estado) estado.textContent = '';
+}
+
+async function fidelidadConsultarPremiosCheckout(tel) {
+  const token = ++premiosCheckoutToken;
+  try {
+    const config = fidelidadConfig || await fidelidadCargarConfig();
+    if (token !== premiosCheckoutToken) return;
+    if (!config) { fidelidadDibujarPremiosCheckout([]); return; }
+    const premios = await fidelidadObtenerPremios(tel, false);
+    if (token !== premiosCheckoutToken) return;
+    fidelidadDibujarPremiosCheckout(premios);
+  } catch (error) {
+    if (token !== premiosCheckoutToken) return;
+    // Un fallo acá no frena el pedido: simplemente no se ofrecen premios.
+    fidelidadDibujarPremiosCheckout([]);
+  }
+}
+
+function fidelidadProgramarConsultaPremios() {
+  try {
+    clearTimeout(premiosCheckoutTimer);
+    const tel = fidelidadTelefonoDigitos(fidelidadEl('cliente-telefono')?.value);
+    if (tel.length < 8) {
+      premiosCheckoutToken++;
+      fidelidadDibujarPremiosCheckout([]);
+      return;
+    }
+    premiosCheckoutTimer = setTimeout(() => { fidelidadConsultarPremiosCheckout(tel); }, 700);
+  } catch (error) {
+    console.warn('Fidelidad: no se pudo programar la consulta de premios.', error);
+  }
+}
+
+// Después de un pedido: el caché ya no vale (cambió el premio o el contador).
+function fidelidadTrasPedido() {
+  try {
+    fidelidadInvalidarCache();
+    fidelidadResetCheckout();
+    if (fidelidadVista === 'progreso') fidelidadMostrarVista('invitacion');
+    fidelidadActualizarTarjeta();
+  } catch (error) {
+    console.warn('Fidelidad: error al limpiar tras el pedido.', error);
+  }
+}
+
+function fidelidadIniciar() {
+  try {
+    fidelidadEl('fidelidad-btn-ver')?.addEventListener('click', fidelidadClickVer);
+    fidelidadEl('fidelidad-form')?.addEventListener('submit', fidelidadEnviarFormulario);
+    fidelidadEl('fidelidad-btn-cancelar')?.addEventListener('click', () => {
+      fidelidadMostrarErrorForm('');
+      fidelidadMostrarVista('invitacion');
+    });
+    fidelidadEl('fidelidad-btn-actualizar')?.addEventListener('click', fidelidadClickActualizar);
+    fidelidadEl('fidelidad-btn-borrar')?.addEventListener('click', fidelidadBorrarDatos);
+    fidelidadEl('cliente-telefono')?.addEventListener('input', fidelidadProgramarConsultaPremios);
+    // Precarga la config para que la tarjeta aparezca rápido al abrir la carta.
+    fidelidadCargarConfig().catch(() => {});
+  } catch (error) {
+    console.warn('Fidelidad: no se pudo iniciar.', error);
+  }
+}
+fidelidadIniciar();
 
 /* ===== Inicio ===== */
 aplicarConfiguracionMarca();

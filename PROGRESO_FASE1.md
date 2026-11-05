@@ -729,9 +729,9 @@ Archivos tocados: `admin.html`, `admin.js`, `admin.css`. Sin SQL.
 
 Cómo probar: abrir "Nuevo cupón" (scroll al formulario), cancelar con los tres botones y con Escape; guardar uno válido (cierra y baja a la lista); repetir un código (queda abierto con el error).
 
-## Fase 3D-1: fidelidad y premios (base de datos, migración 019 — NO aplicada todavía)
+## Fase 3D-1: fidelidad y premios (base de datos, migración 019 — aplicada)
 
-Archivo nuevo: `supabase/migrations/019_fidelidad_premios.sql`. Sin cambios de frontend. **Hacer backup antes de aplicarla.**
+Archivo nuevo: `supabase/migrations/019_fidelidad_premios.sql` (ya aplicada en producción). Esta fase no tocó el frontend (ver 3D-2).
 
 - Ciclo de 10 pedidos entregados: 5.º → 30% en un pedido futuro (sin tope); 10.º → Cheeseburger gratis (`burger_cheeseburger`, variación SIMPLE). Vencen a 30 días, un solo uso.
 - Cuentan solo pedidos entregados con `sincronizado` distinto de false y `pedidos.subtotal >= 10000` (subtotal de productos, antes de descuentos y sin envío).
@@ -742,11 +742,11 @@ Archivo nuevo: `supabase/migrations/019_fidelidad_premios.sql`. Sin cambios de f
 - `crear_pedido` pasa a 14 argumentos (`p_premio_id uuid default null`); con premio se ignoran cupón y descuento por pago; premio + cupón se rechaza; el canje bloquea la fila (`FOR UPDATE`) y marca el premio usado en la misma transacción.
 - Limitaciones documentadas en la migración: el contador no se resta al revertir/cancelar un pedido ya contado; sin backfill de pedidos históricos; si falla la acreditación se loguea un WARNING y no se bloquea el cambio de estado.
 - La migración incluye rollback comentado y casos de prueba (a–q).
-- Pendiente (3D-2): frontend (checkout con premio, "mis premios", progreso) y panel del dueño.
+- Frontend hecho en 3D-2 (ver abajo). Pendiente: panel del dueño.
 
-## Registro de clientes (migración 020 — NO aplicada todavía)
+## Registro de clientes (migración 020 — aplicada)
 
-Archivo nuevo: `supabase/migrations/020_registro_clientes.sql`. Sin cambios de frontend ni del trigger de clientes. **Hacer backup antes de aplicarla.**
+Archivo nuevo: `supabase/migrations/020_registro_clientes.sql` (ya aplicada en producción). No tocó el trigger de clientes.
 
 - `clientes`: columnas nuevas `apellido`, `acepta_promos` (default false), `acepta_promos_en`, `registrado_en`, `origen` (`registro`|`pedido`, default `pedido`). Lectura solo `es_dueno()` (011 + 017); anon sin acceso.
 - `registrar_cliente(nombre, apellido, telefono, acepta_promos)`: upsert que no pisa el nombre de quien ya pidió; `acepta_promos` solo sube de false a true. Devuelve solo `{ok:true}` o un mensaje genérico.
@@ -755,3 +755,15 @@ Archivo nuevo: `supabase/migrations/020_registro_clientes.sql`. Sin cambios de f
 - `crear_pedido` pasa a 15 argumentos (`p_acepta_promos boolean default null`): con `true` registra el consentimiento sin tocar nombre ni otras columnas.
 - Para el CRM: `origen` no cambia si el cliente se registra y después pide; para frecuentes/inactivos filtrar por `cantidad_pedidos_entregados > 0`.
 - Rollback: dropear las columnas borra los consentimientos (backup antes). Incluye casos de prueba a–i.
+
+## Fase 3D-2: tarjeta de progreso, registro y canje de premios en el sitio (2026-11-05)
+
+Frontend de la fidelidad. Migraciones 019 y 020 ya aplicadas; no hubo cambios de base de datos.
+
+- `index.html`: tarjeta `#fidelidad-tarjeta` (vistas invitación / formulario de registro / progreso), bloque `#checkout-premios` (radiogroup), línea `#linea-premio` en el resumen, checkbox `#cliente-acepta-promos` y aviso `#pedido-recibido-premio`.
+- `main.js` (funciones `fidelidad*`): lee la config, registra con `registrar_cliente`, consulta `mi_progreso_fidelidad` y `mis_premios`, permite "Actualizar" y "Borrar mis datos" (`borrar_mis_datos`). En el checkout, elegir un premio bloquea el cupón y se envían `p_premio_id` y `p_acepta_promos` a `crear_pedido`. El descuento del premio que se ve es solo informativo: el servidor es la autoridad.
+- `style.css`: estilos de la tarjeta y del bloque de premios.
+- Seguridad: datos escapados con `PM.escaparHtml`/`textContent`, RPC con timeout de 10 s y errores genéricos. Los datos del cliente se guardan solo en el navegador y se olvidan al borrar.
+- `node --check main.js` sin errores.
+
+Cómo probar: (1) registrar un cliente con y sin promos y ver el progreso; (2) "Actualizar" y "Borrar mis datos"; (3) con un teléfono con premio, elegirlo en el checkout (el cupón se bloquea y aparece la línea de premio), confirmar y ver el aviso en "Pedido recibido"; (4) con un teléfono sin premios el bloque no aparece.

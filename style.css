@@ -4796,3 +4796,144 @@ body.confirmacion-abierta {
   opacity: 0.72;
   border-color: rgba(227, 30, 36, 0.35);
 }
+
+/* ===== Fidelidad: tarjeta en la carta, premios en el checkout (3D-2) ===== */
+.fidelidad-tarjeta {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  background: var(--color-card);
+  border: 1px solid rgba(217, 164, 65, 0.45);
+  border-radius: 12px;
+  color: var(--color-texto);
+}
+.fidelidad-tarjeta[hidden] { display: none; }
+.fidelidad-titulo {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--color-dorado);
+  letter-spacing: 0.04em;
+}
+.fidelidad-texto,
+.fidelidad-saludo,
+.fidelidad-aviso {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--color-texto-suave);
+}
+.fidelidad-saludo { color: var(--color-texto); font-weight: 600; font-size: 1rem; }
+.fidelidad-aviso { font-size: 0.78rem; }
+.fidelidad-btn {
+  min-height: 44px;
+  padding: 10px 18px;
+  background: var(--color-rojo);
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-texto);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.fidelidad-btn:hover:not(:disabled) { box-shadow: 0 0 14px var(--color-rojo-glow-suave); }
+.fidelidad-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.fidelidad-btn-link {
+  min-height: 44px;
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  color: var(--color-texto-suave);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.fidelidad-btn-borrar:hover { color: var(--color-rojo); }
+.fidelidad-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fidelidad-campo { margin-bottom: 10px; }
+.fidelidad-campo label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+}
+.fidelidad-campo input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--color-fondo);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: var(--color-texto);
+  font: inherit;
+}
+.fidelidad-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0 12px;
+  font-size: 0.85rem;
+  color: var(--color-texto);
+  cursor: pointer;
+}
+.fidelidad-check input { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--color-rojo); }
+.fidelidad-error,
+.fidelidad-estado { margin: 0 0 10px; font-size: 0.85rem; color: #ff5a5f; }
+.fidelidad-estado:not(.es-error) { color: var(--color-texto-suave); }
+.fidelidad-sellos { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+.fidelidad-sello {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+}
+.fidelidad-sello.lleno { background: var(--color-rojo); border-color: var(--color-rojo); }
+.fidelidad-sello.premio { border-color: var(--color-dorado); }
+.fidelidad-sello.premio::after {
+  content: "★";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--color-dorado);
+}
+.fidelidad-sello.premio.lleno::after { color: var(--color-texto); }
+.fidelidad-premios { margin-bottom: 8px; }
+.fidelidad-premio-item {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-dorado);
+  border-radius: 8px;
+  background: rgba(217, 164, 65, 0.1);
+  font-size: 0.9rem;
+  color: var(--color-texto);
+}
+.checkout-premios-lista { display: grid; gap: 8px; }
+.checkout-premio-opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.checkout-premio-opcion input { accent-color: var(--color-rojo); width: 18px; height: 18px; }
+.checkout-premio-opcion.activa { border-color: var(--color-dorado); background: rgba(217, 164, 65, 0.1); }
+.checkout-promos { margin-top: 4px; }
+#cliente-cupon:disabled,
+#btn-aplicar-cupon:disabled { opacity: 0.5; cursor: not-allowed; }
+.pedido-recibido-premio {
+  margin: 0 0 10px;
+  font-weight: 600;
+  color: var(--color-dorado);
+  text-align: center;
+}
+.pedido-recibido-premio[hidden] { display: none; }

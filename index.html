@@ -261,6 +261,57 @@
       </header>
 
       <div class="carta-body">
+        <!-- Tarjeta de fidelidad (se muestra en categorías y productos; la maneja main.js) -->
+        <section id="fidelidad-tarjeta" class="fidelidad-tarjeta" aria-labelledby="fidelidad-titulo" hidden>
+          <h3 id="fidelidad-titulo" class="fidelidad-titulo">Tu tarjeta de fidelidad</h3>
+
+          <!-- Vista: invitación (sin datos guardados) -->
+          <div id="fidelidad-vista-invitacion">
+            <p id="fidelidad-texto-niveles" class="fidelidad-texto"></p>
+            <button type="button" id="fidelidad-btn-ver" class="fidelidad-btn">Ver mi progreso</button>
+          </div>
+
+          <!-- Vista: formulario de registro -->
+          <form id="fidelidad-form" class="fidelidad-form" novalidate hidden>
+            <div class="fidelidad-campo">
+              <label for="fidelidad-nombre">Nombre</label>
+              <input type="text" id="fidelidad-nombre" maxlength="60" autocomplete="given-name" required>
+            </div>
+            <div class="fidelidad-campo">
+              <label for="fidelidad-apellido">Apellido</label>
+              <input type="text" id="fidelidad-apellido" maxlength="60" autocomplete="family-name" required>
+            </div>
+            <div class="fidelidad-campo">
+              <label for="fidelidad-telefono">Teléfono / WhatsApp</label>
+              <input type="tel" id="fidelidad-telefono" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="Ej: 383 400 0000" required>
+            </div>
+            <p class="fidelidad-aviso">Usamos tu nombre y teléfono para mostrarte tu progreso y tus premios, y para gestionar tus pedidos. Podés pedir que los borremos cuando quieras (Ley 25.326).</p>
+            <label class="fidelidad-check">
+              <input type="checkbox" id="fidelidad-acepta-promos">
+              <span>Quiero recibir promociones y novedades por WhatsApp</span>
+            </label>
+            <p id="fidelidad-form-error" class="fidelidad-error" role="alert" hidden></p>
+            <div class="fidelidad-acciones">
+              <button type="submit" id="fidelidad-btn-enviar" class="fidelidad-btn">Ver mi progreso</button>
+              <button type="button" id="fidelidad-btn-cancelar" class="fidelidad-btn-link">Cancelar</button>
+            </div>
+          </form>
+
+          <!-- Vista: progreso -->
+          <div id="fidelidad-vista-progreso" hidden>
+            <p id="fidelidad-saludo" class="fidelidad-saludo"></p>
+            <div id="fidelidad-sellos" class="fidelidad-sellos" role="img" aria-label="Progreso de pedidos"></div>
+            <p id="fidelidad-faltan" class="fidelidad-texto" aria-live="polite"></p>
+            <div id="fidelidad-premios" class="fidelidad-premios"></div>
+            <div class="fidelidad-acciones">
+              <button type="button" id="fidelidad-btn-actualizar" class="fidelidad-btn-link">Actualizar</button>
+              <button type="button" id="fidelidad-btn-borrar" class="fidelidad-btn-link fidelidad-btn-borrar">Borrar mis datos</button>
+            </div>
+          </div>
+
+          <p id="fidelidad-estado" class="fidelidad-estado" role="status" aria-live="polite" hidden></p>
+        </section>
+
         <!-- ETAPA 0: Selección de modalidad (solo para Intendente Lascano) -->
         <section id="carta-etapa-modalidad" class="carta-etapa carta-etapa-modalidad" aria-live="polite">
           <div class="carta-modalidad-header">
@@ -491,6 +542,13 @@
           <textarea id="cliente-notas" rows="2" placeholder="Ej: Sin cebolla, timbre 2B"></textarea>
         </div>
 
+        <p id="checkout-premios-estado" class="pedix-ayuda-texto" role="status" aria-live="polite"></p>
+        <!-- Premios de fidelidad (los llena main.js cuando el teléfono tiene premios) -->
+        <div class="form-grupo checkout-premios" id="checkout-premios" hidden>
+          <label id="checkout-premios-titulo">Tenés premios disponibles</label>
+          <div id="checkout-premios-lista" class="checkout-premios-lista" role="radiogroup" aria-labelledby="checkout-premios-titulo"></div>
+        </div>
+
         <div class="form-grupo">
           <label for="cliente-cupon">¿Tenés un código?</label>
           <div class="pedix-input-wrap">
@@ -528,11 +586,20 @@
             </span>
             <span id="checkout-cupon">-$ 0</span>
           </div>
+          <div class="linea-total linea-descuento linea-premio" id="linea-premio" hidden>
+            <span id="checkout-premio-etiqueta">Premio de fidelidad</span>
+            <span id="checkout-premio-monto">-$ 0</span>
+          </div>
           <div class="linea-total gran-total">
             <span>Total a pagar</span>
             <span id="checkout-total">$ 0</span>
           </div>
         </div>
+
+        <label class="fidelidad-check checkout-promos">
+          <input type="checkbox" id="cliente-acepta-promos">
+          <span>Quiero recibir promociones por WhatsApp</span>
+        </label>
 
         <p id="checkout-privacidad" class="checkout-privacidad">
           Usamos tu nombre, teléfono y dirección o ubicación solo para gestionar tu pedido y contactarte por él. Los datos se guardan en nuestro sistema. Podés pedir acceso, rectificación o supresión de tus datos <span id="checkout-privacidad-wa">escribiéndonos por WhatsApp</span>. La Agencia de Acceso a la Información Pública es el órgano de control de la Ley 25.326.
@@ -565,6 +632,7 @@
         <dd id="pedido-recibido-tiempo">-</dd>
       </div>
     </dl>
+    <p id="pedido-recibido-premio" class="pedido-recibido-premio" hidden></p>
     <p id="pedido-recibido-aviso" class="pedido-recibido-aviso"></p>
     <button type="button" id="pedido-recibido-cerrar" class="btn-confirmar-whatsapp pedido-recibido-boton">Volver a la carta</button>
   </div>
