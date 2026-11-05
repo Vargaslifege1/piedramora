@@ -672,7 +672,7 @@ Archivo nuevo: `supabase/migrations/018_cupones.sql`. **No fue ejecutado.** Hace
 - En `pedidos`: `cupon_codigo` y `descuento_cupon`. `grant select` de esas columnas para `authenticated`. El grant de UPDATE no se toca.
 - `valida_cupon` y `crear_pedido` con `p_cupon`. El mínimo de compra se muestra sin decimales (`$10.000`).
 - `pm_calcular_pedido` no se modifica: sigue la de 017.
-- `main.js` todavía no manda el cupón. Queda para la siguiente parte.
+- `main.js` ya manda el cupón: ver sección "Fase 3C: cupón en el checkout" más abajo (hecha).
 
 ## Fase 3C: cupón en el checkout (frontend, 018 ya aplicada)
 
