@@ -663,3 +663,13 @@ Pendiente de frontend:
 7. Abrir la carta pública de una sucursal y confirmar que usa `carta_por_sucursal`; simular un fallo de la RPC y verificar el respaldo local.
 8. Simular un producto agotado con la carta local desactualizada y comprobar que el checkout ofrece quitarlo y reintentar.
 9. Ejecutar `node --check admin.js` y `node --check main.js`.
+
+## Fase 3A: cupones (018)
+
+Archivo nuevo: `supabase/migrations/018_cupones.sql`. **No fue ejecutado.** Hacer backup completo de la base antes de aplicarlo.
+
+- Tablas `cupones`, `cupon_usos` y `cupon_intentos`. Cupones y usos solo los ve el dueño; los intentos no tienen acceso.
+- En `pedidos`: `cupon_codigo` y `descuento_cupon`. `grant select` de esas columnas para `authenticated`. El grant de UPDATE no se toca.
+- `valida_cupon` y `crear_pedido` con `p_cupon`. El mínimo de compra se muestra sin decimales (`$10.000`).
+- `pm_calcular_pedido` no se modifica: sigue la de 017.
+- `main.js` todavía no manda el cupón. Queda para la siguiente parte.

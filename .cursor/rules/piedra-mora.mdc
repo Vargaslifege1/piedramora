@@ -1,0 +1,24 @@
+---
+description: Reglas permanentes de Piedra Mora (stack, SQL, seguridad y flujo de trabajo)
+alwaysApply: true
+---
+
+# Piedra Mora
+
+- Respondé y comentá el código en español rioplatense, breve.
+- Stack: HTML, CSS y JavaScript vanilla + Supabase. Prohibido agregar frameworks o herramientas de build. No cambies colores ni tipografías existentes.
+- Al empezar una tarea, leé `PROGRESO_FASE1.md` y corré `git status` y `git log -3 --oneline`. Al terminar, actualizá `PROGRESO_FASE1.md` y hacé commit con mensaje claro.
+- NUNCA ejecutes SQL contra la base real ni uses claves secretas. Solo escribí migraciones en `supabase/migrations/` (numeradas, idempotentes, comentadas). Recordame el backup antes de aplicarlas.
+- No modifiques migraciones ya aplicadas (001 a 017); los cambios van en un archivo nuevo.
+- Los datos del cliente se escapan con `PM.escaparHtml` o `textContent`, nunca `innerHTML` sin escapar.
+- La seguridad y los cálculos (precios, cupones, premios, estados) se resuelven en el servidor con RPC y RLS, no en el navegador.
+- Corré `node --check` en los JS que toques.
+- Una tarea por vez; al terminar, resumen, archivos tocados, cómo probar, y parate.
+- Las sucursales son `intendente-lascano` (Oeste) y `maestro-quiroga` (Centro). No hay pedidos para mesa.
+
+Ejemplo de escape:
+
+```javascript
+nodo.textContent = nombreCliente;
+fila.innerHTML = PM.escaparHtml(notas);
+```
