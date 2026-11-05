@@ -560,3 +560,47 @@ Archivo nuevo: `supabase/migrations/016_pedidos_estados_pagos.sql`. **No fue eje
 4. Confirmar que el CSV exporta solo el rango visible.
 5. Probar la barra en celular.
 6. Ejecutar `node --check admin.js`.
+
+## Admin por sucursal (2026-11-04)
+
+### Migración 017
+
+Archivo nuevo: `supabase/migrations/017_admin_por_sucursal.sql`. **No fue ejecutado.** La migración 016 ya está aplicada en la base real y no se reaplica.
+
+- `public.admins`: agrega `rol` (`dueno`|`sucursal`) y `sucursal_id`. Los admins existentes quedan `dueno` con `sucursal_id = null`.
+- Checks: `rol` válido; `dueno` exige `sucursal_id null`; `sucursal` exige una de las dos sucursales reales (`maestro-quiroga`, `intendente-lascano`).
+- Los admins se gestionan solo por SQL/Auth. No hay pantalla ni permisos directos para `anon`/`authenticated`, así que un admin de sucursal no puede crear admins ni cambiar su `sucursal_id`.
+- Funciones `security definer` con `search_path = ''`: `es_admin()` se mantiene, se agregan `es_dueno()` y `sucursal_admin()`.
+- RLS por sucursal:
+  - `pedidos`: SELECT/UPDATE solo para el dueño o para la sucursal del admin. UPDATE con `USING` y `WITH CHECK` iguales. Se mantiene el grant por columnas (`estado`, `pagado`, `pagado_en`).
+  - `zonas_envio` y `tramos_envio`: todos los admins leen las filas globales (`sucursal_id null`) y las de su sucursal; solo el dueño edita las globales. El admin de sucursal solo crea/edita/borra filas de su sucursal.
+  - `carta`, `config_negocio` y Storage: escritura solo `es_dueno()`.
+  - `agotados_sucursal`: SELECT/INSERT/UPDATE/DELETE solo dueño o la sucursal del admin.
+- Tabla nueva `public.agotados_sucursal` con PK `(producto_id, sucursal_id)`.
+- RPC nueva `public.carta_por_sucursal(p_sucursal_id text)`: devuelve la carta de `carta id = 1` y marca `agotado = true` y `agotado_hasta_nuevo_aviso = true` para los productos agotados de esa sucursal. Usa los mismos nombres de campos que `PM.productoEstaAgotado`.
+- `pm_calcular_pedido` se recrea desde la versión real (013 + ajuste de ofertas de 014; 015 y 016 no la modifican) y agrega el rechazo por `agotados_sucursal`. La firma no cambia, así que `crear_pedido` sigue compatible.
+- Al final, un bloque `DO` falla si no queda ningún admin con rol `dueno`, lo que revierte la migración. Incluye un rollback manual comentado.
+
+### Dónde viven horarios, cierres, formas de entrega y estado manual
+
+- `admin.js` y `main.js` solo consultan/escriben `config_negocio`, `pedidos`, `tramos_envio` y `zonas_envio`.
+- Horarios y cierres: `data/sucursales.json` (`horarios`, `horarioTexto`, `cierreNormal`, `cierreFinde`, `cerradoLunes`) y cálculo en `main.js` (`estaAbiertoAhora`). No hay tabla de Supabase.
+- Formas de entrega: botones fijos en `index.html` y `pedidos.modalidad` (`delivery` o `retiro`). No hay tabla ni clave de configuración.
+- Estado manual: no existe en el código actual. El estado abierto/cerrado se calcula con los horarios locales.
+- `data/config.json` solo contiene negocio y medios de pago.
+- Por eso 017 no crea ni modifica tablas para esos conceptos. Si en el futuro pasan a Supabase, necesitarán su propia migración con `sucursal_id` y las mismas políticas.
+
+### Cómo probar
+
+1. **Backup completo de la base antes de aplicar 017.**
+2. Aplicar 017 y confirmar que sigue existiendo al menos un admin `dueno`.
+3. Con el dueño: ver pedidos de ambas sucursales y actualizar cualquiera.
+4. Con un admin de `intendente-lascano`: no debe ver pedidos de `maestro-quiroga`; un UPDATE sobre esos pedidos debe afectar 0 filas.
+5. Con un admin de sucursal: intentar editar `carta`, `config_negocio` o subir/borrar imágenes; debe fallar por RLS.
+6. Con un admin de sucursal: intentar insertar en `admins` o cambiar su `sucursal_id`; debe fallar por falta de permisos.
+7. Cargar un producto en `agotados_sucursal` para Lascano: `carta_por_sucursal('intendente-lascano')` debe marcarlo agotado y `crear_pedido` de Lascano debe rechazarlo; el mismo producto en Maestro Quiroga debe seguir disponible.
+8. Verificar que `anon` no pueda leer `pedidos`, `clientes`, `admins` ni `agotados_sucursal`.
+
+Pendiente de frontend:
+- Cambiar la lectura pública de `carta` por `carta_por_sucursal` para que el agotado por sucursal se vea en la web.
+- Definir si el admin de sucursal tendrá pantalla para gestionar `agotados_sucursal`.
