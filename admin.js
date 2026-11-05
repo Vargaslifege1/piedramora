@@ -108,6 +108,9 @@
     cuponFormEstado: document.getElementById('cupon-form-estado'),
     btnGuardarCupon: document.getElementById('btn-guardar-cupon'),
     btnCancelarCupon: document.getElementById('btn-cancelar-cupon'),
+    btnCancelarCuponArriba: document.getElementById('btn-cancelar-cupon-arriba'),
+    btnCerrarCupon: document.getElementById('btn-cerrar-cupon'),
+    cuponFormTitulo: document.getElementById('cupon-form-titulo'),
     enviosAyuda: document.getElementById('envios-ayuda'),
     btnEnviosRecargar: document.getElementById('btn-envios-recargar'),
     enviosEstado: document.getElementById('envios-estado'),
@@ -4125,14 +4128,17 @@
       el.cuponNotaUsos.hidden = !(editando && resumenUsosCupon(cupon.id).cantidad > 0);
     }
     mostrarEstado(el.cuponFormEstado, '');
+    if (el.cuponFormTitulo) el.cuponFormTitulo.textContent = editando ? 'Editar cupón' : 'Nuevo cupón';
     actualizarEtiquetaValorCupon();
-    (editando ? el.cuponValor : el.cuponCodigo).focus();
+    el.formCupon.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    (editando ? el.cuponValor : el.cuponCodigo).focus({ preventScroll: true });
   }
 
   function cerrarFormCupon() {
     if (!el.formCupon) return;
     el.formCupon.hidden = true;
     mostrarEstado(el.cuponFormEstado, '');
+    if (el.cuponesLista) el.cuponesLista.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function enteroOpcional(valor) {
@@ -4405,7 +4411,9 @@
     if (el.btnNuevoTramo) el.btnNuevoTramo.addEventListener('click', () => abrirFormTramo(null));
     if (el.btnNuevoCupon) el.btnNuevoCupon.addEventListener('click', () => abrirFormCupon(null));
     if (el.btnCuponesRecargar) el.btnCuponesRecargar.addEventListener('click', () => cargarCupones());
-    if (el.btnCancelarCupon) el.btnCancelarCupon.addEventListener('click', cerrarFormCupon);
+    [el.btnCancelarCupon, el.btnCancelarCuponArriba, el.btnCerrarCupon].forEach(boton => {
+      if (boton) boton.addEventListener('click', cerrarFormCupon);
+    });
     if (el.formCupon) el.formCupon.addEventListener('submit', guardarCupon);
     if (el.cuponTipo) el.cuponTipo.addEventListener('change', actualizarEtiquetaValorCupon);
     if (el.cuponesLista) {
@@ -4602,6 +4610,10 @@
 
     document.addEventListener('keydown', (evento) => {
       if (evento.key !== 'Escape') return;
+      if (el.formCupon && !el.formCupon.hidden && el.formCupon.contains(document.activeElement)) {
+        cerrarFormCupon();
+        return;
+      }
       if (el.modalCategoria && !el.modalCategoria.hidden) {
         cerrarModalCategoria();
         return;

@@ -428,6 +428,13 @@
         <section class="admin-card">
           <form id="form-cupon" class="admin-form admin-cupon-form" hidden novalidate>
             <input type="hidden" id="cupon-id">
+            <div class="admin-cupon-form-head admin-cupon-nota">
+              <h3 id="cupon-form-titulo">Nuevo cupón</h3>
+              <div class="admin-cupon-form-head-acciones">
+                <button type="button" id="btn-cancelar-cupon-arriba" class="btn-secundario">Cancelar</button>
+                <button type="button" id="btn-cerrar-cupon" class="btn-icono" aria-label="Cerrar formulario">✕</button>
+              </div>
+            </div>
             <label class="admin-campo">
               <span>Código</span>
               <input id="cupon-codigo" type="text" maxlength="40" autocomplete="off" placeholder="LICHI">

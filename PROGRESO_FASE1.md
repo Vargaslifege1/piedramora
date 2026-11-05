@@ -716,3 +716,15 @@ Archivos tocados: `admin.html`, `admin.js`, `admin.css`. No se tocó SQL ni migr
 4. Pausar/Activar con un clic; crear uno con inicio futuro (Programado) y otro ya vencido (Vencido); uno con usos máximos 1 y un pedido aplicado (Agotado).
 5. Usar un cupón en un pedido y cancelar ese pedido → el contador de usos y el total descontado no lo cuentan.
 6. Borrar un cupón sin usos → se borra. Borrar uno con usos → falla con "Tiene usos registrados: pausalo en vez de borrarlo."
+
+### Ajuste de UX en Cupones (formulario)
+
+Archivos tocados: `admin.html`, `admin.js`, `admin.css`. Sin SQL.
+
+- El formulario se cierra y vuelve a la lista (scroll suave a `#cupones-lista`) al guardar con éxito y al cancelar. Si el guardado falla, queda abierto con el error.
+- "Cancelar" y "✕" arriba del formulario (junto al título, que cambia entre "Nuevo cupón" y "Editar cupón"), además del "Cancelar" de abajo. Ninguno tiene `hidden` ni CSS que lo oculte.
+- Escape cierra el formulario si el foco está dentro. Tiene prioridad sobre los modales.
+- Al abrir el formulario (nuevo o editar) se hace scroll suave hasta él.
+- `node --check admin.js` sin errores.
+
+Cómo probar: abrir "Nuevo cupón" (scroll al formulario), cancelar con los tres botones y con Escape; guardar uno válido (cierra y baja a la lista); repetir un código (queda abierto con el error).
