@@ -1,5 +1,5 @@
 -- ============================================================================
--- Piedra Mora - Fase 2 - Administradores por sucursal
+-- Piedra Mora - Fase 1 - Administradores por sucursal
 -- Migracion 017
 -- ============================================================================
 -- IMPORTANTE: hacer backup de la base antes de aplicarla.
@@ -163,6 +163,29 @@ grant execute on function public.sucursal_admin() to authenticated;
 comment on function public.sucursal_admin() is
   'Devuelve el sucursal_id del admin de sucursal del JWT. Null para dueno o si no es admin de sucursal.';
 
+-- Rol y sucursal del admin actual en una sola llamada, sin exponer la tabla.
+create or replace function public.mi_rol()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'rol', a.rol,
+    'sucursal_id', a.sucursal_id
+  )
+  from public.admins a
+  where lower(trim(a.email)) = lower(trim(coalesce(auth.jwt() ->> 'email', '')))
+  limit 1;
+$$;
+
+revoke all on function public.mi_rol() from public;
+grant execute on function public.mi_rol() to authenticated;
+
+comment on function public.mi_rol() is
+  'Devuelve {rol, sucursal_id} del admin del JWT. Null si el email no es admin.';
+
 -- ----------------------------------------------------------------------------
 -- 3. Pedidos: solo dueno o la sucursal del admin
 -- ----------------------------------------------------------------------------
@@ -196,23 +219,14 @@ create policy "Pedidos edicion admin"
 -- ----------------------------------------------------------------------------
 -- 4. Zonas y tramos de envio
 -- ----------------------------------------------------------------------------
--- Lectura: todos los admins ven las filas globales (sucursal_id null) y las
--- de su sucursal. Escritura: el dueno ve y edita todo; el admin de sucursal
--- solo puede crear, editar o borrar filas de su propia sucursal.
-revoke select on public.zonas_envio from anon;
-grant select on public.zonas_envio to authenticated;
-
-drop policy if exists "Zonas lectura publica" on public.zonas_envio;
+-- Lectura: se mantiene la lectura publica de 011 ("Zonas lectura publica" y
+-- "Tramos lectura publica"), porque main.js lee estas tablas con anon.
+-- Escritura: el dueno edita todo; el admin de sucursal solo puede crear,
+-- editar o borrar filas de su propia sucursal. Las filas globales
+-- (sucursal_id null) solo las toca el dueno.
+-- La lectura publica ya alcanza a los admins: no se crea una politica extra.
 drop policy if exists "Zonas lectura admin" on public.zonas_envio;
-create policy "Zonas lectura admin"
-  on public.zonas_envio
-  for select
-  to authenticated
-  using (
-    public.es_dueno()
-    or sucursal_id is null
-    or sucursal_id = public.sucursal_admin()
-  );
+drop policy if exists "Tramos lectura admin" on public.tramos_envio;
 
 drop policy if exists "Zonas alta admin" on public.zonas_envio;
 create policy "Zonas alta admin"
@@ -246,21 +260,6 @@ create policy "Zonas baja admin"
   using (
     public.es_dueno()
     or (sucursal_id is not null and sucursal_id = public.sucursal_admin())
-  );
-
-revoke select on public.tramos_envio from anon;
-grant select on public.tramos_envio to authenticated;
-
-drop policy if exists "Tramos lectura publica" on public.tramos_envio;
-drop policy if exists "Tramos lectura admin" on public.tramos_envio;
-create policy "Tramos lectura admin"
-  on public.tramos_envio
-  for select
-  to authenticated
-  using (
-    public.es_dueno()
-    or sucursal_id is null
-    or sucursal_id = public.sucursal_admin()
   );
 
 drop policy if exists "Tramos alta admin" on public.tramos_envio;
@@ -341,6 +340,15 @@ drop policy if exists "Config baja admin" on public.config_negocio;
 create policy "Config baja admin"
   on public.config_negocio
   for delete
+  to authenticated
+  using (public.es_dueno());
+
+-- clientes: la lectura pasa de es_admin() a es_dueno(). Los contadores los
+-- sigue manteniendo el trigger pm_pedidos_actualizar_clientes().
+drop policy if exists "Clientes lectura admin" on public.clientes;
+create policy "Clientes lectura admin"
+  on public.clientes
+  for select
   to authenticated
   using (public.es_dueno());
 
@@ -514,9 +522,10 @@ comment on function public.carta_por_sucursal(text) is
 -- ----------------------------------------------------------------------------
 -- 8. crear_pedido: calcular con agotados por sucursal
 -- ----------------------------------------------------------------------------
--- Se recrea pm_calcular_pedido partiendo de la version real:
---   013 + el ajuste de ofertas de 014 (ofertas en cualquier categoria).
---   015 y 016 no modifican esta funcion.
+-- Se recrea pm_calcular_pedido partiendo de la ultima definicion real vigente:
+--   013 + ajuste de ofertas de 014 + tramos por cuadras de 015.
+--   016 no modifica esta funcion.
+-- El unico cambio es el bloque de agotados_sucursal.
 -- La firma es identica, por lo que crear_pedido sigue funcionando sin cambios.
 create or replace function public.pm_calcular_pedido(
   p_sucursal_id text,
@@ -584,7 +593,6 @@ begin
   if v_suc is null then
     raise exception 'La sucursal no existe.';
   end if;
-  -- FASE 2: aca se va a validar que la sucursal este abierta.
 
   select contenido -> 'productos' into v_productos from public.carta where id = 1;
   if v_productos is null or jsonb_typeof(v_productos) <> 'array' then
@@ -654,7 +662,7 @@ begin
       raise exception '"%" no tiene un precio válido.', v_prod ->> 'nombre';
     end if;
 
-    -- Oferta: cualquier categoria, precio valido, menor al regular y vigente.
+    -- Oferta: solo categoria promo, precio valido, menor al regular y vigente
     v_oferta := null;
     if jsonb_typeof(v_prod -> 'delivery_oferta') = 'number' then
       v_oferta := (v_prod ->> 'delivery_oferta')::numeric;
@@ -904,8 +912,8 @@ end $$;
 --   drop table if exists public.agotados_sucursal;
 --   drop function if exists public.carta_por_sucursal(text);
 --
---   -- Recrear pm_calcular_pedido desde 013 + 014 (sin el chequeo de agotados).
---   -- Ver supabase/migrations/013_crear_pedido.sql y 014_ofertas_todas_las_categorias.sql.
+--   -- Recrear pm_calcular_pedido desde 013 + 014 + 015 (sin el chequeo de agotados).
+--   -- Ver 013_crear_pedido.sql, 014_ofertas_todas_las_categorias.sql y 015_envio_por_distancia.sql.
 --
 --   -- Volver las politicas de carta, config y storage a public.es_admin().
 --   -- Volver las politicas de pedidos, zonas y tramos a public.es_admin().

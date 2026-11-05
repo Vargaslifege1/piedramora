@@ -570,15 +570,17 @@ Archivo nuevo: `supabase/migrations/017_admin_por_sucursal.sql`. **No fue ejecut
 - `public.admins`: agrega `rol` (`dueno`|`sucursal`) y `sucursal_id`. Los admins existentes quedan `dueno` con `sucursal_id = null`.
 - Checks: `rol` válido; `dueno` exige `sucursal_id null`; `sucursal` exige una de las dos sucursales reales (`maestro-quiroga`, `intendente-lascano`).
 - Los admins se gestionan solo por SQL/Auth. No hay pantalla ni permisos directos para `anon`/`authenticated`, así que un admin de sucursal no puede crear admins ni cambiar su `sucursal_id`.
-- Funciones `security definer` con `search_path = ''`: `es_admin()` se mantiene, se agregan `es_dueno()` y `sucursal_admin()`.
+- Funciones `security definer` con `search_path = ''`: `es_admin()` se mantiene, se agregan `es_dueno()`, `sucursal_admin()` y `mi_rol()`.
+- `mi_rol()` devuelve `{rol, sucursal_id}` del JWT y tiene `execute` para `authenticated`. `admin.js` sigue validando el acceso con `rpc('es_admin')` y no consulta la tabla `admins` con `.from('admins')`, así que `admins` queda sin acceso directo.
+- Políticas viejas con `es_admin()` reemplazadas o eliminadas: `Pedidos lectura/edicion admin`; `Zonas alta/edicion/baja admin`; `Tramos alta/edicion/baja admin`; `Carta alta/edicion/baja admin`; `Config alta/edicion/baja admin`; `Clientes lectura admin`; `Imagenes alta/edicion/baja admin` de `storage.objects`.
 - RLS por sucursal:
-  - `pedidos`: SELECT/UPDATE solo para el dueño o para la sucursal del admin. UPDATE con `USING` y `WITH CHECK` iguales. Se mantiene el grant por columnas (`estado`, `pagado`, `pagado_en`).
-  - `zonas_envio` y `tramos_envio`: todos los admins leen las filas globales (`sucursal_id null`) y las de su sucursal; solo el dueño edita las globales. El admin de sucursal solo crea/edita/borra filas de su sucursal.
-  - `carta`, `config_negocio` y Storage: escritura solo `es_dueno()`.
+  - `pedidos`: SELECT/UPDATE solo para el dueño o para la sucursal del admin. UPDATE con `USING` y `WITH CHECK` iguales. El grant por columnas (`estado`, `pagado`, `pagado_en`) se mantiene como ya está en la base.
+  - `zonas_envio` y `tramos_envio`: se mantiene la lectura pública (`Zonas lectura publica` y `Tramos lectura publica`) porque `main.js` las lee con `anon`; no se revoca `select` a `anon`. Solo se restringe INSERT/UPDATE/DELETE: el dueño edita todo, el admin de sucursal solo filas de su sucursal y las globales (`sucursal_id null`) solo las toca el dueño. Se eliminan las políticas `Zonas lectura admin` y `Tramos lectura admin`.
+  - `carta`, `config_negocio`, `clientes` y Storage: lectura/escritura según corresponda con `es_dueno()`; `clientes` pasa de `es_admin()` a `es_dueno()`.
   - `agotados_sucursal`: SELECT/INSERT/UPDATE/DELETE solo dueño o la sucursal del admin.
 - Tabla nueva `public.agotados_sucursal` con PK `(producto_id, sucursal_id)`.
 - RPC nueva `public.carta_por_sucursal(p_sucursal_id text)`: devuelve la carta de `carta id = 1` y marca `agotado = true` y `agotado_hasta_nuevo_aviso = true` para los productos agotados de esa sucursal. Usa los mismos nombres de campos que `PM.productoEstaAgotado`.
-- `pm_calcular_pedido` se recrea desde la versión real (013 + ajuste de ofertas de 014; 015 y 016 no la modifican) y agrega el rechazo por `agotados_sucursal`. La firma no cambia, así que `crear_pedido` sigue compatible.
+- `pm_calcular_pedido` se recrea desde la última definición real (013 + ajuste de ofertas de 014 + tramos por cuadras de 015; 016 no la modifica) y el único cambio es el bloque de `agotados_sucursal`. La firma no cambia, así que `crear_pedido` sigue compatible.
 - Al final, un bloque `DO` falla si no queda ningún admin con rol `dueno`, lo que revierte la migración. Incluye un rollback manual comentado.
 
 ### Dónde viven horarios, cierres, formas de entrega y estado manual
@@ -599,7 +601,8 @@ Archivo nuevo: `supabase/migrations/017_admin_por_sucursal.sql`. **No fue ejecut
 5. Con un admin de sucursal: intentar editar `carta`, `config_negocio` o subir/borrar imágenes; debe fallar por RLS.
 6. Con un admin de sucursal: intentar insertar en `admins` o cambiar su `sucursal_id`; debe fallar por falta de permisos.
 7. Cargar un producto en `agotados_sucursal` para Lascano: `carta_por_sucursal('intendente-lascano')` debe marcarlo agotado y `crear_pedido` de Lascano debe rechazarlo; el mismo producto en Maestro Quiroga debe seguir disponible.
-8. Verificar que `anon` no pueda leer `pedidos`, `clientes`, `admins` ni `agotados_sucursal`.
+8. Verificar que `anon` no pueda leer `pedidos`, `clientes`, `admins` ni `agotados_sucursal`, pero que sí siga leyendo `zonas_envio` y `tramos_envio`.
+9. Con un admin, llamar `rpc('mi_rol')` y confirmar que devuelve el `rol` y `sucursal_id` correctos; con un email ajeno debe devolver `null`.
 
 Pendiente de frontend:
 - Cambiar la lectura pública de `carta` por `carta_por_sucursal` para que el agotado por sucursal se vea en la web.
