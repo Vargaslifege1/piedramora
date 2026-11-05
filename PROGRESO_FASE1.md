@@ -743,3 +743,15 @@ Archivo nuevo: `supabase/migrations/019_fidelidad_premios.sql`. Sin cambios de f
 - Limitaciones documentadas en la migración: el contador no se resta al revertir/cancelar un pedido ya contado; sin backfill de pedidos históricos; si falla la acreditación se loguea un WARNING y no se bloquea el cambio de estado.
 - La migración incluye rollback comentado y casos de prueba (a–q).
 - Pendiente (3D-2): frontend (checkout con premio, "mis premios", progreso) y panel del dueño.
+
+## Registro de clientes (migración 020 — NO aplicada todavía)
+
+Archivo nuevo: `supabase/migrations/020_registro_clientes.sql`. Sin cambios de frontend ni del trigger de clientes. **Hacer backup antes de aplicarla.**
+
+- `clientes`: columnas nuevas `apellido`, `acepta_promos` (default false), `acepta_promos_en`, `registrado_en`, `origen` (`registro`|`pedido`, default `pedido`). Lectura solo `es_dueno()` (011 + 017); anon sin acceso.
+- `registrar_cliente(nombre, apellido, telefono, acepta_promos)`: upsert que no pisa el nombre de quien ya pidió; `acepta_promos` solo sube de false a true. Devuelve solo `{ok:true}` o un mensaje genérico.
+- `borrar_mis_datos(telefono)`: quita el consentimiento y borra el registro si nunca pidió; no borra pedidos. Sin verificación de titularidad del teléfono (limitación documentada).
+- Anti-spam compartido en `registro_intentos` (5/10 min por teléfono, 20/10 min por IP, 100/5 min global).
+- `crear_pedido` pasa a 15 argumentos (`p_acepta_promos boolean default null`): con `true` registra el consentimiento sin tocar nombre ni otras columnas.
+- Para el CRM: `origen` no cambia si el cliente se registra y después pide; para frecuentes/inactivos filtrar por `cantidad_pedidos_entregados > 0`.
+- Rollback: dropear las columnas borra los consentimientos (backup antes). Incluye casos de prueba a–i.
