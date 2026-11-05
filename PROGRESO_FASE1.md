@@ -607,3 +607,59 @@ Archivo nuevo: `supabase/migrations/017_admin_por_sucursal.sql`. **No fue ejecut
 Pendiente de frontend:
 - Cambiar la lectura pública de `carta` por `carta_por_sucursal` para que el agotado por sucursal se vea en la web.
 - Definir si el admin de sucursal tendrá pantalla para gestionar `agotados_sucursal`.
+
+## Roles en el admin, agotados por sucursal y carta pública (2026-11-04)
+
+### Rol del administrador
+
+- Al iniciar sesión, `admin.js` llama a `rpc('mi_rol')` y guarda `{ rol, sucursal_id }` en estado del módulo.
+- `rol = 'dueno'`: mantiene toda la interfaz y permisos visuales anteriores.
+- `rol = 'sucursal'`:
+  - Se oculta la pestaña Carta.
+  - Pedidos: el selector de sucursal queda fijo en la sucursal propia, sin “Todas”.
+  - Sonido, badge y título parpadeante solo cuentan pedidos de esa sucursal.
+  - Envíos: los datos globales (`sucursal_id = null`) se muestran en solo lectura; los de otras sucursales se ocultan; solo los de su sucursal son editables.
+  - Se oculta la configuración general (`metros_por_cuadra`, `tiempo_estimado_entrega`, `descuentos_pago`).
+  - El selector de sucursal del formulario de tramos queda fijo en la sucursal propia y deshabilitado.
+- Si `mi_rol()` falla o devuelve `null`, el usuario se trata como rol restrictivo sin sucursal: se oculta Carta, no se permite editar Envíos ni la configuración y se muestra “No se pudo verificar tu rol, recargá la página”.
+- La seguridad real sigue en RLS; estas reglas son solo de interfaz.
+
+### Mensajes de permisos
+
+- Los rechazos con código `403` o `42501`, y los mensajes de `permission denied` o `row-level security`, muestran “No tenés permiso para hacer esto”.
+- Ya no se muestra el mensaje genérico de migraciones 001/002 cuando el error es de permisos.
+
+### Agotados por sucursal en el admin
+
+- Nueva sección **Agotados (hasta que los reactives)** dentro de la pestaña Pedidos.
+- Lista los productos de la carta pública que pertenecen a la sucursal elegida.
+- El dueño elige la sucursal; el admin de sucursal solo ve la propia.
+- Marcar guarda una fila en `agotados_sucursal`; desmarcar la borra.
+- El admin escucha cambios de `agotados_sucursal` por Realtime y recarga la lista. Para que lleguen los eventos, `agotados_sucursal` debe estar incluida en la publicación `supabase_realtime` (configuración de Supabase, no SQL del proyecto).
+- Los nombres y categorías se escapan con `PM.escaparHtml`.
+
+### Carta pública por sucursal
+
+- `main.js` pide `rpc('carta_por_sucursal', { p_sucursal_id })` al abrir la carta de una sucursal.
+- Si la RPC falla, se usa `data/cartas.json` como respaldo.
+- La carta se vuelve a pedir:
+  - al abrir la carta,
+  - al volver a la pestaña (`visibilitychange`),
+  - cada 60 segundos mientras la carta o el carrito estén abiertos.
+- No hay Realtime de `agotados_sucursal` para el cliente público; el refresco periódico cubre ese caso.
+- Si el respaldo local está desactualizado y `crear_pedido` rechaza por agotado:
+  - se muestra el mensaje claro con el nombre del producto,
+  - se ofrece quitarlo del carrito y reintentar sin perder el resto del pedido,
+  - si se acepta, se elimina ese producto, se cierra la ventana de WhatsApp y se mantiene el checkout para reintentar.
+
+### Cómo probar
+
+1. Con un admin `dueno`, verificar que Carta, Pedidos y Envíos funcionan como antes.
+2. Con un admin `sucursal`, verificar que Carta está oculta y que Envíos muestra globales en solo lectura y solo permite editar lo propio.
+3. Confirmar que el selector de sucursal de Pedidos no tiene “Todas” para el admin de sucursal y que badge, sonido y título solo cuentan sus pedidos.
+4. Forzar un fallo de `mi_rol()` y comprobar que aparece el aviso de rol y que la interfaz queda restrictiva.
+5. Marcar y desmarcar un producto en “Agotados (hasta que los reactives)” y verificar que `carta_por_sucursal` lo devuelve agotado.
+6. Probar con otro admin que el cambio de agotados se refleja por Realtime.
+7. Abrir la carta pública de una sucursal y confirmar que usa `carta_por_sucursal`; simular un fallo de la RPC y verificar el respaldo local.
+8. Simular un producto agotado con la carta local desactualizada y comprobar que el checkout ofrece quitarlo y reintentar.
+9. Ejecutar `node --check admin.js` y `node --check main.js`.
