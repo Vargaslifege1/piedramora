@@ -148,6 +148,10 @@
   const previewsTemporales = new Set();
   const tokensUploadProducto = new Map();
 
+  let adminRol = 'dueno';
+  let adminSucursalId = null;
+  let adminRolError = false;
+
   let pedidos = [];
   let pedidosCargados = false;
   let pedidosCargando = false;
@@ -372,6 +376,41 @@
     el.aviso.textContent = texto;
   }
 
+  function esAdminSucursal() {
+    return adminRol === 'sucursal';
+  }
+
+  function puedeEditarFilaSucursal(sucursalId) {
+    if (adminRol === 'dueno') return true;
+    return !!adminSucursalId && String(sucursalId || '') === String(adminSucursalId);
+  }
+
+  function pedidoVisiblePorRol(pedido) {
+    if (!esAdminSucursal()) return true;
+    return !!adminSucursalId && String(pedido && pedido.sucursal_id) === String(adminSucursalId);
+  }
+
+  function sucursalVisibleParaRol(sucursalId) {
+    if (adminRol === 'dueno') return true;
+    if (!adminSucursalId) return false;
+    return !sucursalId || String(sucursalId) === String(adminSucursalId);
+  }
+
+  function aplicarAvisoRol() {
+    if (!adminRolError) return;
+    const texto = 'No se pudo verificar tu rol, recargá la página.';
+    if (el.pedidosAviso) {
+      el.pedidosAviso.hidden = false;
+      el.pedidosAviso.dataset.tipo = 'error';
+      el.pedidosAviso.textContent = texto;
+    }
+    if (el.enviosAviso) {
+      el.enviosAviso.hidden = false;
+      el.enviosAviso.dataset.tipo = 'error';
+      el.enviosAviso.textContent = texto;
+    }
+  }
+
   function crearPreviewTemporal(archivo) {
     if (!archivo || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return '';
     try {
@@ -487,6 +526,9 @@
   }
 
   function mostrarLogin() {
+    adminRol = 'dueno';
+    adminSucursalId = null;
+    adminRolError = false;
     if (el.login) el.login.hidden = false;
     if (el.panel) el.panel.hidden = true;
     if (el.sesion) el.sesion.hidden = true;
@@ -520,6 +562,23 @@
       return;
     }
 
+    adminRol = 'sucursal';
+    adminSucursalId = null;
+    adminRolError = false;
+    try {
+      const { data, error } = await cliente.rpc('mi_rol');
+      if (error) throw error;
+      if (!data || !data.rol) throw new Error('Rol vacío');
+      adminRol = data.rol === 'dueno' ? 'dueno' : 'sucursal';
+      adminSucursalId = data.sucursal_id ? String(data.sucursal_id) : null;
+      adminRolError = false;
+    } catch (error) {
+      adminRol = 'sucursal';
+      adminSucursalId = null;
+      adminRolError = true;
+      console.warn('No se pudo verificar el rol del administrador:', error.message || error);
+    }
+
     const yaVisible = el.panel && !el.panel.hidden;
 
     if (el.login) el.login.hidden = true;
@@ -527,12 +586,41 @@
     if (el.sesion) el.sesion.hidden = false;
     if (el.sesionEmail) el.sesionEmail.textContent = usuario.email || 'Administrador';
 
+    aplicarPermisosRol();
+
     if (!yaVisible) {
       await cargarCarta();
       await cargarPedidos({ silencioso: true });
       iniciarRealtimePedidos();
       iniciarRefrescoPedidos();
     }
+  }
+
+  function aplicarPermisosRol() {
+    const restringido = esAdminSucursal();
+
+    el.tabsVista.forEach(tab => {
+      if (tab.dataset.adminVista === 'carta') tab.hidden = restringido;
+    });
+
+    poblarFiltroSucursalesPedidos();
+    poblarSelectSucursalesEnvios();
+
+    if (el.formConfigEnvios) el.formConfigEnvios.hidden = restringido;
+    const seccionConfig = el.formConfigEnvios ? el.formConfigEnvios.closest('.admin-card') : null;
+    if (seccionConfig) seccionConfig.hidden = restringido;
+
+    if (restringido && el.vistaCarta && !el.vistaCarta.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+
+    if (enviosCargados) {
+      renderConfigEnvios();
+      renderZonasNormales();
+      renderTramosEnvios();
+    }
+
+    if (adminRolError) aplicarAvisoRol();
   }
 
   async function cargarCarta() {
@@ -1106,7 +1194,7 @@
         if (preview && previewAnterior) aplicarPreviewImagen(preview, previewAnterior);
         mostrarEstado(estado, `Error: ${error.message}`, 'error');
       }
-      mostrarAviso('No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
+      mostrarAviso(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : 'No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
     } finally {
       if (previewTemporal) {
         if (token === tokensUploadProducto.get(id) && subidaOk && preview && preview.src === previewTemporal) {
@@ -1208,7 +1296,7 @@
         if (previewAnterior) aplicarPreviewImagen(el.productoFotoPreview, previewAnterior);
         mostrarEstado(el.productoFotoEstado, `Error: ${error.message}`, 'error');
       }
-      mostrarAviso('No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
+      mostrarAviso(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : 'No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
     } finally {
       if (previewTemporal) {
         if (token === tokenUploadNuevo && !subidaOk && previewAnterior) {
@@ -1429,7 +1517,7 @@
         if (previewAnterior) aplicarPreviewImagen(el.categoriaFotoPreview, previewAnterior);
         mostrarEstado(el.categoriaFotoEstado, `Error: ${error.message}`, 'error');
       }
-      mostrarAviso('No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
+      mostrarAviso(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : 'No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
     } finally {
       if (previewTemporal) {
         if (token === tokenUploadCategoria && !subidaOk && previewAnterior) {
@@ -1663,8 +1751,13 @@
       mostrarAviso('');
     } catch (error) {
       const mensaje = error && error.message ? error.message : 'Error desconocido';
-      mostrarEstado(el.estado, `No se pudo guardar: ${mensaje}`, 'error');
-      mostrarAviso('Verificá que hayas ejecutado las migraciones 001 y 002, que el email esté en la tabla admins y que la sesión siga activa.', 'error');
+      if (esErrorPermiso(error)) {
+        mostrarEstado(el.estado, 'No tenés permiso para hacer esto.', 'error');
+        mostrarAviso('No tenés permiso para hacer esto.', 'error');
+      } else {
+        mostrarEstado(el.estado, `No se pudo guardar: ${mensaje}`, 'error');
+        mostrarAviso('Verificá que hayas ejecutado las migraciones 001 y 002, que el email esté en la tabla admins y que la sesión siga activa.', 'error');
+      }
     } finally {
       guardando = false;
       actualizarBotonGuardar();
@@ -1818,6 +1911,19 @@
 
   function poblarFiltroSucursalesPedidos() {
     if (!el.pedidosFiltroSucursal) return;
+    if (esAdminSucursal()) {
+      el.pedidosFiltroSucursal.disabled = true;
+      if (!adminSucursalId) {
+        el.pedidosFiltroSucursal.innerHTML = '<option value="">Sin sucursal asignada</option>';
+        el.pedidosFiltroSucursal.value = '';
+        return;
+      }
+      const nombre = SUCURSALES_NOMBRES[adminSucursalId] || adminSucursalId;
+      el.pedidosFiltroSucursal.innerHTML = `<option value="${escaparHtml(adminSucursalId)}">${escaparHtml(nombre)}</option>`;
+      el.pedidosFiltroSucursal.value = adminSucursalId;
+      return;
+    }
+    el.pedidosFiltroSucursal.disabled = false;
     const actual = el.pedidosFiltroSucursal.value;
     const opciones = Object.keys(SUCURSALES_NOMBRES)
       .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
@@ -2163,7 +2269,11 @@
   }
 
   function contarPedidosNuevos() {
-    return pedidos.filter(pedido => pedidoCuentaComoVenta(pedido) && pedido.estado === 'pendiente').length;
+    return pedidos.filter(pedido =>
+      pedidoCuentaComoVenta(pedido)
+      && pedido.estado === 'pendiente'
+      && pedidoVisiblePorRol(pedido)
+    ).length;
   }
 
   function actualizarBadgePedidos() {
@@ -2462,6 +2572,15 @@
     document.body.classList.remove('admin-modal-abierto');
   }
 
+  function esErrorPermiso(error) {
+    const mensaje = String((error && (error.message || error.error_description)) || '').toLowerCase();
+    const codigo = String((error && error.code) || '');
+    return codigo === '403' || codigo === '42501'
+      || mensaje.includes('permission denied')
+      || mensaje.includes('row-level security')
+      || mensaje.includes('not authorized');
+  }
+
   function errorEsDeSesion(error) {
     const mensaje = String((error && (error.message || error.error_description)) || '').toLowerCase();
     const codigo = String((error && error.code) || '');
@@ -2475,6 +2594,9 @@
     const detalle = (error && (error.message || error.error_description))
       ? String(error.message || error.error_description)
       : 'Error de conexión.';
+    if (esErrorPermiso(error)) {
+      return 'No tenés permiso para hacer esto.';
+    }
     if (errorEsDeSesion(error)) {
       return `Tu sesión venció o no tenés permisos para ver los pedidos. Volvé a iniciar sesión. (${detalle})`;
     }
@@ -2900,8 +3022,10 @@
     if (!existe) {
       pedidos.unshift(nuevo);
       if (pedidos.length > 500) pedidos.length = 500;
-      alertarPedidoNuevo();
-      mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
+      if (pedidoVisiblePorRol(nuevo)) {
+        alertarPedidoNuevo();
+        mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
+      }
     }
 
     actualizarTarjetaEnVista(nuevo);
@@ -2989,6 +3113,9 @@
     const detalle = (error && (error.message || error.error_description))
       ? String(error.message || error.error_description)
       : 'Error de conexión.';
+    if (esErrorPermiso(error)) {
+      return 'No tenés permiso para hacer esto.';
+    }
     if (errorEsDeSesion(error)) {
       return `Tu sesión venció o no tenés permisos para ${accion || 'editar'} envíos. Volvé a iniciar sesión. (${detalle})`;
     }
@@ -3002,6 +3129,19 @@
 
   function poblarSelectSucursalesEnvios() {
     if (!el.tramoSucursal) return;
+    if (esAdminSucursal()) {
+      el.tramoSucursal.disabled = true;
+      if (!adminSucursalId) {
+        el.tramoSucursal.innerHTML = '<option value="">Sin sucursal asignada</option>';
+        el.tramoSucursal.value = '';
+        return;
+      }
+      const nombre = SUCURSALES_NOMBRES[adminSucursalId] || adminSucursalId;
+      el.tramoSucursal.innerHTML = `<option value="${escaparHtml(adminSucursalId)}">${escaparHtml(nombre)}</option>`;
+      el.tramoSucursal.value = adminSucursalId;
+      return;
+    }
+    el.tramoSucursal.disabled = false;
     const actual = el.tramoSucursal.value;
     const opciones = Object.keys(SUCURSALES_NOMBRES)
       .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
@@ -3038,43 +3178,46 @@
 
   function renderZonasNormales() {
     if (!el.zonasNormalesLista) return;
-    if (!zonasNormales.length) {
+    const visibles = zonasNormales.filter(zona => sucursalVisibleParaRol(zona.sucursal_id));
+    if (!visibles.length) {
       el.zonasNormalesLista.innerHTML = '<p class="admin-envios-vacio">No hay filas de Zona normal. Revisá la configuración de zonas en la base.</p>';
       return;
     }
 
-    el.zonasNormalesLista.innerHTML = zonasNormales.map(zona => {
+    el.zonasNormalesLista.innerHTML = visibles.map(zona => {
       const id = escaparHtml(zona.id);
-      return `<div class="admin-envios-zona" data-zona-id="${id}">
+      const editable = puedeEditarFilaSucursal(zona.sucursal_id);
+      return `<div class="admin-envios-zona${editable ? '' : ' admin-solo-lectura'}" data-zona-id="${id}">
         <div class="admin-envios-zona-nombre">
           <strong>${escaparHtml(zona.nombre || 'Zona normal')}</strong>
           <small>${escaparHtml(etiquetaSucursalEnvios(zona.sucursal_id))}</small>
         </div>
         <label class="admin-campo">
           <span>Costo base</span>
-          <input type="number" min="0" step="1" inputmode="decimal" data-zona-costo value="${Number(zona.costo) || 0}">
+          <input type="number" min="0" step="1" inputmode="decimal" data-zona-costo value="${Number(zona.costo) || 0}"${editable ? '' : ' disabled'}>
         </label>
         <label class="admin-campo admin-campo-check">
-          <input type="checkbox" data-zona-tramos ${zona.aplica_tramos ? 'checked' : ''}>
+          <input type="checkbox" data-zona-tramos ${zona.aplica_tramos ? 'checked' : ''}${editable ? '' : ' disabled'}>
           <span>Usar tramos</span>
         </label>
         <label class="admin-campo admin-campo-check">
-          <input type="checkbox" data-zona-activa ${zona.activa ? 'checked' : ''}>
+          <input type="checkbox" data-zona-activa ${zona.activa ? 'checked' : ''}${editable ? '' : ' disabled'}>
           <span>Activa</span>
         </label>
-        <button type="button" class="btn-primario" data-zona-guardar>Guardar</button>
+        ${editable ? '<button type="button" class="btn-primario" data-zona-guardar>Guardar</button>' : '<span class="admin-chip">Solo lectura</span>'}
       </div>`;
     }).join('');
   }
 
   function renderTramosEnvios() {
     if (!el.tramosLista) return;
-    if (!tramosEnvios.length) {
+    const visibles = tramosEnvios.filter(tramo => sucursalVisibleParaRol(tramo.sucursal_id));
+    if (!visibles.length) {
       el.tramosLista.innerHTML = '<p class="admin-envios-vacio">Todavía no hay tramos cargados.</p>';
       return;
     }
 
-    const ordenados = [...tramosEnvios].sort((a, b) => {
+    const ordenados = [...visibles].sort((a, b) => {
       const sa = a.sucursal_id || '';
       const sb = b.sucursal_id || '';
       if (sa !== sb) {
@@ -3088,7 +3231,13 @@
     el.tramosLista.innerHTML = ordenados.map(tramo => {
       const id = escaparHtml(tramo.id);
       const activa = !!tramo.activa;
-      return `<div class="admin-envios-tramo ${activa ? '' : 'inactivo'}" data-tramo-id="${id}">
+      const editable = puedeEditarFilaSucursal(tramo.sucursal_id);
+      const acciones = editable
+        ? `<button type="button" class="btn-secundario" data-tramo-accion="editar">Editar</button>
+          <button type="button" class="btn-secundario" data-tramo-accion="toggle">${activa ? 'Desactivar' : 'Activar'}</button>
+          <button type="button" class="btn-peligro" data-tramo-accion="eliminar">Borrar</button>`
+        : '<span class="admin-chip">Solo lectura</span>';
+      return `<div class="admin-envios-tramo ${activa ? '' : 'inactivo'}${editable ? '' : ' admin-solo-lectura'}" data-tramo-id="${id}">
         <div class="admin-envios-tramo-dato">
           <small>Sucursal</small>
           <span>${escaparHtml(etiquetaSucursalEnvios(tramo.sucursal_id))}</span>
@@ -3107,9 +3256,7 @@
         </div>
         <div class="admin-envios-tramo-acciones">
           <span class="admin-envios-tramo-badge ${activa ? 'activa' : 'inactiva'}">${activa ? 'Activo' : 'Inactivo'}</span>
-          <button type="button" class="btn-secundario" data-tramo-accion="editar">Editar</button>
-          <button type="button" class="btn-secundario" data-tramo-accion="toggle">${activa ? 'Desactivar' : 'Activar'}</button>
-          <button type="button" class="btn-peligro" data-tramo-accion="eliminar">Borrar</button>
+          ${acciones}
         </div>
       </div>`;
     }).join('');
@@ -3185,6 +3332,10 @@
       mostrarAvisoEnvios('Supabase no está disponible.', 'error');
       return;
     }
+    if (esAdminSucursal()) {
+      mostrarAvisoEnvios('No tenés permiso para editar la configuración general.', 'error');
+      return;
+    }
 
     const metros = Number(el.enviosMetrosCuadra && el.enviosMetrosCuadra.value);
     if (!Number.isInteger(metros) || metros < 50 || metros > 300) {
@@ -3249,6 +3400,12 @@
       : null;
     if (!contenedor) return;
 
+    const zona = zonasNormales.find(item => String(item.id) === String(id));
+    if (!zona || !puedeEditarFilaSucursal(zona.sucursal_id)) {
+      if (el.zonasNormalesEstado) mostrarEstado(el.zonasNormalesEstado, 'No tenés permiso para hacer esto.', 'error');
+      return;
+    }
+
     const costoInput = contenedor.querySelector('[data-zona-costo]');
     const tramosInput = contenedor.querySelector('[data-zona-tramos]');
     const activaInput = contenedor.querySelector('[data-zona-activa]');
@@ -3286,7 +3443,10 @@
     if (!el.formTramo) return;
     el.formTramo.hidden = false;
     if (el.tramoId) el.tramoId.value = tramo && tramo.id ? tramo.id : '';
-    if (el.tramoSucursal) el.tramoSucursal.value = tramo && tramo.sucursal_id ? tramo.sucursal_id : '';
+    if (el.tramoSucursal) {
+      const sucursalTramo = tramo && tramo.sucursal_id ? tramo.sucursal_id : '';
+      el.tramoSucursal.value = esAdminSucursal() && adminSucursalId ? adminSucursalId : sucursalTramo;
+    }
     if (el.tramoDesde) el.tramoDesde.value = tramo ? String(tramo.desde_cuadras) : '';
     if (el.tramoHasta) el.tramoHasta.value = tramo ? String(tramo.hasta_cuadras) : '';
     if (el.tramoCosto) el.tramoCosto.value = tramo ? String(tramo.costo) : '';
@@ -3382,6 +3542,15 @@
       activa: !!(el.tramoActiva && el.tramoActiva.checked)
     };
 
+    if (esAdminSucursal()) {
+      const existente = id ? tramosEnvios.find(item => String(item.id) === String(id)) : null;
+      if (!adminSucursalId || (existente && !puedeEditarFilaSucursal(existente.sucursal_id))) {
+        if (el.tramoEstado) mostrarEstado(el.tramoEstado, 'No tenés permiso para hacer esto.', 'error');
+        return;
+      }
+      datos.sucursal_id = adminSucursalId;
+    }
+
     try {
       validarTramo(datos, id);
     } catch (error) {
@@ -3415,6 +3584,10 @@
     if (!cliente) return;
     const tramo = tramosEnvios.find(item => String(item.id) === String(id));
     if (!tramo) return;
+    if (!puedeEditarFilaSucursal(tramo.sucursal_id)) {
+      mostrarAvisoEnvios('No tenés permiso para hacer esto.', 'error');
+      return;
+    }
 
     const actualizado = { ...tramo, activa: !tramo.activa };
     if (actualizado.activa) {
@@ -3452,6 +3625,10 @@
     if (!cliente) return;
     const tramo = tramosEnvios.find(item => String(item.id) === String(id));
     if (!tramo) return;
+    if (!puedeEditarFilaSucursal(tramo.sucursal_id)) {
+      mostrarAvisoEnvios('No tenés permiso para hacer esto.', 'error');
+      return;
+    }
     if (!window.confirm(`¿Borrar el tramo de ${tramo.desde_cuadras} a ${tramo.hasta_cuadras} cuadras de ${etiquetaSucursalEnvios(tramo.sucursal_id)}?`)) return;
 
     try {
@@ -3489,6 +3666,7 @@
         renderTramosEnvios();
       }
     }
+    if (adminRolError) aplicarAvisoRol();
   }
 
   function conectarEventos() {
