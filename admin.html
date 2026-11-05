@@ -67,6 +67,7 @@
         </button>
         <button type="button" class="admin-tab" data-admin-vista="envios">Envíos</button>
         <button type="button" class="admin-tab" data-admin-vista="cupones" hidden>Cupones</button>
+        <button type="button" class="admin-tab" data-admin-vista="fidelidad" hidden>Fidelidad</button>
       </nav>
 
       <div id="admin-vista-carta" class="admin-vista">
@@ -507,6 +508,54 @@
           </form>
 
           <div id="cupones-lista" class="admin-envios-tramos"></div>
+        </section>
+      </section>
+
+      <section id="admin-vista-fidelidad" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Fidelidad</p>
+            <h2>Programa de premios</h2>
+            <p class="admin-ayuda">Cuentan los pedidos entregados cuyo subtotal de productos llega al pedido mínimo.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-fidelidad-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <p id="fidelidad-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="fidelidad-aviso" class="admin-aviso" hidden></div>
+        <div class="admin-aviso" data-tipo="info">Los cambios aplican a los premios que se generen desde ahora. Los premios ya otorgados conservan sus condiciones. Si cambiás el ciclo o los niveles, el progreso de los clientes se recalcula con las reglas nuevas.</div>
+
+        <section class="admin-card">
+          <form id="form-fidelidad" class="admin-form admin-cupon-form" novalidate>
+            <label class="admin-campo admin-campo-check admin-cupon-nota">
+              <input id="fidelidad-activo" type="checkbox">
+              <span>Programa activo</span>
+            </label>
+            <label class="admin-campo">
+              <span>Pedido mínimo ($)</span>
+              <input id="fidelidad-pedido-minimo" type="number" min="0" step="1" inputmode="numeric">
+            </label>
+            <label class="admin-campo">
+              <span>Ciclo (pedidos, 1 a 1000)</span>
+              <input id="fidelidad-ciclo" type="number" min="1" max="1000" step="1" inputmode="numeric">
+            </label>
+            <div id="fidelidad-niveles" class="admin-envios-tramos admin-cupon-nota"></div>
+            <div class="admin-cupon-nota">
+              <button type="button" id="btn-fidelidad-agregar-nivel" class="btn-secundario">+ Agregar nivel</button>
+            </div>
+            <p id="fidelidad-form-estado" class="admin-estado admin-cupon-nota" aria-live="polite"></p>
+            <div class="admin-form-acciones admin-cupon-nota">
+              <button type="submit" id="btn-guardar-fidelidad" class="btn-primario">Guardar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="admin-card">
+          <h3>Premios generados</h3>
+          <p id="fidelidad-stats-estado" class="admin-estado" aria-live="polite"></p>
+          <div id="fidelidad-stats" class="admin-envios-tramos"></div>
         </section>
       </section>
     </section>

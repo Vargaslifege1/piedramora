@@ -82,6 +82,20 @@
     vistaCarta: document.getElementById('admin-vista-carta'),
     vistaPedidos: document.getElementById('admin-vista-pedidos'),
     vistaEnvios: document.getElementById('admin-vista-envios'),
+    vistaFidelidad: document.getElementById('admin-vista-fidelidad'),
+    btnFidelidadRecargar: document.getElementById('btn-fidelidad-recargar'),
+    fidelidadEstado: document.getElementById('fidelidad-estado'),
+    fidelidadAviso: document.getElementById('fidelidad-aviso'),
+    formFidelidad: document.getElementById('form-fidelidad'),
+    fidelidadActivo: document.getElementById('fidelidad-activo'),
+    fidelidadPedidoMinimo: document.getElementById('fidelidad-pedido-minimo'),
+    fidelidadCiclo: document.getElementById('fidelidad-ciclo'),
+    fidelidadNiveles: document.getElementById('fidelidad-niveles'),
+    btnFidelidadAgregarNivel: document.getElementById('btn-fidelidad-agregar-nivel'),
+    fidelidadFormEstado: document.getElementById('fidelidad-form-estado'),
+    btnGuardarFidelidad: document.getElementById('btn-guardar-fidelidad'),
+    fidelidadStats: document.getElementById('fidelidad-stats'),
+    fidelidadStatsEstado: document.getElementById('fidelidad-stats-estado'),
     vistaCupones: document.getElementById('admin-vista-cupones'),
     btnNuevoCupon: document.getElementById('btn-nuevo-cupon'),
     btnCuponesRecargar: document.getElementById('btn-cupones-recargar'),
@@ -217,6 +231,9 @@
   let cuponesUsos = [];
   let cuponesCargados = false;
   let cuponesCargando = false;
+  let fidelidadCargada = false;
+  let fidelidadCargando = false;
+  let fidelidadConfigGuardada = null;
   let enviosCargando = false;
   let tramosEnvios = [];
   let zonasNormales = [];
@@ -651,6 +668,7 @@
     el.tabsVista.forEach(tab => {
       if (tab.dataset.adminVista === 'carta') tab.hidden = restringido;
       if (tab.dataset.adminVista === 'cupones') tab.hidden = !puedeVerCupones();
+      if (tab.dataset.adminVista === 'fidelidad') tab.hidden = !puedeVerFidelidad();
     });
 
     poblarFiltroSucursalesPedidos();
@@ -668,6 +686,9 @@
       mostrarVistaAdmin('pedidos');
     }
     if (!puedeVerCupones() && el.vistaCupones && !el.vistaCupones.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    if (!puedeVerFidelidad() && el.vistaFidelidad && !el.vistaFidelidad.hidden) {
       mostrarVistaAdmin('pedidos');
     }
 
@@ -4248,17 +4269,391 @@
     }
   }
 
+  // ---------------------------------------------------------------
+  // Fidelidad (solo dueño). Reglas espejo de pm_fidelidad_config (019);
+  // el servidor es la autoridad: si la config es inválida, el programa queda inactivo.
+  // ---------------------------------------------------------------
+  const FIDELIDAD_MAX_NIVELES = 20;
+
+  function puedeVerFidelidad() {
+    return adminRol === 'dueno' && !adminRolError;
+  }
+
+  function mostrarAvisoFidelidad(texto, tipo = 'info') {
+    if (!el.fidelidadAviso) return;
+    if (!texto) {
+      el.fidelidadAviso.hidden = true;
+      el.fidelidadAviso.textContent = '';
+      return;
+    }
+    el.fidelidadAviso.hidden = false;
+    el.fidelidadAviso.dataset.tipo = tipo;
+    el.fidelidadAviso.textContent = texto;
+  }
+
+  // Texto de un input -> entero >= 0, o null si no es un entero válido.
+  function enteroFidelidad(valor) {
+    const texto = String(valor === null || valor === undefined ? '' : valor).trim();
+    return /^\d{1,9}$/.test(texto) ? Number(texto) : null;
+  }
+
+  function numeroFidelidad(valor) {
+    const texto = String(valor === null || valor === undefined ? '' : valor).trim();
+    if (texto === '') return null;
+    const numero = Number(texto);
+    return Number.isFinite(numero) ? numero : null;
+  }
+
+  function nivelFidelidadVacio() {
+    return { en: '', tipo: 'descuento_porcentaje', valor: '', tope: '', producto: '', dias: '30' };
+  }
+
+  // Config guardada (jsonb) -> valores crudos del formulario, sin descartar nada legible.
+  function formularioDesdeConfigFidelidad(cfg) {
+    const texto = (v) => (v === null || v === undefined || typeof v === 'object' ? '' : String(v));
+    const base = cfg && typeof cfg === 'object' && !Array.isArray(cfg) ? cfg : {};
+    const niveles = Array.isArray(base.niveles) ? base.niveles : [];
+    return {
+      activo: base.activo === true,
+      pedidoMinimo: texto(base.pedido_minimo),
+      ciclo: texto(base.ciclo),
+      niveles: niveles.map(n => {
+        const nivel = n && typeof n === 'object' ? n : {};
+        return {
+          en: texto(nivel.en),
+          tipo: nivel.tipo === 'producto_gratis' ? 'producto_gratis' : 'descuento_porcentaje',
+          valor: texto(nivel.valor),
+          tope: texto(nivel.tope_en_pesos),
+          producto: texto(nivel.producto_id),
+          dias: texto(nivel.dias_vencimiento)
+        };
+      })
+    };
+  }
+
+  // Valida valores crudos del formulario. Devuelve { error } o { config }.
+  function validarFidelidad(datos) {
+    const minimo = enteroFidelidad(datos.pedidoMinimo);
+    if (minimo === null) return { error: 'El pedido mínimo tiene que ser un número entero de pesos, 0 o más.' };
+
+    const ciclo = enteroFidelidad(datos.ciclo);
+    if (ciclo === null || ciclo < 1 || ciclo > 1000) return { error: 'El ciclo tiene que ser un número entero entre 1 y 1000.' };
+
+    if (!datos.niveles.length) return { error: 'Tiene que haber al menos un nivel.' };
+    if (datos.niveles.length > FIDELIDAD_MAX_NIVELES) return { error: `Pueden ser como máximo ${FIDELIDAD_MAX_NIVELES} niveles.` };
+
+    const usados = new Set();
+    const niveles = [];
+    for (let i = 0; i < datos.niveles.length; i++) {
+      const n = datos.niveles[i];
+      const pref = `Nivel ${i + 1}:`;
+
+      const en = enteroFidelidad(n.en);
+      if (en === null || en < 1 || en > ciclo) return { error: `${pref} el número de pedido ("en") tiene que ser un entero entre 1 y ${ciclo}.` };
+      if (usados.has(en)) return { error: `${pref} el pedido nº ${en} está repetido en otro nivel.` };
+      usados.add(en);
+
+      const dias = enteroFidelidad(n.dias);
+      if (dias === null || dias < 1 || dias > 365) return { error: `${pref} los días de vencimiento tienen que ser un entero entre 1 y 365.` };
+
+      if (n.tipo === 'descuento_porcentaje') {
+        const valor = numeroFidelidad(n.valor);
+        if (valor === null || valor <= 0 || valor > 100) return { error: `${pref} el porcentaje tiene que ser mayor a 0 y hasta 100.` };
+        let tope = null;
+        if (String(n.tope).trim() !== '') {
+          tope = numeroFidelidad(n.tope);
+          if (tope === null || tope <= 0) return { error: `${pref} el tope en pesos tiene que ser mayor a 0, o quedar vacío.` };
+        }
+        niveles.push({ en, tipo: 'descuento_porcentaje', valor, tope_en_pesos: tope, dias_vencimiento: dias });
+      } else if (n.tipo === 'producto_gratis') {
+        const producto = String(n.producto || '').trim();
+        if (producto.length < 1 || producto.length > 80) return { error: `${pref} elegí el producto a regalar.` };
+        niveles.push({ en, tipo: 'producto_gratis', producto_id: producto, dias_vencimiento: dias });
+      } else {
+        return { error: `${pref} el tipo no es válido.` };
+      }
+    }
+
+    niveles.sort((a, b) => a.en - b.en);
+    return {
+      config: { activo: datos.activo === true, pedido_minimo: minimo, ciclo, niveles }
+    };
+  }
+
+  function opcionesProductoFidelidad(seleccionado) {
+    const productos = carta && Array.isArray(carta.productos) ? carta.productos.filter(p => p && p.id) : [];
+    const ordenados = productos.slice().sort((a, b) => String(a.nombre || a.id).localeCompare(String(b.nombre || b.id), 'es'));
+    let html = `<option value="">Elegí un producto</option>`;
+    let encontrado = !seleccionado;
+    ordenados.forEach(p => {
+      if (String(p.id) === seleccionado) encontrado = true;
+      html += `<option value="${escaparHtml(p.id)}"${String(p.id) === seleccionado ? ' selected' : ''}>${escaparHtml(p.nombre || p.id)}</option>`;
+    });
+    if (!encontrado) {
+      html += `<option value="${escaparHtml(seleccionado)}" selected>${escaparHtml(seleccionado)} (no está en la carta)</option>`;
+    }
+    return html;
+  }
+
+  function htmlNivelFidelidad(nivel, indice, total) {
+    const esPorc = nivel.tipo !== 'producto_gratis';
+    return `<div class="admin-fidelidad-nivel" data-fidelidad-nivel>
+      <label class="admin-campo">
+        <span>Nivel ${indice + 1}: en el pedido nº</span>
+        <input type="number" min="1" max="1000" step="1" inputmode="numeric" data-campo="en" value="${escaparHtml(nivel.en)}">
+      </label>
+      <label class="admin-campo">
+        <span>Tipo</span>
+        <select data-campo="tipo">
+          <option value="descuento_porcentaje"${esPorc ? ' selected' : ''}>Descuento (%)</option>
+          <option value="producto_gratis"${esPorc ? '' : ' selected'}>Producto gratis</option>
+        </select>
+      </label>
+      <label class="admin-campo" data-grupo="porcentaje"${esPorc ? '' : ' hidden'}>
+        <span>Valor (%)</span>
+        <input type="number" min="1" max="100" step="1" inputmode="decimal" data-campo="valor" value="${escaparHtml(nivel.valor)}">
+      </label>
+      <label class="admin-campo" data-grupo="porcentaje"${esPorc ? '' : ' hidden'}>
+        <span>Tope en pesos (opcional)</span>
+        <input type="number" min="1" step="1" inputmode="numeric" data-campo="tope" placeholder="Sin tope" value="${escaparHtml(nivel.tope)}">
+      </label>
+      <label class="admin-campo" data-grupo="producto"${esPorc ? ' hidden' : ''}>
+        <span>Producto</span>
+        <select data-campo="producto">${opcionesProductoFidelidad(nivel.producto)}</select>
+        <small class="admin-ayuda">Se regala la opción más barata, sin costo.</small>
+      </label>
+      <label class="admin-campo">
+        <span>Vence a los (días)</span>
+        <input type="number" min="1" max="365" step="1" inputmode="numeric" data-campo="dias" value="${escaparHtml(nivel.dias)}">
+      </label>
+      <div class="admin-fidelidad-nivel-acciones">
+        <button type="button" class="btn-peligro" data-fidelidad-accion="quitar"${total <= 1 ? ' disabled' : ''}>Quitar</button>
+      </div>
+    </div>`;
+  }
+
+  function renderNivelesFidelidad(niveles) {
+    if (!el.fidelidadNiveles) return;
+    el.fidelidadNiveles.innerHTML = niveles.map((n, i) => htmlNivelFidelidad(n, i, niveles.length)).join('');
+  }
+
+  // Lee los niveles tal como están en pantalla (valores crudos).
+  function leerNivelesFidelidadDom() {
+    if (!el.fidelidadNiveles) return [];
+    return Array.from(el.fidelidadNiveles.querySelectorAll('[data-fidelidad-nivel]')).map(fila => {
+      const campo = (nombre) => {
+        const nodo = fila.querySelector(`[data-campo="${nombre}"]`);
+        return nodo ? nodo.value : '';
+      };
+      return {
+        en: campo('en'),
+        tipo: campo('tipo'),
+        valor: campo('valor'),
+        tope: campo('tope'),
+        producto: campo('producto'),
+        dias: campo('dias')
+      };
+    });
+  }
+
+  function leerFormularioFidelidad() {
+    return {
+      activo: !!(el.fidelidadActivo && el.fidelidadActivo.checked),
+      pedidoMinimo: el.fidelidadPedidoMinimo ? el.fidelidadPedidoMinimo.value : '',
+      ciclo: el.fidelidadCiclo ? el.fidelidadCiclo.value : '',
+      niveles: leerNivelesFidelidadDom()
+    };
+  }
+
+  function llenarFormularioFidelidad(datos) {
+    if (el.fidelidadActivo) el.fidelidadActivo.checked = datos.activo === true;
+    if (el.fidelidadPedidoMinimo) el.fidelidadPedidoMinimo.value = datos.pedidoMinimo;
+    if (el.fidelidadCiclo) el.fidelidadCiclo.value = datos.ciclo;
+    renderNivelesFidelidad(datos.niveles.length ? datos.niveles : [nivelFidelidadVacio()]);
+  }
+
+  function renderEstadisticasFidelidad(premios) {
+    if (!el.fidelidadStats) return;
+    const ahora = Date.now();
+    const etiquetas = { descuento_porcentaje: 'Descuento (%)', producto_gratis: 'Producto gratis' };
+    const filas = [];
+    const resumir = (nombre, lista) => {
+      const usados = lista.filter(p => p.usado).length;
+      const vigentes = lista.filter(p => !p.usado && new Date(p.vencimiento).getTime() > ahora).length;
+      const vencidos = lista.length - usados - vigentes;
+      filas.push(`<div class="admin-cupon-fila">
+        <div class="admin-envios-tramo-dato"><small>Tipo</small><span>${escaparHtml(nombre)}</span></div>
+        <div class="admin-envios-tramo-dato"><small>Generados</small><span>${escaparHtml(lista.length)}</span></div>
+        <div class="admin-envios-tramo-dato"><small>Usados</small><span>${escaparHtml(usados)}</span></div>
+        <div class="admin-envios-tramo-dato"><small>Vigentes</small><span>${escaparHtml(vigentes)}</span></div>
+        <div class="admin-envios-tramo-dato"><small>Vencidos sin usar</small><span>${escaparHtml(vencidos)}</span></div>
+      </div>`);
+    };
+    Object.keys(etiquetas).forEach(tipo => resumir(etiquetas[tipo], premios.filter(p => p.tipo === tipo)));
+    resumir('Total', premios);
+    el.fidelidadStats.innerHTML = filas.join('');
+  }
+
+  async function cargarEstadisticasFidelidad() {
+    if (!el.fidelidadStats) return;
+    mostrarEstado(el.fidelidadStatsEstado, 'Cargando estadísticas...');
+    el.fidelidadStats.innerHTML = '';
+    try {
+      const premios = [];
+      const PAGINA = 1000;
+      for (let desde = 0; desde < 20000; desde += PAGINA) {
+        const { data, error } = await cliente
+          .from('premios')
+          .select('tipo,usado,vencimiento')
+          .order('creado_en', { ascending: true })
+          .range(desde, desde + PAGINA - 1);
+        if (error) throw error;
+        const filas = Array.isArray(data) ? data : [];
+        premios.push(...filas);
+        if (filas.length < PAGINA) break;
+      }
+      renderEstadisticasFidelidad(premios);
+      mostrarEstado(el.fidelidadStatsEstado, '');
+    } catch (error) {
+      console.warn('No se pudieron cargar las estadísticas de fidelidad:', error);
+      mostrarEstado(el.fidelidadStatsEstado, 'No se pudieron cargar las estadísticas', 'error');
+    }
+  }
+
+  async function cargarFidelidad() {
+    if (!cliente || fidelidadCargando || !puedeVerFidelidad()) return;
+    fidelidadCargando = true;
+    mostrarEstado(el.fidelidadEstado, 'Cargando configuración...');
+    mostrarAvisoFidelidad('');
+    mostrarEstado(el.fidelidadFormEstado, '');
+
+    try {
+      const { data, error } = await cliente
+        .from('config_negocio')
+        .select('valor')
+        .eq('clave', 'fidelidad')
+        .maybeSingle();
+      if (error) throw error;
+
+      fidelidadConfigGuardada = data ? data.valor : null;
+      if (data) {
+        const datos = formularioDesdeConfigFidelidad(data.valor);
+        llenarFormularioFidelidad(datos);
+        if (validarFidelidad(datos).error) {
+          mostrarAvisoFidelidad('La configuración actual es inválida: el programa está inactivo.', 'error');
+        }
+      } else {
+        llenarFormularioFidelidad({ activo: false, pedidoMinimo: '0', ciclo: '10', niveles: [nivelFidelidadVacio()] });
+        mostrarAvisoFidelidad('Todavía no hay configuración de fidelidad: el programa está inactivo.', 'info');
+      }
+      fidelidadCargada = true;
+      mostrarEstado(el.fidelidadEstado, '');
+    } catch (error) {
+      console.warn('No se pudo cargar la configuración de fidelidad:', error);
+      mostrarEstado(el.fidelidadEstado, '');
+      mostrarAvisoFidelidad(esErrorPermiso(error)
+        ? 'No tenés permiso para hacer esto.'
+        : 'No se pudo cargar la configuración de fidelidad.', 'error');
+    } finally {
+      fidelidadCargando = false;
+    }
+
+    await cargarEstadisticasFidelidad();
+  }
+
+  async function guardarFidelidad(evento) {
+    if (evento) evento.preventDefault();
+    if (!cliente || !puedeVerFidelidad()) return;
+
+    const resultado = validarFidelidad(leerFormularioFidelidad());
+    if (resultado.error) {
+      mostrarEstado(el.fidelidadFormEstado, resultado.error, 'error');
+      return;
+    }
+    const config = resultado.config;
+
+    const estabaActivo = !!(fidelidadConfigGuardada && fidelidadConfigGuardada.activo === true);
+    if (estabaActivo && !config.activo
+      && !window.confirm('¿Desactivar el programa de fidelidad? Los clientes dejan de sumar y de ver premios nuevos mientras esté inactivo.')) {
+      return;
+    }
+
+    if (el.btnGuardarFidelidad) el.btnGuardarFidelidad.disabled = true;
+    mostrarEstado(el.fidelidadFormEstado, 'Guardando...');
+    try {
+      const { error } = await cliente
+        .from('config_negocio')
+        .upsert({ clave: 'fidelidad', valor: config }, { onConflict: 'clave' });
+      if (error) throw error;
+
+      fidelidadConfigGuardada = config;
+      llenarFormularioFidelidad(formularioDesdeConfigFidelidad(config));
+      mostrarAvisoFidelidad('');
+      mostrarEstado(el.fidelidadFormEstado, 'Configuración guardada.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo guardar la configuración de fidelidad:', error);
+      mostrarEstado(el.fidelidadFormEstado, esErrorPermiso(error)
+        ? 'No tenés permiso para hacer esto.'
+        : 'No se pudo guardar la configuración de fidelidad.', 'error');
+    } finally {
+      if (el.btnGuardarFidelidad) el.btnGuardarFidelidad.disabled = false;
+    }
+  }
+
+  function conectarEventosFidelidad() {
+    if (el.btnFidelidadRecargar) el.btnFidelidadRecargar.addEventListener('click', () => cargarFidelidad());
+    if (el.formFidelidad) el.formFidelidad.addEventListener('submit', guardarFidelidad);
+    if (el.btnFidelidadAgregarNivel) {
+      el.btnFidelidadAgregarNivel.addEventListener('click', () => {
+        const niveles = leerNivelesFidelidadDom();
+        if (niveles.length >= FIDELIDAD_MAX_NIVELES) {
+          mostrarEstado(el.fidelidadFormEstado, `Pueden ser como máximo ${FIDELIDAD_MAX_NIVELES} niveles.`, 'error');
+          return;
+        }
+        niveles.push(nivelFidelidadVacio());
+        renderNivelesFidelidad(niveles);
+      });
+    }
+    if (el.fidelidadNiveles) {
+      el.fidelidadNiveles.addEventListener('click', (evento) => {
+        const boton = evento.target.closest('[data-fidelidad-accion="quitar"]');
+        const fila = boton && boton.closest('[data-fidelidad-nivel]');
+        if (!fila) return;
+        const filas = Array.from(el.fidelidadNiveles.querySelectorAll('[data-fidelidad-nivel]'));
+        if (filas.length <= 1) return;
+        const niveles = leerNivelesFidelidadDom();
+        niveles.splice(filas.indexOf(fila), 1);
+        renderNivelesFidelidad(niveles);
+      });
+      el.fidelidadNiveles.addEventListener('change', (evento) => {
+        const selector = evento.target.closest('[data-campo="tipo"]');
+        const fila = selector && selector.closest('[data-fidelidad-nivel]');
+        if (!fila) return;
+        const esPorc = selector.value !== 'producto_gratis';
+        fila.querySelectorAll('[data-grupo="porcentaje"]').forEach(n => { n.hidden = !esPorc; });
+        fila.querySelectorAll('[data-grupo="producto"]').forEach(n => { n.hidden = esPorc; });
+      });
+    }
+  }
+
   function mostrarVistaAdmin(vista) {
     if (vista === 'cupones' && !puedeVerCupones()) vista = 'pedidos';
+    if (vista === 'fidelidad' && !puedeVerFidelidad()) vista = 'pedidos';
     const esPedidos = vista === 'pedidos';
     const esEnvios = vista === 'envios';
     const esCupones = vista === 'cupones';
+    const esFidelidad = vista === 'fidelidad';
     el.tabsVista.forEach(tab => {
       const activa = tab.dataset.adminVista === vista;
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad;
+    if (el.vistaFidelidad) el.vistaFidelidad.hidden = !esFidelidad;
+    if (esFidelidad && cliente) {
+      if (!fidelidadCargada) cargarFidelidad();
+      else cargarEstadisticasFidelidad();
+    }
     if (el.vistaCupones) el.vistaCupones.hidden = !esCupones;
     if (esCupones && cliente) {
       if (!cuponesCargados) cargarCupones();
@@ -4409,6 +4804,7 @@
     }
     if (el.formConfigEnvios) el.formConfigEnvios.addEventListener('submit', guardarConfigEnvios);
     if (el.btnNuevoTramo) el.btnNuevoTramo.addEventListener('click', () => abrirFormTramo(null));
+    conectarEventosFidelidad();
     if (el.btnNuevoCupon) el.btnNuevoCupon.addEventListener('click', () => abrirFormCupon(null));
     if (el.btnCuponesRecargar) el.btnCuponesRecargar.addEventListener('click', () => cargarCupones());
     [el.btnCancelarCupon, el.btnCancelarCuponArriba, el.btnCerrarCupon].forEach(boton => {

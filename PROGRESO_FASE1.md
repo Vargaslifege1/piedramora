@@ -742,7 +742,7 @@ Archivo nuevo: `supabase/migrations/019_fidelidad_premios.sql` (ya aplicada en p
 - `crear_pedido` pasa a 14 argumentos (`p_premio_id uuid default null`); con premio se ignoran cupón y descuento por pago; premio + cupón se rechaza; el canje bloquea la fila (`FOR UPDATE`) y marca el premio usado en la misma transacción.
 - Limitaciones documentadas en la migración: el contador no se resta al revertir/cancelar un pedido ya contado; sin backfill de pedidos históricos; si falla la acreditación se loguea un WARNING y no se bloquea el cambio de estado.
 - La migración incluye rollback comentado y casos de prueba (a–q).
-- Frontend hecho en 3D-2 (ver abajo). Pendiente: panel del dueño.
+- Frontend hecho en 3D-2 (ver abajo). Panel del dueño hecho en 3D-3 (ver abajo).
 
 ## Registro de clientes (migración 020 — aplicada)
 
@@ -767,3 +767,16 @@ Frontend de la fidelidad. Migraciones 019 y 020 ya aplicadas; no hubo cambios de
 - `node --check main.js` sin errores.
 
 Cómo probar: (1) registrar un cliente con y sin promos y ver el progreso; (2) "Actualizar" y "Borrar mis datos"; (3) con un teléfono con premio, elegirlo en el checkout (el cupón se bloquea y aparece la línea de premio), confirmar y ver el aviso en "Pedido recibido"; (4) con un teléfono sin premios el bloque no aparece.
+
+## Fase 3D-3: sección "Fidelidad" en el admin (2026-11-05)
+
+Panel del dueño para editar `config_negocio.fidelidad`. Sin cambios de base de datos (019/020 ya aplicadas).
+
+- `admin.html` / `admin.js` / `admin.css`: pestaña "Fidelidad" (visible solo con rol `dueno` y `mi_rol` sin error, igual que Cupones). Formulario con "Programa activo", pedido mínimo, ciclo y lista de niveles (en, tipo, valor, tope, producto de la carta guardando el id, días de vencimiento; agregar/quitar, mínimo 1, máximo 20).
+- Validación en el cliente espejo de `pm_fidelidad_config` (019); bloquea el guardado con mensaje por nivel. Guarda con upsert por clave `fidelidad`. 403/42501 → "No tenés permiso para hacer esto.". Confirmación al desactivar un programa activo.
+- Si la config guardada es inválida: aviso "La configuración actual es inválida: el programa está inactivo" y el formulario se llena con lo legible.
+- Producto gratis: ayuda "Se regala la opción más barata, sin costo."; no se ofrecen variaciones.
+- Estadística solo lectura desde `premios` (generados, usados, vigentes, vencidos sin usar; por tipo). Si falla, el formulario sigue y se muestra "No se pudieron cargar las estadísticas".
+- Todo escapado con `escaparHtml`/`textContent`. `node --check admin.js` sin errores.
+
+Cómo probar: (1) como dueño aparece la pestaña; como sucursal no. (2) Se carga el seed (ciclo 10, niveles 5 y 10). (3) Probar `en` repetido o mayor al ciclo, % 0 o >100, tope 0, días 0/366, producto vacío: bloquea con mensaje. (4) Guardar válido y revisar `config_negocio`; desactivar pide confirmación. (5) Dejar la config inválida desde SQL y recargar: aviso rojo y formulario lleno. (6) Cortar la lectura de `premios` y verificar el mensaje de estadísticas.
