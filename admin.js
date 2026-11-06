@@ -2916,7 +2916,9 @@
   }
 
   function campoCsv(valor) {
-    const texto = String(valor === undefined || valor === null ? '' : valor);
+    let texto = String(valor === undefined || valor === null ? '' : valor);
+    // Evita inyección de fórmulas al abrir en Excel/Sheets.
+    if (/^[=+\-@\t\r]/.test(texto)) texto = "'" + texto;
     return `"${texto.replace(/"/g, '""')}"`;
   }
 

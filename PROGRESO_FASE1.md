@@ -843,3 +843,4 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Carta pública: ya hecha en `0a182e6` (agotados al final por categoría, opacidad 0.55, etiqueta AGOTADO). Sin cambios.
 - Sin SQL ni migraciones. Probar: en 360px marcar/reactivar desde Pedidos y desde la carta y ver que ambos reflejan el cambio; cortar la red y verificar el revert; con admin de sucursal, verificar que solo ve y cambia la suya.
 - Checkout: totalMostrado considera cupón; si el servidor devuelve otro total con el pedido ya guardado solo se avisa (sin cancelar) y se sigue a WhatsApp.
+- Admin: exportación CSV prefija con ' los valores que empiezan con = + - @ tab o CR.
