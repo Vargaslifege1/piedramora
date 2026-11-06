@@ -122,6 +122,7 @@
     cuponNotaUsos: document.getElementById('cupon-nota-usos'),
     cuponFormEstado: document.getElementById('cupon-form-estado'),
     btnGuardarCupon: document.getElementById('btn-guardar-cupon'),
+    btnGuardarCuponArriba: document.getElementById('btn-guardar-cupon-arriba'),
     btnCancelarCupon: document.getElementById('btn-cancelar-cupon'),
     btnCancelarCuponArriba: document.getElementById('btn-cancelar-cupon-arriba'),
     btnCerrarCupon: document.getElementById('btn-cerrar-cupon'),
@@ -4247,27 +4248,29 @@
       const max = cupon.usos_maximos_total === null || cupon.usos_maximos_total === undefined
         ? '∞' : String(Number(cupon.usos_maximos_total));
       return `<div class="admin-cupon-fila ${escaparHtml(estado)}" data-cupon-id="${escaparHtml(cupon.id)}">
-        <div class="admin-envios-tramo-dato">
-          <small>Código</small>
-          <span>${escaparHtml(cupon.codigo)}</span>
+        <div class="admin-cupon-fila-cab">
+          <strong class="admin-cupon-codigo">${escaparHtml(cupon.codigo)}</strong>
+          <span class="admin-cupon-badge ${escaparHtml(estado)}">${escaparHtml(ETIQUETA_ESTADO_CUPON[estado])}</span>
         </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Descuento</small>
-          <span>${escaparHtml(valorCupon(cupon))}</span>
+        <div class="admin-cupon-fila-datos">
+          <div class="admin-envios-tramo-dato">
+            <small>Descuento</small>
+            <span>${escaparHtml(valorCupon(cupon))}</span>
+          </div>
+          <div class="admin-envios-tramo-dato">
+            <small>Vigencia</small>
+            <span>${escaparHtml(vigenciaCupon(cupon))}</span>
+          </div>
+          <div class="admin-envios-tramo-dato">
+            <small>Usos</small>
+            <span>${cantidad} / ${escaparHtml(max)}</span>
+          </div>
+          <div class="admin-envios-tramo-dato">
+            <small>Descontado</small>
+            <span>${escaparHtml(formatearPrecio(total))}</span>
+          </div>
         </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Estado</small>
-          <span><span class="admin-cupon-badge ${escaparHtml(estado)}">${escaparHtml(ETIQUETA_ESTADO_CUPON[estado])}</span></span>
-        </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Vigencia</small>
-          <span>${escaparHtml(vigenciaCupon(cupon))}</span>
-        </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Usos · Descontado</small>
-          <span>${cantidad} / ${escaparHtml(max)} · ${escaparHtml(formatearPrecio(total))}</span>
-        </div>
-        <div class="admin-envios-tramo-acciones">
+        <div class="admin-cupon-fila-acciones">
           <button type="button" class="btn-secundario" data-cupon-accion="editar">Editar</button>
           <button type="button" class="btn-secundario" data-cupon-accion="toggle">${cupon.activo ? 'Pausar' : 'Activar'}</button>
           <button type="button" class="btn-peligro" data-cupon-accion="eliminar">Borrar</button>
@@ -4417,6 +4420,7 @@
     };
 
     el.btnGuardarCupon.disabled = true;
+    if (el.btnGuardarCuponArriba) el.btnGuardarCuponArriba.disabled = true;
     mostrarEstado(el.cuponFormEstado, 'Guardando...');
     try {
       const consulta = id
@@ -4432,6 +4436,7 @@
       mostrarEstado(el.cuponFormEstado, mensajeErrorCupones(errorGuardar, 'guardar'), 'error');
     } finally {
       el.btnGuardarCupon.disabled = false;
+      if (el.btnGuardarCuponArriba) el.btnGuardarCuponArriba.disabled = false;
     }
   }
 

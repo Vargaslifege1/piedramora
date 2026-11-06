@@ -2215,7 +2215,8 @@ p {
 
 /* Cupones (3B) */
 .admin-cupon-form {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 960px;
   margin-bottom: 16px;
   padding: 14px;
   border: 1px solid var(--admin-borde-fuerte);
@@ -2244,15 +2245,80 @@ p {
   gap: 8px;
 }
 
-.admin-cupon-fila {
+.admin-cupon-form > * { min-width: 0; }
+
+.admin-cupon-opciones {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(4, minmax(0, 0.8fr)) auto;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.admin-cupon-chip {
+  justify-content: flex-start;
+  cursor: pointer;
+  min-height: 44px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.admin-cupon-chip:has(input:checked) {
+  border-color: #e31e24;
+  background: rgba(227, 30, 36, 0.12);
+}
+
+.admin-cupon-chip input { cursor: pointer; }
+
+.admin-cupones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
-  padding: 12px;
+}
+
+.admin-cupon-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
   border: 1px solid var(--admin-borde);
   border-radius: var(--admin-radio-chico);
   background: var(--admin-panel-2);
+}
+
+.admin-cupon-fila-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-cupon-codigo {
+  font-size: 1.35rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.admin-cupon-fila-datos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.admin-cupon-fila-acciones {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.admin-cupon-fila-acciones button {
+  flex: 1 1 0;
+  min-height: 40px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-cupon-chip { transition: none; }
 }
 
 .admin-cupon-fila.pausado,
@@ -2367,14 +2433,11 @@ p {
   .fid-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 860px) {
-  .admin-cupon-form {
-    grid-template-columns: 1fr;
-  }
 
-  .admin-cupon-fila {
-    grid-template-columns: 1fr 1fr;
-  }
+
+@media (max-width: 720px) {
+  .admin-cupon-form { grid-template-columns: 1fr; }
+  .admin-cupones-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 860px) {

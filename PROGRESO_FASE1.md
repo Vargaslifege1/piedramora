@@ -876,3 +876,4 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - Fix scroll "Elegir sucursal" en celular: CTA apuntaba a #sucursales-lista (saltaba el título); ahora ancla #sucursales + scroll-margin-top y scrollIntoView.
 - Fix scroll sucursales (2): scroll-margin-top = alto navbar compacto (medido en JS) + 16px - padding de la sección; reajuste tras scrollend/900 ms, respeta reduced-motion y funciona con #sucursales directo.
 - Fix scroll sucursales (3): destino = #sucursales-lista - alto navbar - alto .titulo-seccion - 8px (medido en JS, sin el translateY de .reveal), reajuste tras scrollend/900 ms, reduced-motion respetado.
+- Cupones en layout compacto (solo layout): form 2 columnas max 960px, opciones tipo chip, Guardar arriba, lista en grilla de tarjetas. Sin cambios de SQL/RPC.

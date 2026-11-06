@@ -448,6 +448,7 @@
             <div class="admin-cupon-form-head admin-cupon-nota">
               <h3 id="cupon-form-titulo">Nuevo cupón</h3>
               <div class="admin-cupon-form-head-acciones">
+                <button type="submit" id="btn-guardar-cupon-arriba" class="btn-primario">Guardar</button>
                 <button type="button" id="btn-cancelar-cupon-arriba" class="btn-secundario">Cancelar</button>
                 <button type="button" id="btn-cerrar-cupon" class="btn-icono" aria-label="Cerrar formulario">✕</button>
               </div>
@@ -496,25 +497,27 @@
               </select>
             </label>
             <label class="admin-campo">
-              <span>Modalidad</span>
+              <span>Modalidades</span>
               <select id="cupon-modalidades">
                 <option value="">Todas</option>
                 <option value="delivery">Delivery</option>
                 <option value="retiro">Retiro</option>
               </select>
             </label>
-            <label class="admin-campo admin-campo-check">
-              <input id="cupon-activo" type="checkbox" checked>
-              <span>Activo</span>
-            </label>
-            <label class="admin-campo admin-campo-check">
-              <input id="cupon-primera-compra" type="checkbox">
-              <span>Solo primera compra</span>
-            </label>
-            <label class="admin-campo admin-campo-check">
-              <input id="cupon-acumulable" type="checkbox">
-              <span>Acumulable con descuento por medio de pago</span>
-            </label>
+            <div class="admin-cupon-opciones admin-cupon-nota">
+              <label class="admin-campo admin-campo-check admin-cupon-chip">
+                <input id="cupon-activo" type="checkbox" checked>
+                <span>Activo</span>
+              </label>
+              <label class="admin-campo admin-campo-check admin-cupon-chip">
+                <input id="cupon-primera-compra" type="checkbox">
+                <span>Solo primera compra</span>
+              </label>
+              <label class="admin-campo admin-campo-check admin-cupon-chip">
+                <input id="cupon-acumulable" type="checkbox">
+                <span>Acumulable con descuento por medio de pago</span>
+              </label>
+            </div>
             <p id="cupon-nota-usos" class="admin-ayuda admin-cupon-nota" hidden>Los usos anteriores conservan el descuento que tuvieron</p>
             <p id="cupon-form-estado" class="admin-estado admin-cupon-nota" aria-live="polite"></p>
             <div class="admin-form-acciones admin-cupon-nota">
@@ -523,7 +526,7 @@
             </div>
           </form>
 
-          <div id="cupones-lista" class="admin-envios-tramos"></div>
+          <div id="cupones-lista" class="admin-cupones-grid"></div>
         </section>
       </section>
 
