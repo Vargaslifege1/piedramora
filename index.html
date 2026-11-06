@@ -554,11 +554,25 @@
 
         <p id="checkout-aviso-cerrado" class="aviso-cerrado" role="status" hidden>Estamos cerrados. Podés dejar tu pedido programado y lo verán cuando abran.</p>
 
+        <p id="checkout-horario" class="horario-legible" hidden></p>
+
         <div class="form-grupo checkout-programar" id="checkout-programar">
-          <label class="fidelidad-check">
+          <label class="fidelidad-check" id="programar-check-label">
             <input type="checkbox" id="checkout-programar-check">
             <span>Programar para otro día</span>
           </label>
+          <fieldset class="programar-opciones" id="programar-opciones" hidden>
+            <legend>¿Para cuándo querés tu pedido?</legend>
+            <label class="programar-opcion" id="programar-opcion-rapida">
+              <input type="radio" name="programar-modo" id="programar-modo-rapido" value="rapido">
+              <span id="programar-rapido-texto"></span>
+            </label>
+            <label class="programar-opcion">
+              <input type="radio" name="programar-modo" id="programar-modo-otro" value="otro">
+              <span>Otro día u horario</span>
+            </label>
+          </fieldset>
+          <p id="programar-resumen" class="programar-resumen" role="status" hidden></p>
           <div id="checkout-programar-campos" class="programar-campos" hidden>
             <div class="programar-fila">
               <div class="form-grupo">

@@ -1126,26 +1126,92 @@ function actualizarVistaEstadoCarta() {
   actualizarProgramarUI();
 }
 
+// "hoy a las 20:30" / "mañana a las 20:30" / "el 10/11 a las 20:30"
+function cuandoTextoAR(d) {
+  const hoy = claveDiaAR(new Date());
+  const manana = claveDiaAR(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const dia = claveDiaAR(d);
+  const cuando = dia === hoy ? 'hoy' : (dia === manana ? 'mañana' : `el ${diaMesAR(d)}`);
+  return `${cuando} a las ${horaAR(d)}`;
+}
+
+// Próxima apertura usable como opción rápida (null si no hay una útil).
+function opcionRapidaProgramar(e) {
+  if (e.abierto || e.motivo === 'forzado_cerrado' || !e.proxima) return null;
+  const t = e.proxima.getTime();
+  if (t <= Date.now() || t > Date.now() + programarMaxDias * 24 * 60 * 60 * 1000) return null;
+  return e.proxima;
+}
+
 function actualizarProgramarUI() {
   const check = document.getElementById('checkout-programar-check');
   const campos = document.getElementById('checkout-programar-campos');
   if (!check || !campos || !cartaActualSucursalId) return;
   const e = obtenerEstadoSucursal(cartaActualSucursalId);
+  const sucursal = SUCURSALES[cartaActualSucursalId];
+  const labelCheck = document.getElementById('programar-check-label');
+  const opciones = document.getElementById('programar-opciones');
+  const radioRapido = document.getElementById('programar-modo-rapido');
+  const radioOtro = document.getElementById('programar-modo-otro');
+  const opcionRapida = document.getElementById('programar-opcion-rapida');
+  const horarioEl = document.getElementById('checkout-horario');
+  const rapida = opcionRapidaProgramar(e);
+
+  if (horarioEl) {
+    const txt = !e.abierto && sucursal && sucursal.horarioTexto ? `Horario de atención: ${sucursal.horarioTexto}` : '';
+    horarioEl.textContent = txt;
+    horarioEl.hidden = !txt;
+  }
 
   if (!e.abierto) {
-    // Cerrado: solo se puede dejar el pedido programado.
+    // Cerrado: solo se puede dejar el pedido programado (opciones tipo radio).
     if (!check.checked) check.dataset.forzado = '1';
     check.checked = true;
     check.disabled = true;
+    if (labelCheck) labelCheck.hidden = true;
+    if (opciones) opciones.hidden = false;
+    if (opcionRapida) opcionRapida.hidden = !rapida;
+    const textoRapido = document.getElementById('programar-rapido-texto');
+    if (textoRapido && rapida) {
+      const t = cuandoTextoAR(rapida);
+      textoRapido.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    if (radioRapido && radioOtro) {
+      if (!rapida) radioRapido.checked = false;
+      if (!radioRapido.checked && !radioOtro.checked) (rapida ? radioRapido : radioOtro).checked = true;
+    }
+    campos.hidden = !(radioOtro && radioOtro.checked);
   } else {
     check.disabled = false;
     if (check.dataset.forzado === '1') {
       check.checked = false;
       delete check.dataset.forzado;
     }
+    if (labelCheck) labelCheck.hidden = false;
+    if (opciones) opciones.hidden = true;
+    campos.hidden = !check.checked;
   }
-  campos.hidden = !check.checked;
   if (!campos.hidden) prepararCamposProgramar();
+  actualizarResumenProgramar();
+}
+
+function actualizarResumenProgramar() {
+  const el = document.getElementById('programar-resumen');
+  if (!el || !cartaActualSucursalId) return;
+  const e = obtenerEstadoSucursal(cartaActualSucursalId);
+  let fecha = null;
+  if (!e.abierto) {
+    if (document.getElementById('programar-modo-rapido')?.checked) {
+      fecha = opcionRapidaProgramar(e);
+    } else {
+      const f = document.getElementById('programar-fecha')?.value;
+      const h = document.getElementById('programar-hora')?.value;
+      const d = f && h ? new Date(`${f}T${h.slice(0, 5)}:00-03:00`) : null;
+      if (d && !Number.isNaN(d.getTime())) fecha = d;
+    }
+  }
+  el.textContent = fecha ? `Tu pedido se programa para ${cuandoTextoAR(fecha)}. Lo confirmamos cuando abramos.` : '';
+  el.hidden = !fecha;
 }
 
 function armarFechaAR(clave, hora, minuto) {
@@ -1175,7 +1241,8 @@ function prepararCamposProgramar() {
     hora.value = horaAR(porDefecto);
   }
   if (ayuda) {
-    ayuda.textContent = `Podés elegir hasta ${programarMaxDias} días adelante, dentro de nuestro horario${sucursal && sucursal.horarioTexto ? ` (${sucursal.horarioTexto})` : ''}. Lo confirmamos cuando abramos.`;
+    const previo = !e.abierto && !opcionRapidaProgramar(e) ? `${textoEstadoSucursal(e)}. ` : '';
+    ayuda.textContent = `${previo}Podés elegir hasta ${programarMaxDias} días adelante, dentro de nuestro horario${sucursal && sucursal.horarioTexto ? ` (${sucursal.horarioTexto})` : ''}. Lo confirmamos cuando abramos.`;
   }
 }
 
@@ -1225,6 +1292,14 @@ function limpiarErrorProgramar() {
 function leerProgramadoCheckout() {
   const check = document.getElementById('checkout-programar-check');
   if (!check || !check.checked) return { programado: false };
+  const estado = cartaActualSucursalId ? obtenerEstadoSucursal(cartaActualSucursalId) : null;
+  if (estado && !estado.abierto && document.getElementById('programar-modo-rapido')?.checked) {
+    const rapida = opcionRapidaProgramar(estado);
+    if (rapida) {
+      const p = partesAR(rapida);
+      return { programado: true, iso: `${p.y}-${p.m}-${p.d}T${p.hh}:${p.mm}:00-03:00`, fecha: rapida };
+    }
+  }
   const f = document.getElementById('programar-fecha')?.value;
   const h = document.getElementById('programar-hora')?.value;
   if (!f || !h) return { programado: true, error: 'Elegí la fecha y la hora para tu pedido.' };
@@ -1245,6 +1320,7 @@ function resetearProgramarCheckout() {
   if (check) { check.checked = false; delete check.dataset.forzado; }
   if (fecha) fecha.value = '';
   if (hora) hora.value = '';
+  document.querySelectorAll('input[name="programar-modo"]').forEach((r) => { r.checked = false; });
   limpiarErrorProgramar();
   actualizarProgramarUI();
 }
@@ -1254,7 +1330,16 @@ document.getElementById('checkout-programar-check')?.addEventListener('change', 
   actualizarProgramarUI();
 });
 ['programar-fecha', 'programar-hora'].forEach((idEl) => {
-  document.getElementById(idEl)?.addEventListener('input', limpiarErrorProgramar);
+  document.getElementById(idEl)?.addEventListener('input', () => {
+    limpiarErrorProgramar();
+    actualizarResumenProgramar();
+  });
+});
+document.querySelectorAll('input[name="programar-modo"]').forEach((r) => {
+  r.addEventListener('change', () => {
+    limpiarErrorProgramar();
+    actualizarProgramarUI();
+  });
 });
 
 function esRechazoPorHorario(error) {

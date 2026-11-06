@@ -5106,7 +5106,84 @@ body.confirmacion-abierta {
   min-height: 44px;
 }
 
+.horario-legible {
+  margin: 6px 0 0;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--color-texto);
+}
+
+.programar-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.programar-opciones[hidden] {
+  display: none;
+}
+
+.programar-opciones legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.programar-opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.programar-opcion input[type="radio"] {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-dorado);
+}
+
+.programar-opcion:focus-within {
+  outline: 2px solid var(--color-dorado);
+  outline-offset: 2px;
+}
+
+.programar-opcion:has(input:checked) {
+  border-color: var(--color-dorado);
+  background: rgba(217, 164, 65, 0.12);
+}
+
+.programar-resumen {
+  margin: 8px 0 0;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--color-texto);
+}
+
+.programar-resumen[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .programar-opcion {
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .programar-opcion {
+    transition: none;
+  }
   .programar-campos .form-error:not([hidden]) {
     animation: none;
   }
