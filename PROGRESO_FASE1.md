@@ -887,3 +887,5 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - Sitio: con el local cerrado, el checkout ofrece radios "próxima apertura" (preseleccionada) u "Otro día u horario", con línea de resumen y horario de atención visible; abierto sin cambios. Solo UX (`main.js`, `index.html`, `style.css`).
 
 - Admin: pestaña Horarios (dueño y admin de sucursal): estado manual, turnos por día, cierres especiales (dueño) y pedidos programados en el tablero (etiqueta, sin ding-dong al crear, sonido/badge dentro de 3 h). Sin SQL nuevo.
+
+- Admin: Horarios en dos columnas (estado + cierres a la izquierda, días a la derecha; 1 columna <1024px), filas de día compactas y lista de cierres con scroll interno. Solo layout (`admin.html`, `admin.css`).

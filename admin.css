@@ -3213,7 +3213,10 @@ p {
 }
 
 /* ===== Horarios, estado manual y cierres especiales ===== */
-.hor-vista .hor-grid { display: grid; gap: 12px; grid-template-columns: 1fr; margin-bottom: 12px; }
+.hor-vista .hor-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); margin-bottom: 12px; grid-template-areas: "estado" "dias" "cierres"; }
+.hor-card-estado { grid-area: estado; }
+.hor-card-dias { grid-area: dias; }
+.hor-card-cierres { grid-area: cierres; }
 .hor-vista .hor-card { margin-bottom: 0; min-width: 0; padding: 12px; }
 .hor-vista .hor-card h3 { margin: 0 0 8px; font-size: 1.05rem; }
 .hor-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -3231,25 +3234,30 @@ p {
 .hor-modo span { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 6px; text-align: center; font-size: 0.85rem; border: 1px solid var(--admin-borde-fuerte); border-radius: var(--admin-radio-chico); color: var(--admin-texto-suave); }
 .hor-modo input:checked + span { border-color: var(--admin-rojo); color: var(--admin-texto); background: rgba(227, 30, 36, 0.14); font-weight: 700; }
 .hor-modo input:focus-visible + span { outline: 2px solid var(--admin-dorado); outline-offset: 2px; }
-.hor-dias { display: grid; gap: 8px; }
-.hor-dia { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 8px; border: 1px solid var(--admin-borde); border-radius: var(--admin-radio-chico); min-width: 0; }
-.hor-dia-turnos { display: grid; gap: 6px; min-width: 0; }
+.hor-dias { display: grid; gap: 4px; }
+.hor-dia { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 6px 8px; border: 1px solid var(--admin-borde); border-radius: var(--admin-radio-chico); min-width: 0; }
+.hor-dia-nombre { align-self: center; }
+.hor-dia-turnos { display: grid; gap: 4px; min-width: 0; align-self: center; }
 .hor-turno { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
-.hor-turno input[type="time"] { flex: 1 1 100px; min-width: 0; min-height: 40px; }
-.hor-cruza { flex: 1 1 100%; color: var(--admin-ambar); font-size: 0.78rem; }
+.hor-turno input[type="time"] { flex: 1 1 90px; min-width: 0; min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+.hor-turno .btn-icono { min-width: 36px; min-height: 36px; }
+.hor-cruza { flex: 0 0 auto; padding: 1px 8px; border-radius: 999px; border: 1px solid rgba(255, 183, 3, 0.5); background: rgba(255, 183, 3, 0.1); color: var(--admin-ambar); font-size: 0.72rem; line-height: 1.4; }
 .hor-cerrado-dia { margin: 0; color: var(--admin-texto-tenue); font-size: 0.9rem; }
-.hor-dia-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.hor-dia-acciones { display: flex; flex-wrap: wrap; gap: 6px; align-self: center; }
 .hor-dia-acciones button { min-height: 36px; padding: 4px 10px; font-size: 0.82rem; }
-.hor-cierres { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.hor-cierres { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 2px; overscroll-behavior: contain; }
 .hor-cierre { display: grid; gap: 2px; text-align: left; padding: 8px 10px; min-width: 0; font: inherit; color: var(--admin-texto); background: transparent; border: 1px solid var(--admin-borde-fuerte); border-radius: var(--admin-radio-chico); cursor: pointer; overflow-wrap: anywhere; }
 .hor-cierre:hover { border-color: var(--admin-dorado); }
 .hor-cierre span, .hor-cierre small { color: var(--admin-texto-suave); }
 .hor-cierre.pasado { opacity: 0.55; }
 .hor-modal .hor-campo-ancho { grid-column: 1 / -1; }
 .admin-pedido-programado { display: inline-block; align-self: flex-start; margin: 2px 0; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; color: var(--admin-ambar); border: 1px solid rgba(255, 183, 3, 0.5); background: rgba(255, 183, 3, 0.1); }
-@media (min-width: 900px) {
-  .hor-vista .hor-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: start; }
+@media (min-width: 1024px) {
+  .hor-vista .hor-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-rows: auto 1fr; grid-template-areas: "estado dias" "cierres dias"; align-items: start; }
 }
 @media (min-width: 640px) {
-  .hor-dia { grid-template-columns: 96px minmax(0, 1fr) auto; align-items: start; }
+  .hor-dia { grid-template-columns: 84px minmax(0, 1fr) auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hor-vista * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }

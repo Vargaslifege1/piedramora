@@ -626,7 +626,7 @@
         <div id="hor-aviso" class="admin-aviso" hidden></div>
 
         <div class="hor-grid">
-          <section class="admin-card hor-card">
+          <section class="admin-card hor-card hor-card-estado">
             <h3>Estado del local</h3>
             <p id="hor-estado-actual" class="hor-actual">Cargando...</p>
             <div id="hor-forzado" class="hor-forzado" role="alert" hidden>
@@ -641,6 +641,15 @@
             </div>
           </section>
 
+          <section id="hor-cierres-card" class="admin-card hor-card hor-card-cierres" hidden>
+            <div class="hor-card-head">
+              <h3>Cierres especiales</h3>
+              <button type="button" id="btn-nuevo-cierre" class="btn-primario">+ Nuevo cierre</button>
+            </div>
+            <p class="admin-ayuda">Los pedidos programados para esos días quedan pendientes hasta que el local los acepte.</p>
+            <div id="hor-cierres" class="hor-cierres"></div>
+          </section>
+
           <section class="admin-card hor-card hor-card-dias">
             <div class="hor-card-head">
               <h3>Horarios por día</h3>
@@ -650,14 +659,6 @@
           </section>
         </div>
 
-        <section id="hor-cierres-card" class="admin-card hor-card" hidden>
-          <div class="hor-card-head">
-            <h3>Cierres especiales</h3>
-            <button type="button" id="btn-nuevo-cierre" class="btn-primario">+ Nuevo cierre</button>
-          </div>
-          <p class="admin-ayuda">Los pedidos programados para esos días quedan pendientes hasta que el local los acepte.</p>
-          <div id="hor-cierres" class="hor-cierres"></div>
-        </section>
       </section>
     </section>
   </main>
