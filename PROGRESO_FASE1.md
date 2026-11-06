@@ -873,3 +873,4 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - Fidelidad: layout compacto (cabecera con Guardar, niveles en tarjetas, KPIs); solo estilo/estructura.
 
 - Fidelidad: una sola consulta compartida (promesa) por recurso, caché en sessionStorage (5 min por teléfono) y enfriamiento de 2 min tras un fallo; el checkout usa la misma caché. Solo `main.js`.
+- Fix scroll "Elegir sucursal" en celular: CTA apuntaba a #sucursales-lista (saltaba el título); ahora ancla #sucursales + scroll-margin-top y scrollIntoView.

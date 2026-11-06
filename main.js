@@ -1131,16 +1131,13 @@ if (navbar) {
   });
 }
 
-// NUEVA FUNCIÓN DE SCROLL SUAVE CALIBRADO (Evita que baje de más en celulares)
+// Scroll a sucursales: el offset lo da scroll-margin-top (CSS), así sigue
+// correcto aunque la altura cambie mientras baja (barra del navegador, reveal).
 function desplazarASucursales(e) {
   if (e && typeof e.preventDefault === 'function') e.preventDefault();
-  const seccion = document.getElementById('sucursales') || document.querySelector('.sucursales-section');
+  const seccion = document.getElementById('sucursales');
   if (!seccion) return;
-  
-  const yOffset = -35; 
-  const y = seccion.getBoundingClientRect().top + window.pageYOffset + yOffset;
-  
-  window.scrollTo({ top: y, behavior: 'smooth' });
+  seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Vinculación automática para botones o enlaces que llevan a sucursales

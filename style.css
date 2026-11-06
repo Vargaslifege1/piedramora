@@ -343,6 +343,8 @@ body {
 .sucursales {
   padding: 90px 20px;
   text-align: center;
+  /* Deja visible el eyebrow/título debajo del navbar fijo (ancla #sucursales) */
+  scroll-margin-top: calc(var(--navbar-alto, 80px) - 60px + env(safe-area-inset-top, 0px));
 }
 
 .titulo-seccion {
