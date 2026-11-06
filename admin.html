@@ -70,6 +70,7 @@
         <button type="button" class="admin-tab" data-admin-vista="fidelidad" hidden>Fidelidad</button>
         <button type="button" class="admin-tab" data-admin-vista="estadisticas" hidden>Estadísticas</button>
         <button type="button" class="admin-tab" data-admin-vista="clientes" hidden>Clientes</button>
+        <button type="button" class="admin-tab" data-admin-vista="horarios" hidden>Horarios</button>
       </nav>
 
       <div id="admin-vista-carta" class="admin-vista">
@@ -605,8 +606,97 @@
           </aside>
         </div>
       </section>
+
+      <section id="admin-vista-horarios" class="admin-vista hor-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Horarios</p>
+            <h2>Atención y cierres</h2>
+            <p class="admin-ayuda">Horario de Argentina. Un turno que termina antes de empezar cruza la medianoche.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <label class="admin-campo hor-sucursal" id="hor-sucursal-wrap" hidden>
+              <span>Sucursal</span>
+              <select id="hor-sucursal"></select>
+            </label>
+            <button type="button" id="btn-hor-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+        <p id="hor-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="hor-aviso" class="admin-aviso" hidden></div>
+
+        <div class="hor-grid">
+          <section class="admin-card hor-card">
+            <h3>Estado del local</h3>
+            <p id="hor-estado-actual" class="hor-actual">Cargando...</p>
+            <div id="hor-forzado" class="hor-forzado" role="alert" hidden>
+              <strong>Estás en modo forzado</strong>
+              <span id="hor-forzado-texto"></span>
+              <button type="button" id="btn-hor-auto" class="btn-secundario">Volver a automático</button>
+            </div>
+            <div class="hor-modos" role="radiogroup" aria-label="Modo de apertura">
+              <label class="hor-modo"><input type="radio" name="hor-modo" value="automatico"><span>Automático</span></label>
+              <label class="hor-modo"><input type="radio" name="hor-modo" value="forzar_abierto"><span>Forzar abierto</span></label>
+              <label class="hor-modo"><input type="radio" name="hor-modo" value="forzar_cerrado"><span>Forzar cerrado</span></label>
+            </div>
+          </section>
+
+          <section class="admin-card hor-card hor-card-dias">
+            <div class="hor-card-head">
+              <h3>Horarios por día</h3>
+              <button type="button" id="btn-hor-guardar" class="btn-primario">Guardar horarios</button>
+            </div>
+            <div id="hor-dias" class="hor-dias"></div>
+          </section>
+        </div>
+
+        <section id="hor-cierres-card" class="admin-card hor-card" hidden>
+          <div class="hor-card-head">
+            <h3>Cierres especiales</h3>
+            <button type="button" id="btn-nuevo-cierre" class="btn-primario">+ Nuevo cierre</button>
+          </div>
+          <p class="admin-ayuda">Los pedidos programados para esos días quedan pendientes hasta que el local los acepte.</p>
+          <div id="hor-cierres" class="hor-cierres"></div>
+        </section>
+      </section>
     </section>
   </main>
+
+  <div id="modal-cierre" class="admin-modal-overlay admin-cupon-overlay" hidden>
+    <form id="form-cierre" class="admin-modal admin-cupon-modal hor-modal" role="dialog" aria-modal="true" aria-labelledby="cierre-titulo" novalidate>
+      <input type="hidden" id="cierre-id">
+      <div class="admin-cupon-modal-head">
+        <h2 id="cierre-titulo">Nuevo cierre</h2>
+        <button type="button" id="btn-cerrar-cierre" class="btn-icono" aria-label="Cerrar formulario">✕</button>
+      </div>
+      <div class="admin-cupon-modal-cuerpo">
+        <label class="admin-campo">
+          <span>Sucursal</span>
+          <select id="cierre-sucursal"></select>
+        </label>
+        <label class="admin-campo">
+          <span>Desde</span>
+          <input id="cierre-desde" type="date" required>
+        </label>
+        <label class="admin-campo">
+          <span>Hasta (inclusive)</span>
+          <input id="cierre-hasta" type="date" required>
+        </label>
+        <label class="admin-campo hor-campo-ancho">
+          <span>Motivo (opcional)</span>
+          <input id="cierre-motivo" type="text" maxlength="200" autocomplete="off" placeholder="Feriado, vacaciones...">
+        </label>
+      </div>
+      <div class="admin-cupon-modal-pie">
+        <p id="cierre-estado" class="admin-estado" aria-live="polite"></p>
+        <div class="admin-cupon-modal-botones">
+          <button type="button" id="btn-borrar-cierre" class="btn-peligro" hidden>Borrar</button>
+          <button type="button" id="btn-cancelar-cierre" class="btn-secundario">Cancelar</button>
+          <button type="submit" id="btn-guardar-cierre" class="btn-primario">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
 
   <div id="modal-cupon" class="admin-modal-overlay admin-cupon-overlay" hidden>
     <form id="form-cupon" class="admin-modal admin-cupon-modal" role="dialog" aria-modal="true" aria-labelledby="cupon-form-titulo" novalidate>

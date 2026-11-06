@@ -885,3 +885,5 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - Sitio: estado Abierto/Cerrado desde `sucursal_estado` (refresco 60 s y al volver a la pestaña, respaldo local), cartel de cerrado en carta y checkout, selector de fecha/hora para pedidos programados (`p_programado_para`, máx. `programar_max_dias`) y mensajes de WhatsApp/modal "PROGRAMADO". Errores de horario del servidor se muestran en el checkout. Archivos: `main.js`, `index.html`, `style.css`.
 
 - Sitio: con el local cerrado, el checkout ofrece radios "próxima apertura" (preseleccionada) u "Otro día u horario", con línea de resumen y horario de atención visible; abierto sin cambios. Solo UX (`main.js`, `index.html`, `style.css`).
+
+- Admin: pestaña Horarios (dueño y admin de sucursal): estado manual, turnos por día, cierres especiales (dueño) y pedidos programados en el tablero (etiqueta, sin ding-dong al crear, sonido/badge dentro de 3 h). Sin SQL nuevo.

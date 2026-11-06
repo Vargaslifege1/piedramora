@@ -212,6 +212,7 @@
   let pedidosCanal = null;
   let pedidosTimer = null;
   let pedidosSonidoActivo = true;
+  const VENTANA_PROGRAMADOS_MS = 3 * 60 * 60 * 1000;
   let pedidosVolumen = 0.7;
   let pedidosAlertaTimer = null;
   let pedidosTituloTimer = null;
@@ -685,6 +686,7 @@
       if (tab.dataset.adminVista === 'fidelidad') tab.hidden = !puedeVerFidelidad();
       if (tab.dataset.adminVista === 'estadisticas') tab.hidden = !puedeVerCupones();
       if (tab.dataset.adminVista === 'clientes') tab.hidden = !puedeVerCupones();
+      if (tab.dataset.adminVista === 'horarios') tab.hidden = !puedeVerHorarios();
     });
 
     poblarFiltroSucursalesPedidos();
@@ -709,6 +711,10 @@
     }
     const vistaStatsPerm = document.getElementById('admin-vista-estadisticas');
     if (!puedeVerCupones() && vistaStatsPerm && !vistaStatsPerm.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    const vistaHorPerm = document.getElementById('admin-vista-horarios');
+    if (!puedeVerHorarios() && vistaHorPerm && !vistaHorPerm.hidden) {
       mostrarVistaAdmin('pedidos');
     }
     const vistaCrmPerm = document.getElementById('admin-vista-clientes');
@@ -2391,12 +2397,26 @@
     return !!pedido && pedido.sincronizado !== false;
   }
 
+  // Un programado pendiente solo cuenta (badge y sonido) si faltan 3 h o menos, o ya venció.
+  function pedidoRequiereAtencion(pedido) {
+    if (!pedido.programado_para) return true;
+    const cuando = new Date(pedido.programado_para).getTime();
+    if (!Number.isFinite(cuando)) return true;
+    return cuando - Date.now() <= VENTANA_PROGRAMADOS_MS;
+  }
+
   function contarPedidosNuevos() {
     return pedidos.filter(pedido =>
       pedidoCuentaComoVenta(pedido)
       && pedido.estado === 'pendiente'
       && pedidoVisiblePorRol(pedido)
+      && pedidoRequiereAtencion(pedido)
     ).length;
+  }
+
+  function etiquetaProgramadoPedido(iso) {
+    const texto = fechaHoraPedido(iso).replace(',', '');
+    return texto ? `Programado ${texto}` : '';
   }
 
   function actualizarBadgePedidos() {
@@ -2453,6 +2473,10 @@
     const hora = PM.escaparHtml(horaPedido(pedido.created_at));
     const pagado = pedido.pagado === true;
     const pagoClase = pagado ? 'pagado' : 'pendiente';
+    const programado = pedido.programado_para ? etiquetaProgramadoPedido(pedido.programado_para) : '';
+    const programadoHtml = programado
+      ? `<div class="admin-pedido-programado">${PM.escaparHtml(programado)}</div>`
+      : '';
 
     return `<article class="admin-pedido-tarjeta estado-${estado}" data-pedido-id="${id}" data-estado="${estado}" data-created-at="${PM.escaparHtml(pedido.created_at || '')}">
       <div class="admin-pedido-tarjeta-top">
@@ -2469,6 +2493,7 @@
         <span class="admin-pedido-pago ${pagoClase}">${pagado ? 'Pagado' : 'Pago pendiente'}</span>
         <strong>${formatearPrecio(pedido.total)}</strong>
       </div>
+      ${programadoHtml}
       ${resumenItemsPedido(pedido)}
       <div class="admin-pedido-tarjeta-acciones">${botonesPedido(pedido)}</div>
     </article>`;
@@ -2741,7 +2766,7 @@
     }
 
     try {
-      const camposBase = 'id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas';
+      const camposBase = 'id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas,programado_para';
       let respuesta = await cliente
         .from('pedidos')
         .select(`${camposBase},pagado,pagado_en`)
@@ -3155,8 +3180,14 @@
       pedidos.unshift(nuevo);
       if (pedidos.length > 500) pedidos.length = 500;
       if (pedidoVisiblePorRol(nuevo)) {
-        alertarPedidoNuevo();
-        mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
+        if (nuevo.programado_para) {
+          // Programado: sin ding-dong al crearse; el sonido repetido arranca si cae en la ventana de 3 h.
+          actualizarAlertaPedidos();
+          mostrarAvisoPedidos(`Nuevo pedido programado #${nuevo.numero_orden || ''} (${etiquetaProgramadoPedido(nuevo.programado_para).replace('Programado ', '')}).`, 'info');
+        } else {
+          alertarPedidoNuevo();
+          mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
+        }
       }
     }
 
@@ -5447,8 +5478,538 @@
     });
   }
 
+  /* ===== Horarios, estado manual y cierres especiales ===== */
+
+  const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const ORDEN_DIAS = [1, 2, 3, 4, 5, 6, 0];
+  const MODOS_HORARIO = {
+    automatico: 'Automático',
+    forzar_abierto: 'Forzar abierto',
+    forzar_cerrado: 'Forzar cerrado'
+  };
+  const SUCURSALES_HORARIO_RESPALDO = ['maestro-quiroga', 'intendente-lascano'];
+
+  let horSucursal = '';
+  let horTurnos = {};      // dia -> [{ desde, hasta }]
+  let horOriginales = [];  // filas leídas de la BD { id, dia_semana, desde }
+  let horModo = 'automatico';
+  let horCierres = [];
+  let horCargado = false;
+  let horCargando = false;
+  let horSucio = false;
+  let horBotonOrigen = null;
+
+  function horEl(id) { return document.getElementById(id); }
+
+  function puedeVerHorarios() {
+    if (adminRolError) return false;
+    if (adminRol === 'dueno') return true;
+    return adminRol === 'sucursal' && !!adminSucursalId;
+  }
+
+  function esDuenoHorarios() {
+    return adminRol === 'dueno' && !adminRolError;
+  }
+
+  function idsSucursalesHorario() {
+    const ids = Object.keys(SUCURSALES_NOMBRES);
+    return ids.length ? ids : SUCURSALES_HORARIO_RESPALDO;
+  }
+
+  function mensajeErrorHorarios(error) {
+    const codigo = String((error && error.code) || '');
+    const status = Number(error && error.status);
+    if (codigo === '42501' || status === 403) return 'No tenés permiso para hacer esto.';
+    const detalle = (error && error.message) ? error.message : 'Error desconocido.';
+    return `No se pudo completar la operación: ${detalle}`;
+  }
+
+  function mostrarAvisoHorarios(texto, tipo = 'error') {
+    const aviso = horEl('hor-aviso');
+    if (!aviso) return;
+    if (!texto) { aviso.hidden = true; aviso.textContent = ''; return; }
+    aviso.hidden = false;
+    aviso.dataset.tipo = tipo;
+    aviso.textContent = texto;
+  }
+
+  function hhmm(valor) {
+    return String(valor || '').slice(0, 5);
+  }
+
+  function minutosDeHora(valor) {
+    const m = /^(\d{2}):(\d{2})$/.exec(String(valor || ''));
+    if (!m) return null;
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    if (h > 23 || min > 59) return null;
+    return h * 60 + min;
+  }
+
+  function turnoCruzaMedianoche(turno) {
+    const ini = minutosDeHora(turno.desde);
+    const fin = minutosDeHora(turno.hasta);
+    return ini !== null && fin !== null && fin <= ini;
+  }
+
+  function renderSelectorSucursalHorarios() {
+    const wrap = horEl('hor-sucursal-wrap');
+    const select = horEl('hor-sucursal');
+    if (!wrap || !select) return;
+    if (esDuenoHorarios()) {
+      const ids = idsSucursalesHorario();
+      wrap.hidden = false;
+      select.innerHTML = ids
+        .map(id => `<option value="${PM.escaparHtml(id)}">${PM.escaparHtml(SUCURSALES_NOMBRES[id] || id)}</option>`)
+        .join('');
+      if (!horSucursal || !ids.includes(horSucursal)) horSucursal = ids[0];
+      select.value = horSucursal;
+    } else {
+      wrap.hidden = true;
+      horSucursal = adminSucursalId || '';
+    }
+    const cierresCard = horEl('hor-cierres-card');
+    if (cierresCard) cierresCard.hidden = !esDuenoHorarios();
+  }
+
+  async function cargarHorarios() {
+    if (!cliente || !puedeVerHorarios() || horCargando) return;
+    renderSelectorSucursalHorarios();
+    if (!horSucursal) return;
+    horCargando = true;
+    const sucursal = horSucursal;
+    mostrarEstado(horEl('hor-estado'), 'Cargando horarios...');
+    mostrarAvisoHorarios('');
+    try {
+      const consultas = [
+        cliente.from('sucursal_horarios').select('id,dia_semana,desde,hasta').eq('sucursal_id', sucursal).order('desde', { ascending: true }),
+        cliente.from('sucursal_estado_manual').select('modo').eq('sucursal_id', sucursal).maybeSingle()
+      ];
+      if (esDuenoHorarios()) {
+        consultas.push(cliente.from('cierres_especiales').select('id,sucursal_id,desde,hasta,motivo').order('desde', { ascending: true }));
+      }
+      const [rHor, rModo, rCierres] = await Promise.all(consultas);
+      if (rHor.error) throw rHor.error;
+      if (rModo.error) throw rModo.error;
+      if (rCierres && rCierres.error) throw rCierres.error;
+
+      horOriginales = (rHor.data || []).map(f => ({ id: f.id, dia_semana: Number(f.dia_semana), desde: hhmm(f.desde) }));
+      horTurnos = {};
+      for (let d = 0; d < 7; d++) horTurnos[d] = [];
+      (rHor.data || []).forEach(f => {
+        const dia = Number(f.dia_semana);
+        if (horTurnos[dia]) horTurnos[dia].push({ desde: hhmm(f.desde), hasta: hhmm(f.hasta) });
+      });
+      horModo = rModo.data && MODOS_HORARIO[rModo.data.modo] ? rModo.data.modo : 'automatico';
+      horCierres = rCierres ? (rCierres.data || []) : [];
+      horCargado = true;
+      horSucio = false;
+      renderModoHorarios();
+      renderDiasHorarios();
+      renderCierres();
+      mostrarEstado(horEl('hor-estado'), '');
+      cargarEstadoActualHorarios();
+    } catch (error) {
+      console.warn('No se pudieron cargar los horarios:', error);
+      mostrarEstado(horEl('hor-estado'), '');
+      mostrarAvisoHorarios(mensajeErrorHorarios(error));
+    } finally {
+      horCargando = false;
+    }
+  }
+
+  function textoMomentoHorario(iso) {
+    const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(String(iso || ''));
+    if (!m) return '';
+    const hoy = fechaArgentinaHoy();
+    let dia;
+    if (m[1] === hoy) dia = 'hoy';
+    else if (m[1] === sumarDiasFecha(hoy, 1)) dia = 'mañana';
+    else {
+      const f = fechaUTCDesdeISO(m[1]);
+      dia = f ? `el ${DIAS_SEMANA[f.getUTCDay()].toLowerCase()} ${m[1].slice(8, 10)}/${m[1].slice(5, 7)}` : m[1];
+    }
+    return `${dia} a las ${m[2]}`;
+  }
+
+  async function cargarEstadoActualHorarios() {
+    const caja = horEl('hor-estado-actual');
+    if (!caja || !cliente || !horSucursal) return;
+    const sucursal = horSucursal;
+    try {
+      const { data, error } = await cliente.rpc('sucursal_estado', { p_sucursal_id: sucursal });
+      if (error) throw error;
+      if (sucursal !== horSucursal) return;
+      const estado = data || {};
+      let texto;
+      if (estado.abierto) {
+        const hora = (/T(\d{2}:\d{2})/.exec(String(estado.cierra_a || '')) || [])[1];
+        texto = hora ? `Abierto ahora, cierra a las ${hora}` : 'Abierto ahora';
+        caja.dataset.abierto = 'si';
+      } else {
+        const prox = textoMomentoHorario(estado.proxima_apertura);
+        texto = prox ? `Cerrado, abre ${prox}` : 'Cerrado';
+        caja.dataset.abierto = 'no';
+      }
+      if (/cierre/i.test(String(estado.motivo || ''))) texto += ' (cierre especial)';
+      caja.textContent = texto;
+    } catch (error) {
+      caja.dataset.abierto = '';
+      caja.textContent = 'No se pudo calcular el estado actual.';
+    }
+  }
+
+  function renderModoHorarios() {
+    document.querySelectorAll('input[name="hor-modo"]').forEach(radio => {
+      radio.checked = radio.value === horModo;
+    });
+    const forzado = horEl('hor-forzado');
+    if (forzado) forzado.hidden = horModo === 'automatico';
+    const texto = horEl('hor-forzado-texto');
+    if (texto) {
+      texto.textContent = horModo === 'forzar_abierto'
+        ? 'El local figura abierto aunque esté fuera de horario.'
+        : (horModo === 'forzar_cerrado' ? 'El local figura cerrado aunque esté dentro de horario.' : '');
+    }
+  }
+
+  async function cambiarModoHorario(modo) {
+    if (!cliente || !puedeVerHorarios() || !horSucursal || !MODOS_HORARIO[modo]) return;
+    if (modo === horModo) return;
+    if (modo === 'forzar_cerrado'
+        && !window.confirm('¿Forzar cerrado? El local figurará cerrado y no recibirá pedidos hasta que vuelvas a automático.')) {
+      renderModoHorarios();
+      return;
+    }
+    mostrarAvisoHorarios('');
+    mostrarEstado(horEl('hor-estado'), 'Guardando estado...');
+    try {
+      const { error } = await cliente
+        .from('sucursal_estado_manual')
+        .upsert({ sucursal_id: horSucursal, modo, actualizado_en: new Date().toISOString() }, { onConflict: 'sucursal_id' });
+      if (error) throw error;
+      horModo = modo;
+      renderModoHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Estado actualizado.', 'ok');
+      cargarEstadoActualHorarios();
+    } catch (error) {
+      console.warn('No se pudo cambiar el estado:', error);
+      mostrarEstado(horEl('hor-estado'), '');
+      mostrarAvisoHorarios(mensajeErrorHorarios(error));
+      renderModoHorarios();
+    }
+  }
+
+  function filaTurnoHtml(dia, indice, turno) {
+    const desde = PM.escaparHtml(turno.desde);
+    const hasta = PM.escaparHtml(turno.hasta);
+    const nombre = PM.escaparHtml(DIAS_SEMANA[dia]);
+    return `<div class="hor-turno" data-dia="${dia}" data-indice="${indice}">
+      <input type="time" value="${desde}" data-hor-campo="desde" aria-label="Desde, ${nombre}">
+      <span aria-hidden="true">a</span>
+      <input type="time" value="${hasta}" data-hor-campo="hasta" aria-label="Hasta, ${nombre}">
+      <button type="button" class="btn-icono" data-hor-accion="quitar" aria-label="Quitar turno">✕</button>
+      ${turnoCruzaMedianoche(turno) ? '<small class="hor-cruza">Termina al día siguiente</small>' : ''}
+    </div>`;
+  }
+
+  function renderDiasHorarios() {
+    const caja = horEl('hor-dias');
+    if (!caja) return;
+    caja.innerHTML = ORDEN_DIAS.map(dia => {
+      const turnos = horTurnos[dia] || [];
+      const filas = turnos.length
+        ? turnos.map((t, i) => filaTurnoHtml(dia, i, t)).join('')
+        : '<p class="hor-cerrado-dia">Cerrado</p>';
+      return `<div class="hor-dia" data-dia="${dia}">
+        <div class="hor-dia-nombre"><strong>${PM.escaparHtml(DIAS_SEMANA[dia])}</strong></div>
+        <div class="hor-dia-turnos">${filas}</div>
+        <div class="hor-dia-acciones">
+          <button type="button" class="btn-secundario" data-hor-accion="agregar" data-dia="${dia}">+ Turno</button>
+          <button type="button" class="btn-secundario" data-hor-accion="copiar" data-dia="${dia}" title="Copiar este día a todos los demás">Copiar a todos</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function manejarClickDias(evento) {
+    const boton = evento.target.closest('[data-hor-accion]');
+    if (!boton) return;
+    const accion = boton.dataset.horAccion;
+    if (accion === 'agregar') {
+      const dia = Number(boton.dataset.dia);
+      const lista = horTurnos[dia] || (horTurnos[dia] = []);
+      lista.push(lista.length ? { desde: '', hasta: '' } : { desde: '19:00', hasta: '23:30' });
+    } else if (accion === 'quitar') {
+      const fila = boton.closest('.hor-turno');
+      horTurnos[Number(fila.dataset.dia)].splice(Number(fila.dataset.indice), 1);
+    } else if (accion === 'copiar') {
+      const dia = Number(boton.dataset.dia);
+      if (!window.confirm(`¿Copiar los turnos de ${DIAS_SEMANA[dia]} a todos los días? Reemplaza lo que hay en los otros.`)) return;
+      const origen = (horTurnos[dia] || []).map(t => ({ ...t }));
+      for (let d = 0; d < 7; d++) horTurnos[d] = origen.map(t => ({ ...t }));
+    } else {
+      return;
+    }
+    horSucio = true;
+    renderDiasHorarios();
+  }
+
+  function manejarInputDias(evento) {
+    const campo = evento.target.closest('[data-hor-campo]');
+    if (!campo) return;
+    const fila = campo.closest('.hor-turno');
+    const turno = horTurnos[Number(fila.dataset.dia)][Number(fila.dataset.indice)];
+    if (!turno) return;
+    turno[campo.dataset.horCampo] = campo.value;
+    horSucio = true;
+    let nota = fila.querySelector('.hor-cruza');
+    if (turnoCruzaMedianoche(turno) && !nota) {
+      nota = document.createElement('small');
+      nota.className = 'hor-cruza';
+      nota.textContent = 'Termina al día siguiente';
+      fila.appendChild(nota);
+    } else if (!turnoCruzaMedianoche(turno) && nota) {
+      nota.remove();
+    }
+  }
+
+  // Devuelve un mensaje de error o '' si los horarios son válidos.
+  function validarHorarios() {
+    for (let dia = 0; dia < 7; dia++) {
+      const nombre = DIAS_SEMANA[dia];
+      const rangos = [];
+      for (const t of (horTurnos[dia] || [])) {
+        const ini = minutosDeHora(t.desde);
+        const fin = minutosDeHora(t.hasta);
+        if (ini === null || fin === null) return `${nombre}: completá "desde" y "hasta" con una hora válida (HH:MM).`;
+        rangos.push({ ini, fin: fin <= ini ? fin + 1440 : fin });
+      }
+      rangos.sort((a, b) => a.ini - b.ini);
+      for (let i = 1; i < rangos.length; i++) {
+        if (rangos[i].ini < rangos[i - 1].fin) return `${nombre}: hay turnos superpuestos.`;
+      }
+    }
+    return '';
+  }
+
+  async function guardarHorarios() {
+    if (!cliente || !puedeVerHorarios() || !horSucursal || !horCargado) return;
+    mostrarAvisoHorarios('');
+    const fallo = validarHorarios();
+    if (fallo) { mostrarAvisoHorarios(fallo); return; }
+
+    const filas = [];
+    for (let dia = 0; dia < 7; dia++) {
+      (horTurnos[dia] || []).forEach(t => {
+        filas.push({ sucursal_id: horSucursal, dia_semana: dia, desde: t.desde, hasta: t.hasta });
+      });
+    }
+    if (!filas.length && !window.confirm('La sucursal no tiene ningún turno cargado y quedará siempre abierta. ¿Guardar igual?')) return;
+
+    const boton = horEl('btn-hor-guardar');
+    if (boton) boton.disabled = true;
+    mostrarEstado(horEl('hor-estado'), 'Guardando horarios...');
+    try {
+      // Primero se insertan/actualizan los turnos nuevos y después se borran los que sobran:
+      // si algo falla a mitad de camino nunca queda la sucursal sin horarios.
+      if (filas.length) {
+        const { error } = await cliente
+          .from('sucursal_horarios')
+          .upsert(filas, { onConflict: 'sucursal_id,dia_semana,desde' });
+        if (error) throw error;
+      }
+      const claves = new Set(filas.map(f => `${f.dia_semana}|${f.desde}`));
+      const sobrantes = horOriginales.filter(o => !claves.has(`${o.dia_semana}|${o.desde}`)).map(o => o.id);
+      if (sobrantes.length) {
+        const { error } = await cliente.from('sucursal_horarios').delete().in('id', sobrantes);
+        if (error) throw error;
+      }
+      horSucio = false;
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Horarios guardados.', 'ok');
+    } catch (error) {
+      console.warn('No se pudieron guardar los horarios:', error);
+      mostrarEstado(horEl('hor-estado'), '');
+      mostrarAvisoHorarios(mensajeErrorHorarios(error));
+    } finally {
+      if (boton) boton.disabled = false;
+    }
+  }
+
+  /* --- Cierres especiales (solo dueño) --- */
+
+  function formatearFechaCierre(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+  }
+
+  function renderCierres() {
+    const caja = horEl('hor-cierres');
+    if (!caja) return;
+    if (!horCierres.length) {
+      caja.innerHTML = '<p class="admin-ayuda">No hay cierres especiales cargados.</p>';
+      return;
+    }
+    const hoy = fechaArgentinaHoy();
+    caja.innerHTML = horCierres.map(c => {
+      const pasado = String(c.hasta) < hoy;
+      const rango = c.desde === c.hasta
+        ? formatearFechaCierre(c.desde)
+        : `${formatearFechaCierre(c.desde)} al ${formatearFechaCierre(c.hasta)}`;
+      const sucursal = c.sucursal_id ? (SUCURSALES_NOMBRES[c.sucursal_id] || c.sucursal_id) : 'Todas las sucursales';
+      return `<button type="button" class="hor-cierre${pasado ? ' pasado' : ''}" data-cierre-id="${PM.escaparHtml(c.id)}">
+        <strong>${PM.escaparHtml(rango)}</strong>
+        <span>${PM.escaparHtml(sucursal)}${pasado ? ' · Pasado' : ''}</span>
+        <small>${PM.escaparHtml(c.motivo || 'Sin motivo')}</small>
+      </button>`;
+    }).join('');
+  }
+
+  function abrirFormCierre(cierre) {
+    const modal = horEl('modal-cierre');
+    if (!modal || !esDuenoHorarios()) return;
+    horBotonOrigen = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const editando = !!cierre;
+    horEl('cierre-id').value = editando ? cierre.id : '';
+    const select = horEl('cierre-sucursal');
+    select.innerHTML = '<option value="">Todas las sucursales</option>' + idsSucursalesHorario()
+      .map(id => `<option value="${PM.escaparHtml(id)}">${PM.escaparHtml(SUCURSALES_NOMBRES[id] || id)}</option>`).join('');
+    select.value = editando && cierre.sucursal_id ? cierre.sucursal_id : '';
+    horEl('cierre-desde').value = editando ? String(cierre.desde).slice(0, 10) : '';
+    horEl('cierre-hasta').value = editando ? String(cierre.hasta).slice(0, 10) : '';
+    horEl('cierre-motivo').value = editando ? (cierre.motivo || '') : '';
+    horEl('cierre-titulo').textContent = editando ? 'Editar cierre' : 'Nuevo cierre';
+    horEl('btn-borrar-cierre').hidden = !editando;
+    mostrarEstado(horEl('cierre-estado'), '');
+    modal.hidden = false;
+    document.body.classList.add('admin-modal-abierto');
+    horEl('cierre-desde').focus({ preventScroll: true });
+  }
+
+  function cerrarFormCierre() {
+    const modal = horEl('modal-cierre');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    document.body.classList.remove('admin-modal-abierto');
+    const origen = horBotonOrigen;
+    horBotonOrigen = null;
+    if (origen && origen.isConnected) origen.focus({ preventScroll: true });
+  }
+
+  async function guardarCierre(evento) {
+    evento.preventDefault();
+    if (!cliente || !esDuenoHorarios()) return;
+    const estado = horEl('cierre-estado');
+    const fallo = mensaje => mostrarEstado(estado, mensaje, 'error');
+    const id = horEl('cierre-id').value;
+    const desde = horEl('cierre-desde').value;
+    const hasta = horEl('cierre-hasta').value;
+    const motivo = horEl('cierre-motivo').value.trim();
+    const sucursal = horEl('cierre-sucursal').value || null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(desde) || !/^\d{4}-\d{2}-\d{2}$/.test(hasta)) return fallo('Elegí la fecha desde y hasta.');
+    if (hasta < desde) return fallo('La fecha "hasta" no puede ser anterior a "desde".');
+    if (motivo.length > 200) return fallo('El motivo no puede tener más de 200 caracteres.');
+    const datos = { sucursal_id: sucursal, desde, hasta, motivo: motivo || null };
+    const boton = horEl('btn-guardar-cierre');
+    boton.disabled = true;
+    mostrarEstado(estado, 'Guardando...');
+    try {
+      const { error } = await (id
+        ? cliente.from('cierres_especiales').update(datos).eq('id', id)
+        : cliente.from('cierres_especiales').insert(datos));
+      if (error) throw error;
+      cerrarFormCierre();
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Cierre guardado.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo guardar el cierre:', error);
+      fallo(mensajeErrorHorarios(error));
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  async function borrarCierre() {
+    const id = horEl('cierre-id').value;
+    if (!id || !cliente || !esDuenoHorarios()) return;
+    if (!window.confirm('¿Borrar este cierre especial?')) return;
+    try {
+      const { error } = await cliente.from('cierres_especiales').delete().eq('id', id);
+      if (error) throw error;
+      cerrarFormCierre();
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Cierre borrado.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo borrar el cierre:', error);
+      mostrarEstado(horEl('cierre-estado'), mensajeErrorHorarios(error), 'error');
+    }
+  }
+
+  function conectarEventosHorarios() {
+    const dias = horEl('hor-dias');
+    if (dias) {
+      dias.addEventListener('click', manejarClickDias);
+      dias.addEventListener('input', manejarInputDias);
+    }
+    const sel = horEl('hor-sucursal');
+    if (sel) {
+      sel.addEventListener('change', () => {
+        if (horSucio && !window.confirm('Hay cambios de horarios sin guardar. ¿Cambiar de sucursal igual?')) {
+          sel.value = horSucursal;
+          return;
+        }
+        horSucursal = sel.value;
+        cargarHorarios();
+      });
+    }
+    document.querySelectorAll('input[name="hor-modo"]').forEach(radio => {
+      radio.addEventListener('change', () => { if (radio.checked) cambiarModoHorario(radio.value); });
+    });
+    const auto = horEl('btn-hor-auto');
+    if (auto) auto.addEventListener('click', () => cambiarModoHorario('automatico'));
+    const guardar = horEl('btn-hor-guardar');
+    if (guardar) guardar.addEventListener('click', guardarHorarios);
+    const recargar = horEl('btn-hor-recargar');
+    if (recargar) {
+      recargar.addEventListener('click', () => {
+        if (horSucio && !window.confirm('Hay cambios sin guardar. ¿Recargar igual?')) return;
+        cargarHorarios();
+      });
+    }
+    const nuevo = horEl('btn-nuevo-cierre');
+    if (nuevo) nuevo.addEventListener('click', () => abrirFormCierre(null));
+    const lista = horEl('hor-cierres');
+    if (lista) {
+      lista.addEventListener('click', ev => {
+        const b = ev.target.closest('[data-cierre-id]');
+        if (!b) return;
+        const c = horCierres.find(x => String(x.id) === b.dataset.cierreId);
+        if (c) abrirFormCierre(c);
+      });
+    }
+    const form = horEl('form-cierre');
+    if (form) form.addEventListener('submit', guardarCierre);
+    const borrar = horEl('btn-borrar-cierre');
+    if (borrar) borrar.addEventListener('click', borrarCierre);
+    ['btn-cerrar-cierre', 'btn-cancelar-cierre'].forEach(id => {
+      const b = horEl(id);
+      if (b) b.addEventListener('click', cerrarFormCierre);
+    });
+    const overlay = horEl('modal-cierre');
+    if (overlay) overlay.addEventListener('mousedown', ev => { if (ev.target === overlay) cerrarFormCierre(); });
+    document.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape' && overlay && !overlay.hidden) cerrarFormCierre();
+    });
+  }
+
   function mostrarVistaAdmin(vista) {
     if (vista === 'clientes' && !puedeVerCupones()) vista = 'pedidos';
+    if (vista === 'horarios' && !puedeVerHorarios()) vista = 'pedidos';
+    const esHorarios = vista === 'horarios';
+    const vistaHorarios = document.getElementById('admin-vista-horarios');
+    if (vistaHorarios) vistaHorarios.hidden = !esHorarios;
+    if (esHorarios && cliente) cargarHorarios();
     const esCrm = vista === 'clientes';
     const vistaCrm = crmEl('admin-vista-clientes');
     if (vistaCrm) vistaCrm.hidden = !esCrm;
@@ -5470,7 +6031,7 @@
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats || esCrm;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats || esCrm || esHorarios;
     if (el.vistaFidelidad) el.vistaFidelidad.hidden = !esFidelidad;
     if (esFidelidad && cliente) {
       if (!fidelidadCargada) cargarFidelidad();
@@ -5511,6 +6072,8 @@
         await cargarCarta();
       });
     }
+
+    conectarEventosHorarios();
 
     el.tabsVista.forEach(tab => {
       tab.addEventListener('click', () => mostrarVistaAdmin(tab.dataset.adminVista));
