@@ -164,7 +164,7 @@
     agotadosAviso: document.getElementById('agotados-aviso'),
     agotadosLista: document.getElementById('agotados-lista'),
     agotadosResumen: document.getElementById('agotados-resumen'),
-    agotadosSolo: document.getElementById('agotados-solo'),
+    agotadosFiltroEstado: document.getElementById('agotados-filtro-estado'),
     agotadosBuscar: document.getElementById('agotados-buscar'),
     agotadosCategoria: document.getElementById('agotados-categoria'),
     pedidosFiltroPeriodo: document.getElementById('pedidos-filtro-periodo'),
@@ -226,8 +226,11 @@
 
   let agotadosCargados = false;
   let agotadosCargando = false;
-  let agotadosProductos = new Set();
-  let agotadosSoloAgotados = false;
+  // Fuente única en memoria: sucursal_id -> Set(producto_id). La usan Pedidos y la carta.
+  let agotadosPorSucursal = new Map();
+  let agotadosFiltroEstado = 'no-disponibles';
+  const agotadosSaliendo = new Set();
+  let agotadosAvisoTimer = null;
   const agotadosGuardando = new Set();
   let agotadosCanal = null;
   let agotadosRealtimeTimer = null;
@@ -609,7 +612,7 @@
     detenerAlertaPedidos();
     enviosCargados = false;
     agotadosCargados = false;
-    agotadosProductos = new Set();
+    agotadosPorSucursal = new Map();
     actualizarBotonGuardar();
   }
 
@@ -3207,8 +3210,12 @@
     mostrarEstado(el.agotadosEstado, texto, tipo);
   }
 
-  function mostrarAvisoAgotados(texto, tipo = 'info') {
+  function mostrarAvisoAgotados(texto, tipo = 'info', accion = null) {
     if (!el.agotadosAviso) return;
+    if (agotadosAvisoTimer) {
+      clearTimeout(agotadosAvisoTimer);
+      agotadosAvisoTimer = null;
+    }
     if (!texto) {
       el.agotadosAviso.hidden = true;
       el.agotadosAviso.textContent = '';
@@ -3217,6 +3224,39 @@
     el.agotadosAviso.hidden = false;
     el.agotadosAviso.dataset.tipo = tipo;
     el.agotadosAviso.textContent = texto;
+    if (accion) {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'btn-secundario admin-agotados-deshacer';
+      boton.textContent = accion.texto;
+      boton.addEventListener('click', () => {
+        mostrarAvisoAgotados('');
+        accion.alClick();
+      });
+      el.agotadosAviso.append(' ', boton);
+      agotadosAvisoTimer = setTimeout(() => mostrarAvisoAgotados(''), 8000);
+    }
+  }
+
+  function agotadosDeSucursal(sucursalId) {
+    return agotadosPorSucursal.get(String(sucursalId)) || new Set();
+  }
+
+  function estaAgotadoEn(sucursalId, productoId) {
+    return agotadosDeSucursal(sucursalId).has(String(productoId));
+  }
+
+  function fijarAgotado(sucursalId, productoId, agotado) {
+    const sid = String(sucursalId);
+    if (!agotadosPorSucursal.has(sid)) agotadosPorSucursal.set(sid, new Set());
+    const set = agotadosPorSucursal.get(sid);
+    if (agotado) set.add(String(productoId));
+    else set.delete(String(productoId));
+  }
+
+  function renderAgotadosTodo() {
+    renderAgotados();
+    renderDisponibilidadCarta();
   }
 
   function poblarSelectAgotados() {
@@ -3290,55 +3330,58 @@
       return;
     }
 
+    const agotados = agotadosDeSucursal(sucursalId);
     poblarCategoriasAgotados(productos);
-    const cantidad = productos.filter(p => agotadosProductos.has(String(p.id))).length;
+    const cantidad = productos.filter(p => agotados.has(String(p.id))).length;
     if (el.agotadosResumen) el.agotadosResumen.textContent = `${cantidad} ${cantidad === 1 ? 'agotado' : 'agotados'}`;
-    if (el.agotadosSolo) {
-      el.agotadosSolo.setAttribute('aria-pressed', agotadosSoloAgotados ? 'true' : 'false');
-      el.agotadosSolo.textContent = agotadosSoloAgotados ? 'Ver todos' : 'Ver solo agotados';
-    }
+    if (el.agotadosFiltroEstado) el.agotadosFiltroEstado.value = agotadosFiltroEstado;
 
     const consulta = normalizarBusquedaAgotados(el.agotadosBuscar && el.agotadosBuscar.value);
     const categoria = el.agotadosCategoria ? el.agotadosCategoria.value : '';
     const filtrados = productos.filter(p => {
+      const id = String(p.id);
       if (categoria && p.categoria !== categoria) return false;
-      if (agotadosSoloAgotados && !agotadosProductos.has(String(p.id))) return false;
       if (consulta && !normalizarBusquedaAgotados(p.nombre || p.id).includes(consulta)) return false;
+      if (agotadosSaliendo.has(id)) return true;
+      if (agotadosFiltroEstado === 'no-disponibles') return agotados.has(id);
+      if (agotadosFiltroEstado === 'disponibles') return !agotados.has(id);
       return true;
     });
-    // Agotados primero; el resto conserva el orden por categoría/nombre.
-    filtrados.sort((x, y) => Number(agotadosProductos.has(String(y.id))) - Number(agotadosProductos.has(String(x.id))));
+    if (agotadosFiltroEstado === 'todos') {
+      // Agotados primero; el resto conserva el orden por categoría/nombre.
+      filtrados.sort((x, y) => Number(agotados.has(String(y.id))) - Number(agotados.has(String(x.id))));
+    }
 
     if (!filtrados.length) {
-      el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">No hay productos que coincidan.</p>';
+      if (agotadosFiltroEstado === 'no-disponibles' && cantidad === 0 && !consulta && !categoria) {
+        el.agotadosLista.innerHTML = '<div class="admin-envios-vacio admin-agotados-vacio"><p>No hay productos agotados</p><button type="button" class="btn-secundario" data-agotados-ver-todos>Ver todos para marcar</button></div>';
+      } else {
+        el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">No hay productos que coincidan.</p>';
+      }
       return;
     }
 
+    const sucursalNombre = SUCURSALES_NOMBRES[sucursalId] || sucursalId;
     el.agotadosLista.innerHTML = filtrados.map(producto => {
       const id = String(producto.id);
-      const agotado = agotadosProductos.has(id);
-      const guardando = agotadosGuardando.has(id);
+      const agotado = agotados.has(id);
+      const guardando = agotadosGuardando.has(`${sucursalId}|${id}`);
       const nombre = producto.nombre || id;
-      return `<div class="admin-agotado-fila${agotado ? ' es-agotado' : ''}">
+      return `<div class="admin-agotado-fila${agotado ? ' es-agotado' : ''}${agotadosSaliendo.has(id) ? ' saliendo' : ''}">
         <span class="admin-agotado-texto">
           <strong>${escaparHtml(nombre)}</strong>
           <small>${escaparHtml(nombreCategoria(producto.categoria))}</small>
         </span>
         <span class="admin-agotado-estado">${agotado ? 'Agotado' : 'Disponible'}</span>
-        <button type="button" class="admin-switch" role="switch" aria-checked="${agotado ? 'true' : 'false'}" aria-label="${escaparHtml(nombre)}" data-agotado-id="${escaparHtml(id)}"${guardando ? ' disabled' : ''}><span class="admin-switch-perilla"></span></button>
+        <button type="button" class="admin-switch" role="switch" aria-checked="${agotado ? 'true' : 'false'}" aria-label="${escaparHtml(`${nombre} en ${sucursalNombre}`)}" data-agotado-id="${escaparHtml(id)}" data-agotado-sucursal="${escaparHtml(sucursalId)}"${guardando ? ' disabled' : ''}><span class="admin-switch-perilla"></span></button>
       </div>`;
     }).join('');
     el.agotadosLista.scrollTop = scrollPrevio;
   }
 
+  // Carga una sola vez las filas de todas las sucursales que el usuario puede ver (la RLS filtra).
   async function cargarAgotados(opciones = {}) {
     if (!cliente || agotadosCargando) return;
-    const sucursalId = sucursalAgotadosSeleccionada();
-    if (!sucursalId) {
-      agotadosProductos = new Set();
-      renderAgotados();
-      return;
-    }
     if (!carta) await cargarCarta();
 
     agotadosCargando = true;
@@ -3350,16 +3393,20 @@
     try {
       const { data, error } = await cliente
         .from('agotados_sucursal')
-        .select('producto_id,sucursal_id')
-        .eq('sucursal_id', sucursalId);
+        .select('producto_id,sucursal_id');
       if (error) throw error;
 
-      agotadosProductos = new Set((Array.isArray(data) ? data : [])
-        .map(item => item && item.producto_id ? String(item.producto_id) : '')
-        .filter(Boolean));
+      const nuevo = new Map();
+      (Array.isArray(data) ? data : []).forEach(item => {
+        if (!item || !item.producto_id || !item.sucursal_id) return;
+        const sid = String(item.sucursal_id);
+        if (!nuevo.has(sid)) nuevo.set(sid, new Set());
+        nuevo.get(sid).add(String(item.producto_id));
+      });
+      agotadosPorSucursal = nuevo;
       agotadosCargados = true;
-      renderAgotados();
-      if (!opciones.silencioso) mostrarEstadoAgotados('Agotados actualizados.', 'ok');
+      renderAgotadosTodo();
+      mostrarEstadoAgotados('');
     } catch (error) {
       console.warn('No se pudieron cargar los agotados:', error);
       mostrarEstadoAgotados('');
@@ -3369,46 +3416,63 @@
     }
   }
 
-  async function cambiarAgotado(productoId, marcar) {
-    const sucursalId = sucursalAgotadosSeleccionada();
+  // Guardado instantáneo compartido por Pedidos y la carta del admin.
+  async function cambiarAgotado(productoId, sucursalId, marcar, opciones = {}) {
     const id = String(productoId || '');
-    if (!cliente || !id || !sucursalId || agotadosGuardando.has(id)) return;
-    agotadosGuardando.add(id);
-    // Feedback inmediato: se actualiza la fila y el switch queda deshabilitado mientras guarda.
-    if (marcar) agotadosProductos.add(id);
-    else agotadosProductos.delete(id);
-    renderAgotados();
+    const sid = String(sucursalId || '');
+    const clave = `${sid}|${id}`;
+    if (!cliente || !id || !sid || agotadosGuardando.has(clave)) return;
+    agotadosGuardando.add(clave);
+    const conTransicion = !marcar && opciones.origen === 'pedidos' && agotadosFiltroEstado === 'no-disponibles';
+    if (conTransicion) agotadosSaliendo.add(id);
+    fijarAgotado(sid, id, marcar);
+    renderAgotadosTodo();
     mostrarAvisoAgotados('');
+    if (conTransicion) {
+      setTimeout(() => {
+        agotadosSaliendo.delete(id);
+        renderAgotados();
+      }, 250);
+    }
 
     try {
       let error = null;
       if (marcar) {
         const respuesta = await cliente
           .from('agotados_sucursal')
-          .upsert({ producto_id: id, sucursal_id: sucursalId }, { onConflict: 'producto_id,sucursal_id' });
+          .upsert({ producto_id: id, sucursal_id: sid }, { onConflict: 'producto_id,sucursal_id' });
         error = respuesta.error;
       } else {
         const respuesta = await cliente
           .from('agotados_sucursal')
           .delete()
           .eq('producto_id', id)
-          .eq('sucursal_id', sucursalId);
+          .eq('sucursal_id', sid);
         error = respuesta.error;
       }
       if (error) throw error;
-      mostrarEstadoAgotados(marcar ? 'Producto marcado como agotado.' : 'Producto reactivado.', 'ok');
+      if (!marcar && opciones.origen === 'pedidos') {
+        const producto = buscarProducto(id);
+        const nombre = (producto && producto.nombre) || id;
+        mostrarAvisoAgotados(`Reactivado: ${nombre}.`, 'info', {
+          texto: 'Deshacer',
+          alClick: () => cambiarAgotado(id, sid, true, { origen: 'pedidos' })
+        });
+      }
     } catch (error) {
       console.warn('No se pudo cambiar el agotado:', error);
       // Revierte el switch.
-      if (marcar) agotadosProductos.delete(id);
-      else agotadosProductos.add(id);
+      fijarAgotado(sid, id, !marcar);
+      agotadosSaliendo.delete(id);
       mostrarEstadoAgotados('');
       mostrarAvisoAgotados(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : `No se pudo guardar el agotado: ${error.message || 'error de conexión'}`, 'error');
     } finally {
-      agotadosGuardando.delete(id);
-      renderAgotados();
+      agotadosGuardando.delete(clave);
+      renderAgotadosTodo();
     }
   }
+
+  function renderDisponibilidadCarta() {}
 
   function programarRecargaAgotados() {
     if (agotadosRealtimeTimer) clearTimeout(agotadosRealtimeTimer);
@@ -4824,23 +4888,25 @@
     });
     if (el.btnPedidosExportar) el.btnPedidosExportar.addEventListener('click', exportarPedidosCsv);
     if (el.agotadosSucursal) {
-      el.agotadosSucursal.addEventListener('change', () => {
-        agotadosCargados = false;
-        cargarAgotados();
-      });
+      el.agotadosSucursal.addEventListener('change', () => renderAgotados());
     }
     if (el.agotadosLista) {
       el.agotadosLista.addEventListener('click', (evento) => {
+        if (evento.target.closest('[data-agotados-ver-todos]')) {
+          agotadosFiltroEstado = 'todos';
+          renderAgotados();
+          return;
+        }
         const boton = evento.target.closest('[data-agotado-id]');
         if (!boton || boton.disabled) return;
-        cambiarAgotado(boton.dataset.agotadoId, boton.getAttribute('aria-checked') !== 'true');
+        cambiarAgotado(boton.dataset.agotadoId, boton.dataset.agotadoSucursal, boton.getAttribute('aria-checked') !== 'true', { origen: 'pedidos' });
       });
     }
     if (el.agotadosBuscar) el.agotadosBuscar.addEventListener('input', renderAgotados);
     if (el.agotadosCategoria) el.agotadosCategoria.addEventListener('change', renderAgotados);
-    if (el.agotadosSolo) {
-      el.agotadosSolo.addEventListener('click', () => {
-        agotadosSoloAgotados = !agotadosSoloAgotados;
+    if (el.agotadosFiltroEstado) {
+      el.agotadosFiltroEstado.addEventListener('change', () => {
+        agotadosFiltroEstado = el.agotadosFiltroEstado.value || 'no-disponibles';
         renderAgotados();
       });
     }

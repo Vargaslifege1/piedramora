@@ -2577,8 +2577,33 @@ p {
 
 .admin-agotados-filtros {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.5rem;
+}
+
+.admin-agotados-filtros input {
+  grid-column: 1 / -1;
+  order: -1;
+}
+
+.admin-agotados-vacio {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+}
+
+.admin-agotados-deshacer {
+  min-height: 44px;
+  margin-left: 0.5rem;
+}
+
+.admin-agotado-fila {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.admin-agotado-fila.saliendo {
+  opacity: 0;
+  transform: translateX(12px);
 }
 
 .admin-agotados-filtros input,
@@ -2707,6 +2732,6 @@ p {
 
 @media (max-width: 420px) {
   .admin-agotados-filtros {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
