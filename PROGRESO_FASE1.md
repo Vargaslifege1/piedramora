@@ -847,3 +847,5 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Promesas sin catch (main.js/admin.js) y accesos al DOM del modal de cantidad con chequeo.
 - Seguridad: scripts externos con versión fija + SRI (supabase-js 2.119.0 UMD, Leaflet 1.9.4 js/css), crossorigin anonymous y defer; GTM sin cambios.
 - Checkout: idempotency key persistida en sessionStorage con huella del carrito (30 min), un reintento con la misma key ante timeout/red antes del fallback, y se borra recién al vaciar el carrito tras guardar.
+
+- Migración 021 (SIN APLICAR, falta backup): envío exige coordenadas válidas y radio máx. (`envio_radio_max_km`, default 30) en `pm_calcular_pedido`; trigger de transiciones de estado en `pedidos` (dueño puede corregir entregado→cancelado y cancelado→pendiente); `pedidos.entregado_en` y `pm_pedidos_liberar_premio` no libera premios de pedidos ya entregados. El tablero admin sigue funcionando con todas sus transiciones.
