@@ -3670,9 +3670,12 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     costo_envio: costoEnvioCliente,
     total: Math.max(0, totalesBase.total + costoEnvioCliente)
   };
+  // Mismo criterio que actualizarResumenPago: premio > cupón > descuento por pago.
   const totalMostrado = premioElegido
     ? Math.max(0, totalesCliente.subtotal - fidelidadDescuentoPremio(totalesCliente.subtotal) + costoEnvioCliente)
-    : totalesCliente.total;
+    : (cuponAplicado
+      ? Math.max(0, totalesCliente.subtotal - cuponAplicado.descuento + costoEnvioCliente)
+      : totalesCliente.total);
   const premioUsado = premioElegido ? { ...premioElegido } : null;
 
   pedidoEnviando = true;
@@ -3804,11 +3807,8 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     if (pedidoGuardado) {
       const totalServidor = Number(pedidoGuardado.total) || 0;
       if (totalServidor !== totalMostrado) {
-        const continuar = window.confirm(`El costo final es ${formatearPrecioAR(totalServidor)}. ¿Continuar?`);
-        if (!continuar) {
-          cerrarVentanaPedido(ventanaWhatsapp);
-          return;
-        }
+        // El pedido ya está guardado: solo avisamos y seguimos con WhatsApp (nunca dejarlo huérfano).
+        window.alert(`El costo final es ${formatearPrecioAR(totalServidor)}.`);
       }
     }
 
