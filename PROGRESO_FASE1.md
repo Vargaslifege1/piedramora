@@ -846,3 +846,4 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Admin: exportación CSV prefija con ' los valores que empiezan con = + - @ tab o CR.
 - Promesas sin catch (main.js/admin.js) y accesos al DOM del modal de cantidad con chequeo.
 - Seguridad: scripts externos con versión fija + SRI (supabase-js 2.119.0 UMD, Leaflet 1.9.4 js/css), crossorigin anonymous y defer; GTM sin cambios.
+- Checkout: idempotency key persistida en sessionStorage con huella del carrito (30 min), un reintento con la misma key ante timeout/red antes del fallback, y se borra recién al vaciar el carrito tras guardar.

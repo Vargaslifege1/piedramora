@@ -1554,7 +1554,6 @@ function modificarCantidadLinea(lineaId, cambio) {
 }
 
 function actualizarVistaCarrito() {
-  if (!pedidoEnviando) checkoutIdempotencyKey = null;
   if (categoriaActivaIndex >= 0 && cartaActualData && cartaActualData.categorias[categoriaActivaIndex]) {
     renderProductosCategoria(cartaActualData.categorias[categoriaActivaIndex]);
   }
@@ -3392,9 +3391,61 @@ function generarUuidPedido() {
   });
 }
 
-function obtenerIdempotencyKeyPedido() {
-  if (!checkoutIdempotencyKey) checkoutIdempotencyKey = generarUuidPedido();
+const IDEMPOTENCY_STORAGE_KEY = 'pm_idempotency_pedido';
+const IDEMPOTENCY_TTL_MS = 30 * 60 * 1000;
+
+// Huella del pedido: si cambia algo del carrito/pago/cupón/premio, corresponde otra key.
+function huellaPedidoCheckout({ modalidad, pagoTipo, cupon, premioId }) {
+  const items = CARRITO.map((item) => [
+    item.productoBaseId,
+    item.variacion ? item.variacion.id : null,
+    (item.adicionalesLista || []).map(a => a.id).sort(),
+    item.cantidad
+  ]);
+  return JSON.stringify([cartaActualSucursalId, modalidad, pagoTipo, cupon || null, premioId || null, items]);
+}
+
+function obtenerIdempotencyKeyPedido(huella) {
+  try {
+    const guardado = JSON.parse(sessionStorage.getItem(IDEMPOTENCY_STORAGE_KEY) || 'null');
+    if (guardado && guardado.key && guardado.huella === huella
+        && (Date.now() - Number(guardado.ts)) < IDEMPOTENCY_TTL_MS) {
+      checkoutIdempotencyKey = guardado.key;
+      return guardado.key;
+    }
+  } catch (error) {}
+  checkoutIdempotencyKey = generarUuidPedido();
+  try {
+    sessionStorage.setItem(IDEMPOTENCY_STORAGE_KEY, JSON.stringify({ key: checkoutIdempotencyKey, huella, ts: Date.now() }));
+  } catch (error) {}
   return checkoutIdempotencyKey;
+}
+
+function borrarIdempotencyKeyPedido() {
+  checkoutIdempotencyKey = null;
+  try { sessionStorage.removeItem(IDEMPOTENCY_STORAGE_KEY); } catch (error) {}
+}
+
+function esErrorDeRed(error) {
+  if (!error) return false;
+  if (error.esTimeout) return true;
+  if (esRechazoPedido(error)) return false;
+  return error.name === 'TypeError' || /failed to fetch|network|load failed|timeout|timed out/i.test(String(error.message || ''));
+}
+
+// Un solo reintento con la misma key ante timeout/red; si el servidor ya tenía el pedido, lo devuelve.
+async function crearPedidoConReintento(clienteNube, payload) {
+  try {
+    const { data, error } = await conTiempoLimite(clienteNube.rpc('crear_pedido', payload), 10000);
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    if (!esErrorDeRed(error)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const { data, error: errorReintento } = await conTiempoLimite(clienteNube.rpc('crear_pedido', payload), 10000);
+    if (errorReintento) throw errorReintento;
+    return data;
+  }
 }
 
 function itemsPedidoDesdeRespuesta(pedido) {
@@ -3683,7 +3734,12 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
   const premioUsado = premioElegido ? { ...premioElegido } : null;
 
   pedidoEnviando = true;
-  const idempotencyKey = obtenerIdempotencyKeyPedido();
+  const idempotencyKey = obtenerIdempotencyKeyPedido(huellaPedidoCheckout({
+    modalidad: tipoEntrega,
+    pagoTipo: pago.tipo,
+    cupon: premioUsado ? null : (cuponAplicado ? cuponAplicado.codigo : null),
+    premioId: premioUsado ? premioUsado.id : null
+  }));
   const botonEnviar = document.querySelector('#checkout-form button[type="submit"]');
   if (botonEnviar) {
     botonEnviar.disabled = true;
@@ -3731,17 +3787,14 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       };
 
       try {
-        const { data, error } = await conTiempoLimite(clienteNube.rpc('crear_pedido', payloadPedido), 10000);
-
-        if (error) throw error;
-        pedidoGuardado = data;
+        pedidoGuardado = await crearPedidoConReintento(clienteNube, payloadPedido);
       } catch (error) {
         if (premioUsado && /premio/i.test(String((error && error.message) || ''))) {
           const mensajePremio = String(error.message || 'El premio ya no es válido.');
           try { fidelidadInvalidarCache(); } catch (e) {}
           fidelidadElegirPremio(null);
           fidelidadProgramarConsultaPremios();
-          checkoutIdempotencyKey = null;
+          borrarIdempotencyKeyPedido();
           cerrarVentanaPedido(ventanaWhatsapp);
           alert(`${mensajePremio} Revisá tu pedido y volvé a enviarlo.`);
           return;
@@ -3782,7 +3835,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
 
           const quitados = quitarProductoAgotadoDelCarrito(productoAgotado);
           cerrarVentanaPedido(ventanaWhatsapp);
-          checkoutIdempotencyKey = null;
+          borrarIdempotencyKeyPedido();
 
           if (quitados > 0) {
             if (CARRITO.length === 0) cerrarModalCheckout();
@@ -3869,11 +3922,11 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     });
 
     if (pedidoGuardado) {
-      checkoutIdempotencyKey = null;
       try { fidelidadTrasPedido(); } catch (e) {}
       vaciarCarrito({ resetDireccion: true });
       cerrarModalCheckout();
       actualizarVistaCarrito();
+      borrarIdempotencyKeyPedido();
     }
   } catch (error) {
     console.error('No se pudo abrir WhatsApp con el pedido.', error);
