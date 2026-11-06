@@ -679,6 +679,7 @@
       if (tab.dataset.adminVista === 'carta') tab.hidden = restringido;
       if (tab.dataset.adminVista === 'cupones') tab.hidden = !puedeVerCupones();
       if (tab.dataset.adminVista === 'fidelidad') tab.hidden = !puedeVerFidelidad();
+      if (tab.dataset.adminVista === 'estadisticas') tab.hidden = !puedeVerCupones();
     });
 
     poblarFiltroSucursalesPedidos();
@@ -699,6 +700,10 @@
       mostrarVistaAdmin('pedidos');
     }
     if (!puedeVerFidelidad() && el.vistaFidelidad && !el.vistaFidelidad.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    const vistaStatsPerm = document.getElementById('admin-vista-estadisticas');
+    if (!puedeVerCupones() && vistaStatsPerm && !vistaStatsPerm.hidden) {
       mostrarVistaAdmin('pedidos');
     }
 
@@ -4825,9 +4830,274 @@
     }
   }
 
+  // ---------------------------------------------------------------
+  // Estadísticas (solo dueño). El servidor calcula todo; acá solo se muestra.
+  // ---------------------------------------------------------------
+  const estadisticas = { periodo: 'hoy', seq: 0, resumen: null, cupones: null, rango: null, sucursal: null };
+
+  function statsEl(id) { return document.getElementById(id); }
+
+  function fechaArgentinaISO(fecha) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_AR, year: 'numeric', month: '2-digit', day: '2-digit' }).format(fecha);
+  }
+
+  function sumarDiasISO(iso, dias) {
+    const [a, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+  }
+
+  // Límites: inicio del día local (-03:00), fin exclusivo.
+  function rangoEstadisticas() {
+    const hoy = fechaArgentinaISO(new Date());
+    let desde = hoy;
+    let hasta = hoy;
+    if (estadisticas.periodo === '7') desde = sumarDiasISO(hoy, -6);
+    else if (estadisticas.periodo === '30') desde = sumarDiasISO(hoy, -29);
+    else if (estadisticas.periodo === 'custom') {
+      desde = (statsEl('stats-desde') || {}).value || '';
+      hasta = (statsEl('stats-hasta') || {}).value || '';
+      if (!desde || !hasta) return null;
+    }
+    return { desde, hasta, p_desde: `${desde}T00:00:00-03:00`, p_hasta: `${sumarDiasISO(hasta, 1)}T00:00:00-03:00` };
+  }
+
+  function mensajeErrorStats(error) {
+    if (esErrorPermiso(error)) return 'No tenés permiso para hacer esto.';
+    const msg = String((error && error.message) || '');
+    if (msg.includes('731')) return 'El período no puede superar los 731 días.';
+    return 'No se pudieron cargar las estadísticas. Probá de nuevo.';
+  }
+
+  function avisoStats(texto) {
+    const aviso = statsEl('stats-aviso');
+    if (!aviso) return;
+    aviso.hidden = !texto;
+    aviso.dataset.tipo = 'error';
+    aviso.textContent = texto || '';
+  }
+
+  async function cargarEstadisticas() {
+    if (!cliente || !puedeVerCupones()) return;
+    const rango = rangoEstadisticas();
+    const contenido = statsEl('stats-contenido');
+    const estado = statsEl('stats-estado');
+    const btnCsv = statsEl('btn-stats-csv');
+    const mi = ++estadisticas.seq; // invalida consultas anteriores
+    avisoStats('');
+    if (!rango) {
+      mostrarEstado(estado, 'Elegí las dos fechas.');
+      return;
+    }
+    if (rango.p_hasta <= rango.p_desde) {
+      mostrarEstado(estado, '');
+      avisoStats('La fecha "hasta" no puede ser anterior a "desde".');
+      return;
+    }
+    const suc = (statsEl('stats-sucursal') || {}).value || null;
+    const args = { p_desde: rango.p_desde, p_hasta: rango.p_hasta, p_sucursal: suc };
+    mostrarEstado(estado, 'Cargando estadísticas...');
+    if (btnCsv) btnCsv.disabled = true;
+    try {
+      const [r1, r2] = await Promise.all([
+        cliente.rpc('stats_resumen', args),
+        cliente.rpc('stats_cupones_fidelidad', args)
+      ]);
+      if (mi !== estadisticas.seq) return;
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
+      estadisticas.resumen = r1.data || {};
+      estadisticas.cupones = r2.data || {};
+      estadisticas.rango = rango;
+      estadisticas.sucursal = suc;
+      renderEstadisticas();
+      mostrarEstado(estado, '');
+      if (contenido) contenido.hidden = false;
+      if (btnCsv) btnCsv.disabled = false;
+    } catch (error) {
+      if (mi !== estadisticas.seq) return;
+      console.warn('No se pudieron cargar las estadísticas:', error);
+      mostrarEstado(estado, '');
+      if (contenido) contenido.hidden = true;
+      avisoStats(mensajeErrorStats(error));
+    }
+  }
+
+  function statsNum(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+
+  function statsVariacion(pct) {
+    if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) {
+      return '<span class="admin-stats-var">—</span>';
+    }
+    const n = Number(pct);
+    const clase = n > 0 ? 'sube' : (n < 0 ? 'baja' : '');
+    const signo = n > 0 ? '▲ +' : (n < 0 ? '▼ ' : '');
+    return `<span class="admin-stats-var ${clase}">${signo}${PM.escaparHtml(String(n).replace('.', ','))}%</span>`;
+  }
+
+  function statsTarjeta(titulo, valor, variacion) {
+    return `<div class="admin-stats-tarjeta"><span class="admin-stats-tit">${PM.escaparHtml(titulo)}</span>`
+      + `<strong>${PM.escaparHtml(valor)}</strong>`
+      + `<span class="admin-stats-sub">${variacion === undefined ? '&nbsp;' : statsVariacion(variacion) + ' vs. período anterior'}</span></div>`;
+  }
+
+  function statsLista(filas, vacio) {
+    if (!filas.length) return `<p class="admin-envios-vacio">${PM.escaparHtml(vacio)}</p>`;
+    const max = Math.max(...filas.map(f => f.valor), 1);
+    return '<ul class="admin-stats-lista">' + filas.map(f => `<li>
+      <div class="admin-stats-lista-fila"><span class="admin-stats-lista-nombre">${PM.escaparHtml(f.nombre)}</span><span class="admin-stats-lista-valor">${PM.escaparHtml(f.texto)}</span></div>
+      <div class="admin-stats-barra"><i style="width:${Math.max(2, Math.round(f.valor / max * 100))}%"></i></div></li>`).join('') + '</ul>';
+  }
+
+  // Barras SVG: datos = [{etiqueta, valor, titulo}]; el titulo es el tooltip.
+  function statsBarrasSvg(datos, opciones = {}) {
+    if (!datos.length) return '<p class="admin-envios-vacio">Sin datos en el período.</p>';
+    const W = 640, H = 220, izq = 50, der = 8, arr = 10, aba = 28;
+    const max = Math.max(...datos.map(d => d.valor), 0);
+    const tope = max > 0 ? max : 1;
+    const ancho = (W - izq - der) / datos.length;
+    const barra = Math.max(2, ancho * 0.7);
+    const alto = H - arr - aba;
+    const ejeY = [0, 0.5, 1].map(f => {
+      const y = arr + alto - alto * f;
+      const txt = opciones.formatoEje ? opciones.formatoEje(tope * f) : String(Math.round(tope * f));
+      return `<line x1="${izq}" x2="${W - der}" y1="${y}" y2="${y}" class="adm-eje"/><text x="${izq - 6}" y="${y + 4}" text-anchor="end" class="adm-txt">${PM.escaparHtml(txt)}</text>`;
+    }).join('');
+    const salto = Math.ceil(datos.length / (opciones.maxEtiquetas || 8));
+    const barras = datos.map((d, i) => {
+      const h = d.valor / tope * alto;
+      const x = izq + i * ancho + (ancho - barra) / 2;
+      const y = arr + alto - h;
+      const et = i % salto === 0 ? `<text x="${x + barra / 2}" y="${H - 10}" text-anchor="middle" class="adm-txt">${PM.escaparHtml(d.etiqueta)}</text>` : '';
+      return `<g class="adm-barra" tabindex="0"><title>${PM.escaparHtml(d.titulo)}</title><rect x="${x}" y="${arr}" width="${barra}" height="${alto}" fill="transparent"/><rect class="adm-r" x="${x}" y="${y}" width="${barra}" height="${Math.max(h, d.valor > 0 ? 1 : 0)}" rx="2"/></g>${et}`;
+    }).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" class="admin-stats-svg" role="img" aria-label="${PM.escaparHtml(opciones.alt || 'Gráfico de barras')}">${ejeY}${barras}</svg>`;
+  }
+
+  function statsPlata(v) { return formatearPrecio(statsNum(v)); }
+
+  function statsCompacto(v) {
+    const n = statsNum(v);
+    if (n >= 1000000) return `$${(n / 1000000).toFixed(1).replace('.', ',')} M`;
+    if (n >= 1000) return `$${Math.round(n / 1000)} mil`;
+    return `$${Math.round(n)}`;
+  }
+
+  function renderEstadisticas() {
+    const r = estadisticas.resumen || {};
+    const c = estadisticas.cupones || {};
+    const v = r.variacion || {};
+    const pon = (id, html) => { const nodo = statsEl(id); if (nodo) nodo.innerHTML = html; };
+
+    pon('stats-tarjetas',
+      statsTarjeta('Facturación', statsPlata(r.facturacion), v.facturacion_pct)
+      + statsTarjeta('Pedidos entregados', String(statsNum(r.pedidos)), v.pedidos_pct)
+      + statsTarjeta('Ticket promedio', statsPlata(r.ticket_promedio), v.ticket_pct)
+      + statsTarjeta('Cancelados', String(statsNum(r.cancelados)))
+      + statsTarjeta('Envío cobrado', statsPlata(r.envio_cobrado))
+      + statsTarjeta('Regalos', String(statsNum(r.regalos))));
+
+    const dias = (Array.isArray(r.ventas_por_dia) ? r.ventas_por_dia : []).map(d => {
+      const f = String(d.dia || '');
+      const corta = f.length >= 10 ? `${f.slice(8, 10)}/${f.slice(5, 7)}` : f;
+      return { etiqueta: corta, valor: statsNum(d.facturacion), titulo: `${corta}: ${statsPlata(d.facturacion)} · ${statsNum(d.pedidos)} pedidos` };
+    });
+    pon('stats-dias', statsBarrasSvg(dias, { formatoEje: statsCompacto, alt: 'Ventas por día' }));
+
+    const porHora = new Map((Array.isArray(r.ventas_por_hora) ? r.ventas_por_hora : []).map(h => [Number(h.hora), h]));
+    const horas = Array.from({ length: 24 }, (_, h) => {
+      const x = porHora.get(h) || {};
+      return { etiqueta: String(h), valor: statsNum(x.pedidos), titulo: `${h}:00 hs: ${statsNum(x.pedidos)} pedidos · ${statsPlata(x.facturacion)}` };
+    });
+    pon('stats-horas', statsBarrasSvg(horas, { maxEtiquetas: 12, alt: 'Pedidos por hora' }));
+
+    pon('stats-pagos', statsLista((r.metodos_pago || []).map(m => ({
+      nombre: m.metodo || 'Sin dato', valor: statsNum(m.facturacion),
+      texto: `${statsPlata(m.facturacion)} · ${statsNum(m.pedidos)} ped.`
+    })), 'Sin datos en el período.'));
+    pon('stats-modalidades', statsLista((r.modalidades || []).map(m => ({
+      nombre: etiquetaModalidadPedido(m.modalidad), valor: statsNum(m.pedidos),
+      texto: `${statsNum(m.pedidos)} ped. · ${statsPlata(m.facturacion)}`
+    })), 'Sin datos en el período.'));
+    pon('stats-top', statsLista((r.top_productos || []).map(p => ({
+      nombre: p.nombre || p.producto_id || 'Producto', valor: statsNum(p.cantidad),
+      texto: `${statsNum(p.cantidad)} u. · ${statsPlata(p.ingresos)}`
+    })), 'Sin ventas en el período.'));
+
+    const cupones = Array.isArray(c.cupones) ? c.cupones : [];
+    pon('stats-cupones', cupones.length
+      ? '<div class="admin-stats-tabla-wrap"><table class="admin-stats-tabla"><thead><tr><th>Cupón</th><th>Usos</th><th>Ventas</th><th>Descuento</th></tr></thead><tbody>'
+        + cupones.map(x => `<tr><td>${PM.escaparHtml(x.codigo)}</td><td>${statsNum(x.usos)}</td><td>${PM.escaparHtml(statsPlata(x.ventas_generadas))}</td><td>${PM.escaparHtml(statsPlata(x.descuento_otorgado))}</td></tr>`).join('')
+        + '</tbody></table></div>'
+      : '<p class="admin-envios-vacio">No se usaron cupones en el período.</p>');
+
+    const f = c.fidelidad || {};
+    const costo = f.regalos_costo_estimado === null || f.regalos_costo_estimado === undefined ? 'sin dato' : statsPlata(f.regalos_costo_estimado);
+    pon('stats-fidelidad', '<dl class="admin-stats-dl">'
+      + `<div><dt>Premios generados</dt><dd>${statsNum(f.premios_generados)}</dd></div>`
+      + `<div><dt>Premios canjeados</dt><dd>${statsNum(f.premios_canjeados)}</dd></div>`
+      + `<div><dt>Descuento por premios</dt><dd>${PM.escaparHtml(statsPlata(f.descuento_premios_porcentaje))}</dd></div>`
+      + `<div><dt>Regalos entregados</dt><dd>${statsNum(f.regalos)}</dd></div>`
+      + `<div><dt>Costo estimado de regalos</dt><dd>${PM.escaparHtml(costo)}</dd></div></dl>`);
+  }
+
+  function exportarEstadisticasCsv() {
+    const r = estadisticas.resumen;
+    if (!r || !estadisticas.rango) return;
+    const filas = [
+      ['Periodo', `${estadisticas.rango.desde} a ${estadisticas.rango.hasta}`],
+      ['Sucursal', estadisticas.sucursal ? (SUCURSALES_CORTO[estadisticas.sucursal] || estadisticas.sucursal) : 'Todas'],
+      ['Facturacion', r.facturacion], ['Pedidos entregados', r.pedidos], ['Ticket promedio', r.ticket_promedio],
+      ['Cancelados', r.cancelados], ['Envio cobrado', r.envio_cobrado], ['Regalos', r.regalos],
+      [], ['Top productos'], ['Producto', 'Cantidad', 'Ingresos'],
+      ...(r.top_productos || []).map(p => [p.nombre || p.producto_id, p.cantidad, p.ingresos])
+    ];
+    const contenido = '﻿' + filas.map(fila => fila.map(campoCsv).join(';')).join('\r\n');
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `estadisticas-${estadisticas.rango.desde}-a-${estadisticas.rango.hasta}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function conectarEventosEstadisticas() {
+    document.querySelectorAll('[data-stats-periodo]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        estadisticas.periodo = boton.dataset.statsPeriodo;
+        document.querySelectorAll('[data-stats-periodo]').forEach(b => b.classList.toggle('activa', b === boton));
+        const rango = statsEl('stats-rango');
+        if (rango) rango.hidden = estadisticas.periodo !== 'custom';
+        if (estadisticas.periodo === 'custom') {
+          const hoy = fechaArgentinaISO(new Date());
+          const d = statsEl('stats-desde');
+          const h = statsEl('stats-hasta');
+          if (d && !d.value) d.value = sumarDiasISO(hoy, -6);
+          if (h && !h.value) h.value = hoy;
+        }
+        cargarEstadisticas();
+      });
+    });
+    ['stats-sucursal', 'stats-desde', 'stats-hasta'].forEach(id => {
+      const nodo = statsEl(id);
+      if (nodo) nodo.addEventListener('change', cargarEstadisticas);
+    });
+    const rec = statsEl('btn-stats-recargar');
+    if (rec) rec.addEventListener('click', cargarEstadisticas);
+    const csv = statsEl('btn-stats-csv');
+    if (csv) csv.addEventListener('click', exportarEstadisticasCsv);
+  }
+
   function mostrarVistaAdmin(vista) {
     if (vista === 'cupones' && !puedeVerCupones()) vista = 'pedidos';
     if (vista === 'fidelidad' && !puedeVerFidelidad()) vista = 'pedidos';
+    if (vista === 'estadisticas' && !puedeVerCupones()) vista = 'pedidos';
+    const esStats = vista === 'estadisticas';
+    const vistaStats = document.getElementById('admin-vista-estadisticas');
+    if (vistaStats) vistaStats.hidden = !esStats;
+    if (esStats && cliente) cargarEstadisticas();
     const esPedidos = vista === 'pedidos';
     const esEnvios = vista === 'envios';
     const esCupones = vista === 'cupones';
@@ -4837,7 +5107,7 @@
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats;
     if (el.vistaFidelidad) el.vistaFidelidad.hidden = !esFidelidad;
     if (esFidelidad && cliente) {
       if (!fidelidadCargada) cargarFidelidad();
@@ -5016,6 +5286,7 @@
     if (el.formConfigEnvios) el.formConfigEnvios.addEventListener('submit', guardarConfigEnvios);
     if (el.btnNuevoTramo) el.btnNuevoTramo.addEventListener('click', () => abrirFormTramo(null));
     conectarEventosFidelidad();
+    conectarEventosEstadisticas();
     if (el.btnNuevoCupon) el.btnNuevoCupon.addEventListener('click', () => abrirFormCupon(null));
     if (el.btnCuponesRecargar) el.btnCuponesRecargar.addEventListener('click', () => cargarCupones());
     [el.btnCancelarCupon, el.btnCancelarCuponArriba, el.btnCerrarCupon].forEach(boton => {

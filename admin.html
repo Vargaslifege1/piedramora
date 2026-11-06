@@ -68,6 +68,7 @@
         <button type="button" class="admin-tab" data-admin-vista="envios">Envíos</button>
         <button type="button" class="admin-tab" data-admin-vista="cupones" hidden>Cupones</button>
         <button type="button" class="admin-tab" data-admin-vista="fidelidad" hidden>Fidelidad</button>
+        <button type="button" class="admin-tab" data-admin-vista="estadisticas" hidden>Estadísticas</button>
       </nav>
 
       <div id="admin-vista-carta" class="admin-vista">
@@ -571,6 +572,53 @@
           <p id="fidelidad-stats-estado" class="admin-estado" aria-live="polite"></p>
           <div id="fidelidad-stats" class="admin-envios-tramos"></div>
         </section>
+      </section>
+      <section id="admin-vista-estadisticas" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Estadísticas</p>
+            <h2>Ventas y clientes</h2>
+            <p class="admin-ayuda">Estadísticas con pedidos entregados; los datos de prueba también cuentan.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-stats-csv" class="btn-secundario" disabled>Exportar CSV</button>
+            <button type="button" id="btn-stats-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <section class="admin-card admin-stats-filtros">
+          <label class="admin-campo">
+            <span>Sucursal</span>
+            <select id="stats-sucursal">
+              <option value="">Todas</option>
+              <option value="intendente-lascano">Lascano</option>
+              <option value="maestro-quiroga">Maestro Quiroga</option>
+            </select>
+          </label>
+          <div class="admin-stats-periodos" role="group" aria-label="Período">
+            <button type="button" class="btn-secundario activa" data-stats-periodo="hoy">Hoy</button>
+            <button type="button" class="btn-secundario" data-stats-periodo="7">7 días</button>
+            <button type="button" class="btn-secundario" data-stats-periodo="30">30 días</button>
+            <button type="button" class="btn-secundario" data-stats-periodo="custom">Personalizado</button>
+          </div>
+          <div id="stats-rango" class="admin-stats-rango" hidden>
+            <label class="admin-campo"><span>Desde</span><input id="stats-desde" type="date"></label>
+            <label class="admin-campo"><span>Hasta</span><input id="stats-hasta" type="date"></label>
+          </div>
+        </section>
+
+        <p id="stats-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="stats-aviso" class="admin-aviso" hidden></div>
+        <div id="stats-contenido" hidden>
+          <div id="stats-tarjetas" class="admin-stats-tarjetas"></div>
+          <section class="admin-card"><h3>Ventas por día</h3><div id="stats-dias" class="admin-stats-grafico"></div></section>
+          <section class="admin-card"><h3>Pedidos por hora</h3><div id="stats-horas" class="admin-stats-grafico"></div></section>
+          <section class="admin-card"><h3>Métodos de pago</h3><div id="stats-pagos"></div></section>
+          <section class="admin-card"><h3>Modalidades</h3><div id="stats-modalidades"></div></section>
+          <section class="admin-card"><h3>Top 10 productos</h3><div id="stats-top"></div></section>
+          <section class="admin-card"><h3>Cupones</h3><div id="stats-cupones"></div></section>
+          <section class="admin-card"><h3>Fidelidad</h3><div id="stats-fidelidad"></div></section>
+        </div>
       </section>
     </section>
   </main>

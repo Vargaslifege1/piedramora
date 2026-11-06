@@ -850,3 +850,5 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 
 - Migración 021 (SIN APLICAR, falta backup): envío exige coordenadas válidas y radio máx. (`envio_radio_max_km`, default 30) en `pm_calcular_pedido`; trigger de transiciones de estado en `pedidos` (dueño puede corregir entregado→cancelado y cancelado→pendiente); `pedidos.entregado_en` y `pm_pedidos_liberar_premio` no libera premios de pedidos ya entregados. El tablero admin sigue funcionando con todas sus transiciones.
 - Migración 022 (SIN APLICAR, falta backup; 021 ya aplicada): funciones de solo lectura para el dueño `stats_resumen`, `stats_cupones_fidelidad`, `crm_clientes`, `crm_cliente_ficha`, `crm_exportar`, `crm_inactivos_promos` + config `crm_segmentos` + 4 índices. Sin cambios de frontend.
+
+- Admin: pestaña Estadísticas (solo dueño) con `stats_resumen` y `stats_cupones_fidelidad` (022 aplicada): filtros sucursal/período (-03:00), tarjetas con variación, gráficos SVG, cupones/fidelidad y CSV. Sin SQL.
