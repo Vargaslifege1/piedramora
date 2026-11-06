@@ -820,3 +820,8 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - El Realtime sigue recargando la lista; el buscador está fuera de la lista y se conserva el scroll al re-renderizar.
 - Sin cambios de SQL/migraciones. Archivos: `admin.html`, `admin.js`, `admin.css`.
 - Probar: en 360px buscar "pizza", filtrar por categoría, tocar un switch, cortar la red y verificar que revierte; cambiar un agotado desde otro admin y ver que se actualiza sin perder el texto buscado.
+
+## Carta pública: agotados al final (2026-11-05)
+
+- enderProductosCategoria (main.js) ordena los agotados (globales o por sucursal, vía PM.productoEstaAgotado) al final de cada categoría, con orden estable para el resto. Opacidad de la tarjeta 0.82 → 0.55; la etiqueta AGOTADO y el botón deshabilitado ya existían. Sin cambios de lógica de pedido.
+

@@ -4703,7 +4703,7 @@ body.confirmacion-abierta {
 /* ===== Fase 0: productos agotados ===== */
 .carta-producto-card-nuevo.carta-producto-agotado {
   position: relative;
-  opacity: 0.82;
+  opacity: 0.55;
   border-color: rgba(227, 30, 36, 0.28);
 }
 

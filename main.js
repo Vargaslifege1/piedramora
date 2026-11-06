@@ -2151,7 +2151,9 @@ function renderProductosCategoria(categoria) {
     cartaTituloCategoriaActiva.textContent = categoria.nombre || '';
   }
 
-  const productos = categoria.productos || [];
+  // Agotados (globales o por sucursal) al final; Array.sort es estable y el resto conserva su orden.
+  const productos = [...(categoria.productos || [])]
+    .sort((a, b) => Number(PM.productoEstaAgotado(a)) - Number(PM.productoEstaAgotado(b)));
   const sucursalId = cartaActualSucursalId;
 
   productos.forEach(prod => {
