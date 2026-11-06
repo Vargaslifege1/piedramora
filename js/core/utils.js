@@ -201,6 +201,41 @@
     return producto;
   }
 
+  // Teléfonos argentinos: 10 dígitos (área + número), sin 0, 15, 54 ni 9.
+  // Misma regla que public.pm_normalizar_telefono (migración 023). Devuelve null si no da 10 dígitos.
+  function normalizarTelefonoAR(valor) {
+    let v = String(valor == null ? '' : valor).replace(/\D/g, '');
+    if (v.startsWith('54') && v.length > 10) v = v.slice(2);
+    if (v.length === 11 && v.startsWith('9')) v = v.slice(1);
+    if (v.startsWith('0')) v = v.slice(1);
+    if (v.length === 12) {
+      if (v.slice(0, 2) === '11' && v.slice(2, 4) === '15') v = v.slice(0, 2) + v.slice(4);
+      else if (v.slice(3, 5) === '15') v = v.slice(0, 3) + v.slice(5);
+      else if (v.slice(4, 6) === '15') v = v.slice(0, 4) + v.slice(6);
+    }
+    return /^[0-9]{10}$/.test(v) ? v : null;
+  }
+
+  // 3834818271 -> "383 481-8271" (11 -> "11 4567-8901"). Si no se puede normalizar, devuelve el valor original.
+  function formatearTelefonoAR(valor) {
+    const n = normalizarTelefonoAR(valor);
+    if (!n) return String(valor == null ? '' : valor);
+    return n.startsWith('11')
+      ? `${n.slice(0, 2)} ${n.slice(2, 6)}-${n.slice(6)}`
+      : `${n.slice(0, 3)} ${n.slice(3, 6)}-${n.slice(6)}`;
+  }
+
+  // wa.me con 549 + 10 dígitos. Si es un dato viejo que no se puede normalizar, usa solo sus dígitos; vacío si no hay.
+  function urlWhatsappCliente(valor) {
+    const n = normalizarTelefonoAR(valor);
+    if (n) return `https://wa.me/549${n}`;
+    const d = String(valor == null ? '' : valor).replace(/\D/g, '');
+    return d ? `https://wa.me/${d}` : '';
+  }
+
+  PM.normalizarTelefonoAR = normalizarTelefonoAR;
+  PM.formatearTelefonoAR = formatearTelefonoAR;
+  PM.urlWhatsappCliente = urlWhatsappCliente;
   PM.hoyArgentina = hoyArgentina;
   PM.escaparHtml = escaparHtml;
   PM.esRutaImagenSegura = esRutaImagenSegura;

@@ -448,6 +448,12 @@ function normalizarTextoMensaje(texto, unaLinea = false) {
   return limpio.trim();
 }
 
+// Teléfono argentino a 10 dígitos (área + número). Misma regla que el servidor (023). null si no es válido.
+const MSG_TELEFONO_AR = 'Ingresá código de área y número, sin 0 ni 15 (ej. 3834818271).';
+function normalizarTelefonoAR(valor) {
+  return PM.normalizarTelefonoAR(valor);
+}
+
 function normalizarTelefono(valor) {
   return String(valor == null ? '' : valor)
     .normalize('NFC')
@@ -2698,8 +2704,8 @@ async function validarCuponActual(codigoForzado) {
     return;
   }
 
-  const telefonoDigitos = String(document.getElementById('cliente-telefono')?.value || '').replace(/\D/g, '');
-  if (telefonoDigitos.length < 8) {
+  const telefonoDigitos = normalizarTelefonoAR(document.getElementById('cliente-telefono')?.value);
+  if (!telefonoDigitos) {
     cuponAplicado = null;
     mostrarLineaCupon(false);
     mostrarEstadoCupon('Completá tu teléfono primero.', 'error');
@@ -3156,15 +3162,17 @@ function validarTelefonoCliente() {
     input?.focus();
     return null;
   }
-  if (digitos.length < 8 || digitos.length > 15) {
-    mostrarErrorCampo(input, error, 'El teléfono debe tener entre 8 y 15 números.');
+  const tel10 = normalizarTelefonoAR(telefonoVisible);
+  if (!tel10) {
+    mostrarErrorCampo(input, error, MSG_TELEFONO_AR);
     input?.focus();
     return null;
   }
 
-  if (input) input.value = telefonoVisible;
+  // Se muestra y se envía el formato nuevo (10 dígitos).
+  if (input) input.value = tel10;
   limpiarErrorCampo(input, error);
-  return telefonoVisible;
+  return tel10;
 }
 
 document.getElementById('cliente-nombre')?.addEventListener('input', () => {
@@ -3495,7 +3503,7 @@ function construirMensajePedido({
   mensaje += `\ud83d\udce2 *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
   mensaje += `\ud83d\udef5 *Modalidad:* ${modalidadTexto}\n`;
   mensaje += `\ud83d\udc64 *Cliente:* ${nombre}\n`;
-  mensaje += `\ud83d\udcf1 *Teléfono:* ${telefono}\n`;
+  mensaje += `\ud83d\udcf1 *Teléfono:* ${PM.formatearTelefonoAR(telefono)}\n`;
   if (!esMesa) mensaje += `\ud83d\udce6 *Entrega:* ${tipoEntrega}\n`;
   if (direccionFormateada) mensaje += `\ud83d\udccd *Dirección:* ${direccionFormateada}\n`;
   const porcentaje = Number(pago.porcentaje) || 0;
@@ -4400,8 +4408,9 @@ function fidelidadEl(id) {
   return document.getElementById(id);
 }
 
+// Devuelve el teléfono de 10 dígitos o '' si no es válido.
 function fidelidadTelefonoDigitos(valor) {
-  return String(valor == null ? '' : valor).replace(/\D/g, '');
+  return normalizarTelefonoAR(valor) || '';
 }
 
 function fidelidadLeerCliente() {
@@ -4410,7 +4419,11 @@ function fidelidadLeerCliente() {
     if (!crudo) return null;
     const dato = JSON.parse(crudo);
     const telefono = fidelidadTelefonoDigitos(dato && dato.telefono);
-    if (telefono.length < 8) return null;
+    if (!telefono) return null;
+    // Migra al formato nuevo (10 dígitos) si lo guardado estaba en otro formato.
+    if (dato && dato.telefono !== telefono) {
+      try { window.localStorage.setItem(FIDELIDAD_CLAVE_LOCAL, JSON.stringify({ ...dato, telefono })); } catch (e) {}
+    }
     return {
       nombre: String((dato && dato.nombre) || '').slice(0, 60),
       apellido: String((dato && dato.apellido) || '').slice(0, 60),
@@ -4934,7 +4947,7 @@ async function fidelidadEnviarFormulario(evento) {
 
   if (nombre.length < 2) { fidelidadMostrarErrorForm('Ingresá tu nombre.'); return; }
   if (apellido.length < 2) { fidelidadMostrarErrorForm('Ingresá tu apellido.'); return; }
-  if (telefono.length < 8 || telefono.length > 15) { fidelidadMostrarErrorForm('Ingresá un teléfono válido (solo números).'); return; }
+  if (!telefono) { fidelidadMostrarErrorForm(MSG_TELEFONO_AR); return; }
   fidelidadMostrarErrorForm('');
 
   const boton = fidelidadEl('fidelidad-btn-enviar');
@@ -5142,7 +5155,7 @@ function fidelidadProgramarConsultaPremios() {
   try {
     clearTimeout(premiosCheckoutTimer);
     const tel = fidelidadTelefonoDigitos(fidelidadEl('cliente-telefono')?.value);
-    if (tel.length < 8) {
+    if (!tel) {
       premiosCheckoutToken++;
       fidelidadDibujarPremiosCheckout([]);
       return;

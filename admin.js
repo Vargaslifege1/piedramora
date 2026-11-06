@@ -2608,7 +2608,7 @@
       return;
     }
 
-    const telefono = telefonoSoloDigitos(pedido.cliente_telefono);
+    const urlWsp = PM.urlWhatsappCliente(pedido.cliente_telefono);
     const items = Array.isArray(pedido.items_snapshot) ? pedido.items_snapshot : [];
     const itemsHtml = items.map(item => {
       const cantidad = Number(item && item.cantidad) || 0;
@@ -2642,8 +2642,8 @@
     const direccionHtml = pedido.direccion
       ? `<p class="admin-pedido-dato"><span>Dirección</span>${PM.escaparHtml(pedido.direccion)}</p>${enlaceMapa}`
       : '<p class="admin-pedido-dato"><span>Dirección</span>Retiro en sucursal</p>';
-    const whatsappHtml = telefono
-      ? `<a class="btn-secundario admin-pedido-whatsapp" href="https://wa.me/${telefono}" target="_blank" rel="noopener">Abrir WhatsApp</a>`
+    const whatsappHtml = urlWsp
+      ? `<a class="btn-secundario admin-pedido-whatsapp" href="${PM.escaparHtml(urlWsp)}" target="_blank" rel="noopener">Abrir WhatsApp</a>`
       : '';
     const notasHtml = pedido.notas
       ? `<div class="admin-pedido-notas"><span>Notas</span><p>${PM.escaparHtml(pedido.notas)}</p></div>`
@@ -2661,7 +2661,7 @@
       </div>
       <div class="admin-pedido-detalle-grid">
         <p class="admin-pedido-dato"><span>Cliente</span>${PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre')}</p>
-        <p class="admin-pedido-dato"><span>Teléfono</span>${PM.escaparHtml(pedido.cliente_telefono || '-')}</p>
+        <p class="admin-pedido-dato"><span>Teléfono</span>${PM.escaparHtml(pedido.cliente_telefono ? PM.formatearTelefonoAR(pedido.cliente_telefono) : '-')}</p>
         <p class="admin-pedido-dato"><span>Modalidad</span>${PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad))}</p>
         <p class="admin-pedido-dato"><span>Sucursal</span>${PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id))}</p>
         <p class="admin-pedido-dato"><span>Pago</span>${PM.escaparHtml(pedido.metodo_pago || '-')} · ${PM.escaparHtml(pagoEstado)}</p>
@@ -2902,7 +2902,7 @@
       <h1>Piedra Mora</h1>
       <p class="admin-ticket-numero">${PM.escaparHtml(pedido.numero_orden || 'Sin número')}</p>
       <p>${PM.escaparHtml(fechaHoraPedido(pedido.created_at))} · ${PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id))}</p>
-      <p>${PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre')} · ${PM.escaparHtml(pedido.cliente_telefono || '-')}</p>
+      <p>${PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre')} · ${PM.escaparHtml(pedido.cliente_telefono ? PM.formatearTelefonoAR(pedido.cliente_telefono) : '-')}</p>
       <p>${PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad))} · ${PM.escaparHtml(pedido.metodo_pago || '-')} · ${PM.escaparHtml(pagoEstado)}</p>
       ${pedido.direccion ? `<p>${PM.escaparHtml(pedido.direccion)}</p>` : ''}
       <table class="admin-ticket-tabla">
@@ -5161,7 +5161,7 @@
         return `<button type="button" class="crm-fila crm-item${sel}" data-crm-tel="${PM.escaparHtml(tel)}">
           <span class="crm-cliente">
             <strong>${PM.escaparHtml(crmNombre(c))}</strong>
-            <small>${PM.escaparHtml(tel)} ${crmInsignia(c.segmento)}${c.acepta_promos ? ' <span class="crm-promo" title="Acepta promos">✉</span>' : ''}</small>
+            <small>${PM.escaparHtml(PM.formatearTelefonoAR(tel))} ${crmInsignia(c.segmento)}${c.acepta_promos ? ' <span class="crm-promo" title="Acepta promos">✉</span>' : ''}</small>
           </span>
           <span class="crm-num">${statsNum(c.pedidos)}</span>
           <span class="crm-num">${PM.escaparHtml(statsPlata(c.gasto))}</span>
@@ -5232,11 +5232,12 @@
     const c = f.cliente || {};
     if (titulo) titulo.textContent = crmNombre(c);
     const tel = String(c.telefono || '').replace(/\D/g, '');
-    const wa = tel ? `<a class="btn-secundario crm-wa" href="https://wa.me/${tel}" target="_blank" rel="noopener noreferrer">WhatsApp</a>` : '';
+    const urlWspCrm = PM.urlWhatsappCliente(tel);
+    const wa = urlWspCrm ? `<a class="btn-secundario crm-wa" href="${PM.escaparHtml(urlWspCrm)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>` : '';
     const dato = (t, v) => `<div><dt>${PM.escaparHtml(t)}</dt><dd>${PM.escaparHtml(v)}</dd></div>`;
     const hace = crmHace(c.dias_sin_pedir);
 
-    let html = `<div class="crm-ficha-top"><span>${PM.escaparHtml(tel)} ${crmInsignia(c.segmento)}</span>${wa}</div>`;
+    let html = `<div class="crm-ficha-top"><span>${PM.escaparHtml(PM.formatearTelefonoAR(tel))}${crmInsignia(c.segmento)}</span>${wa}</div>`;
     html += `<dl class="crm-dl">
       ${dato('Pedidos', String(statsNum(c.pedidos)))}
       ${dato('Gasto', statsPlata(c.gasto))}
