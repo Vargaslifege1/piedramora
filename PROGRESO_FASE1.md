@@ -834,3 +834,11 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Celular (≤720px): carril horizontal; abierta ocupa 85vw y se hace `scrollIntoView` suave; se cierra con el mismo botón.
 - Sin SQL/migraciones. Archivos: `admin.js`, `admin.css` (y `admin.html` vuelve a su estado previo).
 - Probar: `node --check admin.js`; a 1280px+ abrir/cerrar Cancelados sin barra horizontal; recargar (misma sesión) y ver que recuerda; cancelar un pedido con la columna abierta; a 360px abrir y ver el scroll suave.
+
+## Agotados: no disponibles por defecto y switches desde la carta (2026-11-05)
+
+- Fuente única en memoria (`agotadosPorSucursal`: sucursal → Set de productos), cargada una sola vez de `agotados_sucursal` (la RLS limita lo que ve cada admin) al entrar al panel. El mismo Realtime y la misma función `cambiarAgotado` alimentan Pedidos y la carta del admin, así que ambas pantallas muestran lo mismo.
+- Pedidos > Agotados: filtro de estado "No disponibles" (por defecto) / "Disponibles" / "Todos"; el buscador (sin tildes) y la categoría filtran dentro del estado activo. Sin agotados: "No hay productos agotados" + botón "Ver todos para marcar". Al reactivar en "No disponibles" la fila sale con transición y aparece "Reactivado: X. Deshacer" (8 s). Cambiar de sucursal ya no recarga: solo re-renderiza. `aria-label` de cada switch: "<producto> en <sucursal>".
+- Carta del admin (solo dueño): bloque "Disponibilidad" en cada producto con un switch por sucursal (Int. Lascano / Maestro Quiroga) y etiquetas "Agotado en Lascano", "Agotado en Maestro Quiroga" y "Agotado en todas" (agotado global, sin tocar su lógica). Se actualiza en el lugar, sin cerrar editores abiertos.
+- Carta pública: ya hecha en `0a182e6` (agotados al final por categoría, opacidad 0.55, etiqueta AGOTADO). Sin cambios.
+- Sin SQL ni migraciones. Probar: en 360px marcar/reactivar desde Pedidos y desde la carta y ver que ambos reflejan el cambio; cortar la red y verificar el revert; con admin de sucursal, verificar que solo ve y cambia la suya.
