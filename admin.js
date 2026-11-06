@@ -94,6 +94,7 @@
     btnFidelidadAgregarNivel: document.getElementById('btn-fidelidad-agregar-nivel'),
     fidelidadFormEstado: document.getElementById('fidelidad-form-estado'),
     btnGuardarFidelidad: document.getElementById('btn-guardar-fidelidad'),
+    btnGuardarFidelidadTop: document.getElementById('btn-guardar-fidelidad-top'),
     fidelidadStats: document.getElementById('fidelidad-stats'),
     fidelidadStatsEstado: document.getElementById('fidelidad-stats-estado'),
     vistaCupones: document.getElementById('admin-vista-cupones'),
@@ -4597,36 +4598,47 @@
   function htmlNivelFidelidad(nivel, indice, total) {
     const esPorc = nivel.tipo !== 'producto_gratis';
     return `<div class="admin-fidelidad-nivel" data-fidelidad-nivel>
-      <label class="admin-campo">
-        <span>Nivel ${indice + 1}: en el pedido nº</span>
-        <input type="number" min="1" max="1000" step="1" inputmode="numeric" data-campo="en" value="${escaparHtml(nivel.en)}">
-      </label>
-      <label class="admin-campo">
-        <span>Tipo</span>
-        <select data-campo="tipo">
-          <option value="descuento_porcentaje"${esPorc ? ' selected' : ''}>Descuento (%)</option>
-          <option value="producto_gratis"${esPorc ? '' : ' selected'}>Producto gratis</option>
-        </select>
-      </label>
-      <label class="admin-campo" data-grupo="porcentaje"${esPorc ? '' : ' hidden'}>
-        <span>Valor (%)</span>
-        <input type="number" min="1" max="100" step="1" inputmode="decimal" data-campo="valor" value="${escaparHtml(nivel.valor)}">
-      </label>
-      <label class="admin-campo" data-grupo="porcentaje"${esPorc ? '' : ' hidden'}>
-        <span>Tope en pesos (opcional)</span>
-        <input type="number" min="1" step="1" inputmode="numeric" data-campo="tope" placeholder="Sin tope" value="${escaparHtml(nivel.tope)}">
-      </label>
-      <label class="admin-campo" data-grupo="producto"${esPorc ? ' hidden' : ''}>
-        <span>Producto</span>
-        <select data-campo="producto">${opcionesProductoFidelidad(nivel.producto)}</select>
-        <small class="admin-ayuda">Se regala la opción más barata, sin costo.</small>
-      </label>
-      <label class="admin-campo">
-        <span>Vence a los (días)</span>
-        <input type="number" min="1" max="365" step="1" inputmode="numeric" data-campo="dias" value="${escaparHtml(nivel.dias)}">
-      </label>
-      <div class="admin-fidelidad-nivel-acciones">
-        <button type="button" class="btn-peligro" data-fidelidad-accion="quitar"${total <= 1 ? ' disabled' : ''}>Quitar</button>
+      <div class="fid-nivel-head">
+        <strong>Nivel ${indice + 1}</strong>
+        <button type="button" class="fid-quitar" data-fidelidad-accion="quitar" aria-label="Quitar nivel ${indice + 1}" title="Quitar nivel"${total <= 1 ? ' disabled' : ''}>&times;</button>
+      </div>
+      <div class="fid-bloque">
+        <h4>Condición</h4>
+        <div class="fid-grid">
+          <label class="admin-campo">
+            <span>En el pedido nº</span>
+            <input type="number" min="1" max="1000" step="1" inputmode="numeric" data-campo="en" value="${escaparHtml(nivel.en)}">
+          </label>
+        </div>
+      </div>
+      <div class="fid-bloque">
+        <h4>Premio</h4>
+        <div class="fid-grid">
+          <label class="admin-campo">
+            <span>Tipo</span>
+            <select data-campo="tipo">
+              <option value="descuento_porcentaje"${esPorc ? ' selected' : ''}>Descuento (%)</option>
+              <option value="producto_gratis"${esPorc ? '' : ' selected'}>Producto gratis</option>
+            </select>
+          </label>
+          <label class="admin-campo" data-grupo="porcentaje"${esPorc ? '' : ' hidden'}>
+            <span>Valor (%)</span>
+            <input type="number" min="1" max="100" step="1" inputmode="decimal" data-campo="valor" value="${escaparHtml(nivel.valor)}">
+          </label>
+          <label class="admin-campo" data-grupo="porcentaje"${esPorc ? '' : ' hidden'}>
+            <span>Tope en pesos (opcional)</span>
+            <input type="number" min="1" step="1" inputmode="numeric" data-campo="tope" placeholder="Sin tope" value="${escaparHtml(nivel.tope)}">
+          </label>
+          <label class="admin-campo" data-grupo="producto"${esPorc ? ' hidden' : ''}>
+            <span>Producto</span>
+            <select data-campo="producto">${opcionesProductoFidelidad(nivel.producto)}</select>
+            <small class="admin-ayuda">Se regala la opción más barata, sin costo.</small>
+          </label>
+          <label class="admin-campo">
+            <span>Vence a los (días)</span>
+            <input type="number" min="1" max="365" step="1" inputmode="numeric" data-campo="dias" value="${escaparHtml(nivel.dias)}">
+          </label>
+        </div>
       </div>
     </div>`;
   }
@@ -4675,22 +4687,18 @@
     if (!el.fidelidadStats) return;
     const ahora = Date.now();
     const etiquetas = { descuento_porcentaje: 'Descuento (%)', producto_gratis: 'Producto gratis' };
-    const filas = [];
-    const resumir = (nombre, lista) => {
+    const contar = lista => {
       const usados = lista.filter(p => p.usado).length;
       const vigentes = lista.filter(p => !p.usado && new Date(p.vencimiento).getTime() > ahora).length;
-      const vencidos = lista.length - usados - vigentes;
-      filas.push(`<div class="admin-cupon-fila">
-        <div class="admin-envios-tramo-dato"><small>Tipo</small><span>${escaparHtml(nombre)}</span></div>
-        <div class="admin-envios-tramo-dato"><small>Generados</small><span>${escaparHtml(lista.length)}</span></div>
-        <div class="admin-envios-tramo-dato"><small>Usados</small><span>${escaparHtml(usados)}</span></div>
-        <div class="admin-envios-tramo-dato"><small>Vigentes</small><span>${escaparHtml(vigentes)}</span></div>
-        <div class="admin-envios-tramo-dato"><small>Vencidos sin usar</small><span>${escaparHtml(vencidos)}</span></div>
-      </div>`);
+      return { generados: lista.length, usados, vigentes, vencidos: lista.length - usados - vigentes };
     };
-    Object.keys(etiquetas).forEach(tipo => resumir(etiquetas[tipo], premios.filter(p => p.tipo === tipo)));
-    resumir('Total', premios);
-    el.fidelidadStats.innerHTML = filas.join('');
+    const t = contar(premios);
+    const kpi = (nombre, valor) => `<div class="fid-kpi"><small>${escaparHtml(nombre)}</small><strong>${escaparHtml(valor)}</strong></div>`;
+    const porTipo = Object.keys(etiquetas).map(tipo => {
+      const c = contar(premios.filter(p => p.tipo === tipo));
+      return `<div class="fid-tipo"><span>${escaparHtml(etiquetas[tipo])}</span><span>${escaparHtml(c.generados)} gen. · ${escaparHtml(c.usados)} usados · ${escaparHtml(c.vigentes)} vigentes · ${escaparHtml(c.vencidos)} vencidos</span></div>`;
+    }).join('');
+    el.fidelidadStats.innerHTML = `<div class="fid-kpis">${kpi('Generados', t.generados)}${kpi('Usados', t.usados)}${kpi('Vigentes', t.vigentes)}${kpi('Vencidos sin usar', t.vencidos)}</div><div class="fid-tipos">${porTipo}</div>`;
   }
 
   async function cargarEstadisticasFidelidad() {

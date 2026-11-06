@@ -870,3 +870,4 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 
 - `023_normalizar_telefonos.sql`: `pm_normalizar_telefono` (10 dígitos o null), 7 funciones redefinidas (solo cambia la normalización), checks `^[0-9]{10}$` (NOT VALID → VALIDATE si no quedan inválidos), fusión de clientes duplicados y migración de pedidos/premios/cupon_usos en una transacción con verificación de totales. Hacer backup antes; la fusión no se revierte sin él.
 - Frontend: `PM.normalizarTelefonoAR` / `formatearTelefonoAR` / `urlWhatsappCliente` (`js/core/utils.js`); `main.js` valida con el mensaje "Ingresá código de área y número, sin 0 ni 15 (ej. 3834818271)." y migra `pm_fidelidad_cliente` al leerlo; `admin.js` muestra `383 481-8271` y abre `wa.me/549` + 10 dígitos. Desplegar el frontend recién con 023 aplicada.
+- Fidelidad: layout compacto (cabecera con Guardar, niveles en tarjetas, KPIs); solo estilo/estructura.

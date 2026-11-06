@@ -2298,26 +2298,73 @@ p {
   border-color: rgba(255, 90, 90, 0.35);
 }
 
-/* Fidelidad (3D-3) */
+/* Fidelidad (layout compacto) */
+.fid-wrap { max-width: 960px; margin: 0 auto; min-width: 0; }
+.fid-wrap * { min-width: 0; }
+.fid-cabecera {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 0; margin-bottom: 4px;
+}
+.fid-cabecera-titulo h2 { margin: 0; }
+.fid-cabecera-acciones { display: flex; gap: 8px; flex-shrink: 0; }
+@media (min-width: 1024px) {
+  .fid-cabecera {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--admin-fondo);
+    border-bottom: 1px solid var(--admin-borde);
+  }
+}
+@media (max-width: 480px) {
+  .fid-cabecera { flex-wrap: wrap; }
+}
+.fid-form { display: grid; gap: 16px; }
+.fid-reglas {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end;
+}
+.fid-niveles { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .admin-fidelidad-nivel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  align-items: end;
-  gap: 12px;
-  padding: 12px;
-  margin-bottom: 10px;
-  border: 1px solid var(--admin-borde);
-  border-radius: var(--admin-radio-chico);
-  background: var(--admin-panel);
+  position: relative; display: grid; gap: 12px; padding: 14px;
+  border: 1px solid var(--admin-borde); border-radius: var(--admin-radio-chico);
+  background: var(--admin-panel-2);
 }
-
-.admin-fidelidad-nivel [hidden] {
-  display: none;
+.admin-fidelidad-nivel [hidden] { display: none; }
+.fid-nivel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fid-quitar {
+  width: 32px; height: 32px; padding: 0; line-height: 1; font-size: 20px; cursor: pointer;
+  color: var(--admin-rojo-claro); background: transparent;
+  border: 1px solid var(--admin-borde-fuerte); border-radius: 8px;
 }
-
-.admin-fidelidad-nivel-acciones {
-  display: flex;
-  justify-content: flex-end;
+.fid-quitar:disabled { opacity: 0.35; cursor: not-allowed; }
+.fid-bloque h4 {
+  margin: 0 0 8px; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--admin-dorado);
+}
+.fid-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.fid-grid input, .fid-grid select { width: 100%; box-sizing: border-box; }
+.fid-agregar { width: 100%; }
+.fid-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.fid-kpi {
+  display: grid; gap: 4px; padding: 12px; border: 1px solid var(--admin-borde);
+  border-radius: var(--admin-radio-chico); background: var(--admin-panel-2);
+}
+.fid-kpi small { color: var(--admin-texto-suave); }
+.fid-kpi strong { font-size: 1.5rem; color: var(--admin-texto); }
+.fid-tipos { display: grid; gap: 6px; margin-top: 12px; }
+.fid-tipo {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px;
+  padding: 8px 12px; border: 1px solid var(--admin-borde); border-radius: 8px;
+  font-size: 0.85rem; color: var(--admin-texto-suave);
+}
+.fid-tipo span:first-child { color: var(--admin-texto); }
+@media (min-width: 1100px) {
+  .fid-niveles { grid-template-columns: 1fr 1fr; }
+  .fid-agregar { width: auto; }
+}
+@media (max-width: 700px) {
+  .fid-reglas { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .fid-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 860px) {
