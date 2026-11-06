@@ -611,13 +611,19 @@
         <div id="stats-aviso" class="admin-aviso" hidden></div>
         <div id="stats-contenido" hidden>
           <div id="stats-tarjetas" class="admin-stats-tarjetas"></div>
-          <section class="admin-card"><h3>Ventas por día</h3><div id="stats-dias" class="admin-stats-grafico"></div></section>
-          <section class="admin-card"><h3>Pedidos por hora</h3><div id="stats-horas" class="admin-stats-grafico"></div></section>
-          <section class="admin-card"><h3>Métodos de pago</h3><div id="stats-pagos"></div></section>
-          <section class="admin-card"><h3>Modalidades</h3><div id="stats-modalidades"></div></section>
-          <section class="admin-card"><h3>Top 10 productos</h3><div id="stats-top"></div></section>
-          <section class="admin-card"><h3>Cupones</h3><div id="stats-cupones"></div></section>
-          <section class="admin-card"><h3>Fidelidad</h3><div id="stats-fidelidad"></div></section>
+          <div class="admin-stats-fila admin-stats-graficos">
+            <section class="admin-card"><h3>Ventas por día</h3><div id="stats-dias" class="admin-stats-grafico"></div></section>
+            <section class="admin-card"><h3>Pedidos por hora</h3><div id="stats-horas" class="admin-stats-grafico"></div></section>
+          </div>
+          <div class="admin-stats-fila admin-stats-widgets">
+            <section class="admin-card"><h3>Métodos de pago</h3><div id="stats-pagos" class="admin-stats-scroll"></div></section>
+            <section class="admin-card"><h3>Modalidades</h3><div id="stats-modalidades" class="admin-stats-scroll"></div></section>
+            <section class="admin-card"><h3>Top 10 productos</h3><div id="stats-top" class="admin-stats-scroll"></div></section>
+          </div>
+          <div class="admin-stats-fila admin-stats-inferior">
+            <section class="admin-card"><h3>Fidelidad</h3><div id="stats-fidelidad"></div></section>
+            <section class="admin-card"><h3>Cupones</h3><div id="stats-cupones" class="admin-stats-scroll"></div></section>
+          </div>
         </div>
       </section>
     </section>

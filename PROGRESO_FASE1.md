@@ -852,3 +852,4 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Migración 022 (SIN APLICAR, falta backup; 021 ya aplicada): funciones de solo lectura para el dueño `stats_resumen`, `stats_cupones_fidelidad`, `crm_clientes`, `crm_cliente_ficha`, `crm_exportar`, `crm_inactivos_promos` + config `crm_segmentos` + 4 índices. Sin cambios de frontend.
 
 - Admin: pestaña Estadísticas (solo dueño) con `stats_resumen` y `stats_cupones_fidelidad` (022 aplicada): filtros sucursal/período (-03:00), tarjetas con variación, gráficos SVG, cupones/fidelidad y CSV. Sin SQL.
+- Admin: Estadísticas reorganizada en grilla compacta (KPIs auto-fit, gráficos 60/40, widgets 3/2/1 col, fidelidad en tarjetas); solo layout, sin cambios de datos ni SQL.

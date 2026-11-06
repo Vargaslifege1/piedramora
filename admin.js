@@ -4943,9 +4943,11 @@
   function statsLista(filas, vacio) {
     if (!filas.length) return `<p class="admin-envios-vacio">${PM.escaparHtml(vacio)}</p>`;
     const max = Math.max(...filas.map(f => f.valor), 1);
-    return '<ul class="admin-stats-lista">' + filas.map(f => `<li>
-      <div class="admin-stats-lista-fila"><span class="admin-stats-lista-nombre">${PM.escaparHtml(f.nombre)}</span><span class="admin-stats-lista-valor">${PM.escaparHtml(f.texto)}</span></div>
-      <div class="admin-stats-barra"><i style="width:${Math.max(2, Math.round(f.valor / max * 100))}%"></i></div></li>`).join('') + '</ul>';
+    return '<ul class="admin-stats-lista">' + filas.map(f => `<li class="admin-stats-lista-fila">
+      <span class="admin-stats-lista-nombre" title="${PM.escaparHtml(f.nombre)}">${PM.escaparHtml(f.nombre)}</span>
+      <span class="admin-stats-barra"><i style="width:${Math.max(2, Math.round(f.valor / max * 100))}%"></i></span>
+      <span class="admin-stats-lista-cant">${PM.escaparHtml(f.cant)}</span>
+      <span class="admin-stats-lista-total">${PM.escaparHtml(f.total)}</span></li>`).join('') + '</ul>';
   }
 
   // Barras SVG: datos = [{etiqueta, valor, titulo}]; el titulo es el tooltip.
@@ -5012,15 +5014,15 @@
 
     pon('stats-pagos', statsLista((r.metodos_pago || []).map(m => ({
       nombre: m.metodo || 'Sin dato', valor: statsNum(m.facturacion),
-      texto: `${statsPlata(m.facturacion)} · ${statsNum(m.pedidos)} ped.`
+      cant: `${statsNum(m.pedidos)} ped.`, total: statsPlata(m.facturacion)
     })), 'Sin datos en el período.'));
     pon('stats-modalidades', statsLista((r.modalidades || []).map(m => ({
       nombre: etiquetaModalidadPedido(m.modalidad), valor: statsNum(m.pedidos),
-      texto: `${statsNum(m.pedidos)} ped. · ${statsPlata(m.facturacion)}`
+      cant: `${statsNum(m.pedidos)} ped.`, total: statsPlata(m.facturacion)
     })), 'Sin datos en el período.'));
     pon('stats-top', statsLista((r.top_productos || []).map(p => ({
       nombre: p.nombre || p.producto_id || 'Producto', valor: statsNum(p.cantidad),
-      texto: `${statsNum(p.cantidad)} u. · ${statsPlata(p.ingresos)}`
+      cant: `${statsNum(p.cantidad)} u.`, total: statsPlata(p.ingresos)
     })), 'Sin ventas en el período.'));
 
     const cupones = Array.isArray(c.cupones) ? c.cupones : [];
@@ -5034,10 +5036,10 @@
     const costo = f.regalos_costo_estimado === null || f.regalos_costo_estimado === undefined ? 'sin dato' : statsPlata(f.regalos_costo_estimado);
     pon('stats-fidelidad', '<dl class="admin-stats-dl">'
       + `<div><dt>Premios generados</dt><dd>${statsNum(f.premios_generados)}</dd></div>`
-      + `<div><dt>Premios canjeados</dt><dd>${statsNum(f.premios_canjeados)}</dd></div>`
+      + `<div><dt>Canjeados</dt><dd>${statsNum(f.premios_canjeados)}</dd></div>`
       + `<div><dt>Descuento por premios</dt><dd>${PM.escaparHtml(statsPlata(f.descuento_premios_porcentaje))}</dd></div>`
-      + `<div><dt>Regalos entregados</dt><dd>${statsNum(f.regalos)}</dd></div>`
-      + `<div><dt>Costo estimado de regalos</dt><dd>${PM.escaparHtml(costo)}</dd></div></dl>`);
+      + `<div><dt>Regalos</dt><dd>${statsNum(f.regalos)}</dd></div>`
+      + `<div><dt>Costo de regalos</dt><dd>${PM.escaparHtml(costo)}</dd></div></dl>`);
   }
 
   function exportarEstadisticasCsv() {
