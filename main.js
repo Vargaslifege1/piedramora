@@ -1131,8 +1131,7 @@ if (navbar) {
   });
 }
 
-// Scroll a sucursales: apunta al inicio de la sección; el offset lo da scroll-margin-top
-// (alto real del navbar ya "scrolled" + 16px - padding). Se recalcula al terminar el scroll.
+// Scroll a sucursales: apunta a #sucursales-lista menos navbar, bloque de título y 8px.
 function medirNavbarSucursales() {
   const nav = document.querySelector('.navbar');
   if (!nav) return;
@@ -1141,21 +1140,37 @@ function medirNavbarSucursales() {
   document.documentElement.style.setProperty('--navbar-alto', alto + 'px');
 }
 
+function posicionScrollSucursales() {
+  const lista = document.getElementById('sucursales-lista');
+  const titulo = document.querySelector('#sucursales .titulo-seccion');
+  if (!lista) return null;
+  // Alto real del navbar ya compacto (al llegar abajo pierde 10px de padding).
+  const nav = document.querySelector('.navbar');
+  const altoNav = nav ? nav.offsetHeight - (nav.classList.contains('scrolled') ? 0 : 10) : 0;
+  // offsetHeight ignora el translateY de .reveal, así el destino no se mueve durante la animación.
+  const altoTitulo = titulo
+    ? titulo.offsetHeight + (parseFloat(getComputedStyle(titulo).marginBottom) || 0)
+    : 0;
+  const topLista = lista.getBoundingClientRect().top + window.scrollY;
+  return Math.max(0, Math.round(topLista - altoNav - altoTitulo - 8));
+}
+
 function desplazarASucursales(e) {
   if (e && typeof e.preventDefault === 'function') e.preventDefault();
-  const seccion = document.getElementById('sucursales');
-  if (!seccion) return;
+  if (!document.getElementById('sucursales-lista')) return;
   const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const behavior = reducido ? 'auto' : 'smooth';
   medirNavbarSucursales();
-  seccion.scrollIntoView({ behavior, block: 'start' });
-  // Segundo ajuste: reveal/imágenes/barra del navegador pueden mover el destino.
+  window.scrollTo({ top: posicionScrollSucursales(), behavior: reducido ? 'auto' : 'smooth' });
+  // Reajuste al terminar: imágenes/tarjetas dinámicas o la barra del navegador pueden mover el destino.
   let hecho = false;
   const reajustar = () => {
     if (hecho) return;
     hecho = true;
     medirNavbarSucursales();
-    seccion.scrollIntoView({ behavior: 'auto', block: 'start' });
+    const destino = posicionScrollSucursales();
+    if (destino !== null && Math.abs(window.scrollY - destino) > 2) {
+      window.scrollTo({ top: destino, behavior: 'auto' });
+    }
   };
   if ('onscrollend' in window) {
     window.addEventListener('scrollend', () => setTimeout(reajustar, 50), { once: true });
