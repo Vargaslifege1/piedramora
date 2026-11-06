@@ -879,3 +879,5 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - Cupones en layout compacto (solo layout): form 2 columnas max 960px, opciones tipo chip, Guardar arriba, lista en grilla de tarjetas. Sin cambios de SQL/RPC.
 - Cupones: el formulario pasa a modal accesible (dialog, focus trap, Esc/backdrop/✕/Cancelar con confirmación si hay cambios, foco de vuelta al botón, scroll de fondo bloqueado). Solo layout/apertura; sin cambios de SQL/RPC.
 - Envíos en layout compacto (solo layout): config en grilla 2 col (max 960px) con Guardar en el pie, Zona normal en una tarjeta con filas por sucursal, tramos en filas alineadas (tarjeta de dos líneas en celular). Sin cambios de SQL/RPC/permisos.
+
+- Migración 024 (SIN APLICAR, falta backup): horarios por sucursal en BD (`sucursal_horarios`, `cierres_especiales`, `sucursal_estado_manual`, RLS + seed de sucursales.json), `sucursal_estado()`, `pedidos.programado_para` y `crear_pedido` de 16 parámetros (rechaza si está cerrado; permite programar hasta `programar_max_dias`=15 dentro del horario). Sin cambios de frontend todavía.
