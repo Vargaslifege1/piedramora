@@ -179,12 +179,6 @@
     pedidosModalidadBtns: document.querySelectorAll('[data-pedidos-modalidad]'),
     btnPedidosExportar: document.getElementById('btn-pedidos-exportar'),
     pedidosContenedor: document.getElementById('pedidos-contenedor'),
-    canceladosTira: document.getElementById('pedidos-cancelados-tira'),
-    canceladosPanel: document.getElementById('pedidos-cancelados-panel'),
-    canceladosCuerpo: document.getElementById('pedidos-cancelados-cuerpo'),
-    canceladosContador: document.getElementById('pedidos-cancelados-contador'),
-    canceladosN: document.getElementById('pedidos-cancelados-n'),
-    canceladosCerrar: document.getElementById('pedidos-cancelados-cerrar'),
     pedidosTablero: document.getElementById('pedidos-tablero'),
     pedidosLista: document.getElementById('pedidos-lista'),
     pedidoTicket: document.getElementById('pedido-ticket'),
@@ -1938,51 +1932,33 @@
     cancelado: 'Cancelado'
   };
 
+  const CLAVE_CANCELADOS_ABIERTO = 'pm_cancelados_abierto';
+
+  function canceladosAbierto() {
+    try { return sessionStorage.getItem(CLAVE_CANCELADOS_ABIERTO) === '1'; } catch (e) { return false; }
+  }
+
+  function guardarCanceladosAbierto(abierto) {
+    try { sessionStorage.setItem(CLAVE_CANCELADOS_ABIERTO, abierto ? '1' : '0'); } catch (e) { /* sin storage */ }
+  }
+
+  function aplicarEstadoColumnaCancelados(columna, colapsada) {
+    columna.classList.toggle('colapsada', colapsada);
+    const boton = columna.querySelector('[data-columna-toggle]');
+    if (!boton) return;
+    boton.setAttribute('aria-expanded', colapsada ? 'false' : 'true');
+    boton.setAttribute('aria-label', `${colapsada ? 'Expandir' : 'Cerrar'} columna Cancelados`);
+    boton.textContent = colapsada ? '‹' : '✕';
+  }
+
   const COLUMNAS_PEDIDO = [
     { clave: 'pendiente', titulo: 'Nuevos' },
     { clave: 'confirmado', titulo: 'En preparación' },
     { clave: 'listo', titulo: 'Listos para entregar' },
     { clave: 'en_camino', titulo: 'En camino', soloDelivery: true },
-    { clave: 'entregado', titulo: 'Completados' }
+    { clave: 'entregado', titulo: 'Completados' },
+    { clave: 'cancelado', titulo: 'Cancelados', colapsable: true }
   ];
-
-  // Cancelados vive aparte: tira + panel lateral (fuera del carril del tablero)
-  const COLUMNA_CANCELADOS = { clave: 'cancelado', titulo: 'Cancelados' };
-
-  function selectorCuerpoColumna(clave) {
-    return clave === 'cancelado'
-      ? '#pedidos-cancelados-cuerpo'
-      : `#pedidos-tablero [data-columna="${clave}"] .admin-pedidos-columna-cuerpo`;
-  }
-
-  function abrirPanelCancelados() {
-    if (!el.canceladosPanel || !el.canceladosTira) return;
-    el.canceladosPanel.hidden = false;
-    el.canceladosTira.setAttribute('aria-expanded', 'true');
-    void el.canceladosPanel.offsetWidth; // reflow para que arranque la transición
-    el.canceladosPanel.classList.add('abierto');
-    if (el.canceladosCerrar) el.canceladosCerrar.focus();
-  }
-
-  function cerrarPanelCancelados(devolverFoco) {
-    if (!el.canceladosPanel || el.canceladosPanel.hidden) return;
-    el.canceladosPanel.classList.remove('abierto');
-    el.canceladosPanel.hidden = true;
-    if (el.canceladosTira) {
-      el.canceladosTira.setAttribute('aria-expanded', 'false');
-      if (devolverFoco) el.canceladosTira.focus();
-    }
-  }
-
-  function renderPedidosCancelados(lista) {
-    if (!el.canceladosCuerpo) return;
-    const scroll = el.canceladosCuerpo.scrollTop;
-    const cancelados = lista.filter(pedido => columnaPedido(pedido) === 'cancelado');
-    el.canceladosCuerpo.innerHTML = cancelados.map(crearTarjetaPedidoHtml).join('')
-      + (cancelados.length ? '' : '<p class="admin-pedidos-vacio-columna">Sin pedidos.</p>');
-    el.canceladosCuerpo.scrollTop = scroll;
-    actualizarContadoresColumnas();
-  }
 
   function iconoModalidadPedido(modalidad) {
     const valor = String(modalidad || '').toLowerCase();
@@ -2504,8 +2480,6 @@
     const esLista = pedidosVista === 'lista';
     el.pedidosTablero.hidden = esLista;
     el.pedidosLista.hidden = !esLista;
-    if (el.canceladosTira) el.canceladosTira.hidden = esLista;
-    if (esLista) cerrarPanelCancelados(false);
     if (esLista) renderPedidosLista();
     else renderPedidosTablero();
   }
@@ -2513,22 +2487,29 @@
   function renderPedidosTablero() {
     if (!el.pedidosTablero) return;
     const lista = pedidosFiltrados();
+    const cuerpoPrevio = el.pedidosTablero.querySelector('[data-columna="cancelado"] .admin-pedidos-columna-cuerpo');
+    const scrollCancelados = cuerpoPrevio ? cuerpoPrevio.scrollTop : 0;
+    const scrollTablero = el.pedidosTablero.scrollLeft;
     el.pedidosTablero.innerHTML = COLUMNAS_PEDIDO.map(columna => {
       const pedidosColumna = lista.filter(pedido => columnaPedido(pedido) === columna.clave
         && (!columna.soloDelivery || pedido.modalidad === 'delivery'));
       const tarjetas = pedidosColumna.map(crearTarjetaPedidoHtml).join('');
       const vacio = pedidosColumna.length ? '' : '<p class="admin-pedidos-vacio-columna">Sin pedidos.</p>';
-      return `<section class="admin-pedidos-columna columna-${columna.clave}" data-columna="${columna.clave}">
+      const colapsada = !!columna.colapsable && !canceladosAbierto();
+      return `<section class="admin-pedidos-columna columna-${columna.clave} ${colapsada ? 'colapsada' : ''}" data-columna="${columna.clave}">
         <header class="admin-pedidos-columna-head">
           <div class="admin-pedidos-columna-titulo">
             <h3>${PM.escaparHtml(columna.titulo)}</h3>
             <span class="admin-pedidos-contador" data-contador="${columna.clave}">${pedidosColumna.length}</span>
           </div>
+          ${columna.colapsable ? `<button type="button" class="btn-icono admin-pedidos-colapsar" data-columna-toggle aria-expanded="${colapsada ? 'false' : 'true'}" aria-label="${colapsada ? 'Expandir' : 'Cerrar'} columna Cancelados">${colapsada ? '‹' : '✕'}</button>` : ''}
         </header>
         <div class="admin-pedidos-columna-cuerpo">${tarjetas}${vacio}</div>
       </section>`;
     }).join('');
-    renderPedidosCancelados(lista);
+    el.pedidosTablero.scrollLeft = scrollTablero;
+    const cuerpoNuevo = el.pedidosTablero.querySelector('[data-columna="cancelado"] .admin-pedidos-columna-cuerpo');
+    if (cuerpoNuevo) cuerpoNuevo.scrollTop = scrollCancelados;
   }
 
   function renderPedidosLista() {
@@ -2543,17 +2524,12 @@
 
   function actualizarContadoresColumnas() {
     if (!el.pedidosTablero) return;
-    COLUMNAS_PEDIDO.concat([COLUMNA_CANCELADOS]).forEach(columna => {
-      const contenedor = document.querySelector(selectorCuerpoColumna(columna.clave));
+    COLUMNAS_PEDIDO.forEach(columna => {
+      const contenedor = el.pedidosTablero.querySelector(`[data-columna="${columna.clave}"] .admin-pedidos-columna-cuerpo`);
       if (!contenedor) return;
       const tarjetas = contenedor.querySelectorAll('[data-pedido-id]');
       const contador = el.pedidosTablero.querySelector(`[data-contador="${columna.clave}"]`);
       if (contador) contador.textContent = String(tarjetas.length);
-      if (columna.clave === 'cancelado') {
-        if (el.canceladosContador) el.canceladosContador.textContent = String(tarjetas.length);
-        if (el.canceladosN) el.canceladosN.textContent = String(tarjetas.length);
-        if (el.canceladosTira) el.canceladosTira.setAttribute('aria-label', `Cancelados, ${tarjetas.length}. Abrir panel`);
-      }
       const vacio = contenedor.querySelector('.admin-pedidos-vacio-columna');
       if (tarjetas.length && vacio) vacio.remove();
       if (!tarjetas.length && !vacio) {
@@ -2569,15 +2545,16 @@
     if (!pedidosCargados || !pedido) return;
     if (pedidosVista === 'tablero') {
       if (!el.pedidosTablero) return;
-      const existente = buscarTarjetaPedido(el.pedidosTablero, pedido.id)
-        || buscarTarjetaPedido(el.canceladosCuerpo, pedido.id);
+      const existente = buscarTarjetaPedido(el.pedidosTablero, pedido.id);
       if (!pedidoCoincideFiltros(pedido)) {
         if (existente) existente.remove();
         actualizarContadoresColumnas();
         return;
       }
       const columna = columnaPedido(pedido);
-      const destino = columna ? document.querySelector(selectorCuerpoColumna(columna)) : null;
+      const destino = columna
+        ? el.pedidosTablero.querySelector(`[data-columna="${columna}"] .admin-pedidos-columna-cuerpo`)
+        : null;
       if (!destino) {
         renderPedidosTablero();
         return;
@@ -4868,23 +4845,32 @@
       });
     }
 
-    if (el.canceladosTira) {
-      el.canceladosTira.addEventListener('click', () => {
-        if (el.canceladosPanel && el.canceladosPanel.hidden) abrirPanelCancelados();
-        else cerrarPanelCancelados(true);
-      });
-    }
-    if (el.canceladosCerrar) el.canceladosCerrar.addEventListener('click', () => cerrarPanelCancelados(true));
-    document.addEventListener('click', (evento) => {
-      if (!el.canceladosPanel || el.canceladosPanel.hidden) return;
-      if (el.canceladosPanel.contains(evento.target)) return;
-      if (el.canceladosTira && el.canceladosTira.contains(evento.target)) return;
-      if (el.modalPedido && !el.modalPedido.hidden) return;
-      cerrarPanelCancelados(false);
-    });
-
     if (el.pedidosContenedor) {
       el.pedidosContenedor.addEventListener('click', async (evento) => {
+        const botonColumna = evento.target.closest('[data-columna-toggle]');
+        const columnaCerrada = botonColumna ? null : evento.target.closest('.admin-pedidos-columna.colapsada');
+        if (botonColumna || columnaCerrada) {
+          const columna = (botonColumna || columnaCerrada).closest('[data-columna]');
+          if (columna) {
+            const colapsada = !columna.classList.contains('colapsada');
+            aplicarEstadoColumnaCancelados(columna, colapsada);
+            guardarCanceladosAbierto(!colapsada);
+            if (!colapsada) {
+              // en celular el carril es horizontal: dejar la columna a la vista
+              const reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              if (window.matchMedia && window.matchMedia('(max-width: 720px)').matches) {
+                columna.scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', inline: 'end', block: 'nearest' });
+              }
+              const foco = columna.querySelector('[data-columna-toggle]');
+              if (foco && botonColumna) foco.focus();
+            } else {
+              const foco = columna.querySelector('[data-columna-toggle]');
+              if (foco && botonColumna) foco.focus();
+            }
+          }
+          return;
+        }
+
         const boton = evento.target.closest('[data-pedido-accion]');
         if (boton) {
           const tarjeta = boton.closest('[data-pedido-id]');
@@ -5130,10 +5116,6 @@
       }
       if (el.modalPedido && !el.modalPedido.hidden) {
         cerrarModalPedido();
-        return;
-      }
-      if (el.canceladosPanel && !el.canceladosPanel.hidden) {
-        cerrarPanelCancelados(true);
         return;
       }
       if (el.panelNuevoProducto && !el.panelNuevoProducto.hidden) cerrarFormularioProducto();

@@ -826,10 +826,11 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - enderProductosCategoria (main.js) ordena los agotados (globales o por sucursal, vía PM.productoEstaAgotado) al final de cada categoría, con orden estable para el resto. Opacidad de la tarjeta 0.82 → 0.55; la etiqueta AGOTADO y el botón deshabilitado ya existían. Sin cambios de lógica de pedido.
 
 
-## Cancelados como panel lateral (2026-11-05)
+## Cancelados expandible sin scroll horizontal (2026-11-05)
 
-- Pedidos > tablero: Cancelados dejó de ser columna del carril. Queda la tira angosta `#pedidos-cancelados-tira` (`<button>`, título vertical + contador, `aria-expanded`/`aria-controls`) siempre visible a la derecha; en <1024px pasa a barra horizontal bajo el tablero.
-- Al tocarla abre `#pedidos-cancelados-panel` (fixed, desliza desde la derecha, 340px / ancho completo en celular, alto de ventana, header "Cancelados (N)" + ✕, lista con scroll propio). Tarjetas con opacidad 0.75, sin botón de avanzar; imprimir y demás se mantienen.
-- Cierra con ✕, Escape o clic fuera; el foco vuelve a la tira. El tablero no se mueve. Realtime/filtros actualizan contador y tarjetas sin cerrar el panel ni perder el scroll. Vista lista: tira oculta y panel cerrado.
-- Tablero principal con 5 columnas `flex: 1 1 0; min-width: 260px`. `prefers-reduced-motion`: sin transición. Sin SQL/migraciones.
-- Probar: `node --check admin.js`; en 1280px ver 5 columnas sin scroll horizontal; abrir/cerrar panel (✕, Esc, afuera); cancelar un pedido con el panel abierto; a 360px abrir el panel.
+- Reemplaza el intento de panel lateral (revertido). Cancelados vuelve a ser la 6ª columna del tablero: cerrada = tira de 56px (título vertical + contador, clic en cualquier parte la abre); abierta = 280px con título horizontal y botón ✕ (`aria-expanded`, `aria-label`) en el encabezado.
+- Las otras 5 columnas usan `flex: 1 1 0; min-width: 180px` y se achican solas, con transición corta de ancho (sin transición con `prefers-reduced-motion`). Tarjetas con ellipsis en top/cliente/meta, `min-width: 0` y botones que envuelven; Cancelados con opacidad 0.8 y sin botón de avanzar.
+- Estado en `sessionStorage` (`pm_cancelados_abierto`, por defecto cerrada). El re-render por realtime/filtros lo respeta y conserva el scroll vertical de Cancelados y el horizontal del tablero.
+- Celular (≤720px): carril horizontal; abierta ocupa 85vw y se hace `scrollIntoView` suave; se cierra con el mismo botón.
+- Sin SQL/migraciones. Archivos: `admin.js`, `admin.css` (y `admin.html` vuelve a su estado previo).
+- Probar: `node --check admin.js`; a 1280px+ abrir/cerrar Cancelados sin barra horizontal; recargar (misma sesión) y ver que recuerda; cancelar un pedido con la columna abierta; a 360px abrir y ver el scroll suave.

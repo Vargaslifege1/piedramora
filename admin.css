@@ -1729,111 +1729,6 @@ p {
   min-width: 0;
 }
 
-.admin-pedidos-tablero-fila {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.admin-pedidos-tablero-fila > .admin-pedidos-tablero {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.admin-pedidos-tablero-fila > [hidden] { display: none; }
-
-.admin-cancelados-tira {
-  display: flex;
-  flex: 0 0 44px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  height: clamp(360px, calc(100vh - 500px), 900px);
-  padding: 14px 6px;
-  border: 1px solid var(--admin-borde);
-  border-radius: var(--admin-radio-chico);
-  background: var(--admin-panel-2);
-  color: var(--admin-texto-suave);
-  cursor: pointer;
-}
-
-.admin-cancelados-tira:hover,
-.admin-cancelados-tira[aria-expanded="true"] { border-color: var(--admin-borde-fuerte); }
-
-.admin-cancelados-tira-titulo {
-  writing-mode: vertical-rl;
-  font-size: 0.86rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.admin-cancelados-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  z-index: 800;
-  display: flex;
-  flex-direction: column;
-  width: min(340px, 100vw);
-  height: 100vh;
-  height: 100dvh;
-  border-left: 1px solid var(--admin-borde-fuerte);
-  background: var(--admin-panel-2);
-  box-shadow: var(--admin-sombra);
-  transform: translateX(100%);
-  transition: transform 0.22s ease;
-}
-
-.admin-cancelados-panel[hidden] { display: none; }
-.admin-cancelados-panel.abierto { transform: translateX(0); }
-
-.admin-cancelados-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 14px;
-  border-bottom: 1px solid var(--admin-borde);
-}
-
-.admin-cancelados-panel-head h3 {
-  margin: 0;
-  color: var(--admin-texto-suave);
-  font-size: 0.95rem;
-}
-
-.admin-cancelados-cuerpo {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-  padding: 14px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--admin-borde-fuerte) transparent;
-}
-
-.admin-cancelados-cuerpo .admin-pedido-tarjeta { opacity: 0.75; }
-
-@media (max-width: 1023px) {
-  .admin-pedidos-tablero-fila { flex-direction: column; }
-  .admin-cancelados-tira {
-    flex: 0 0 auto;
-    flex-direction: row;
-    justify-content: center;
-    height: 44px;
-    padding: 0 14px;
-  }
-  .admin-cancelados-tira-titulo { writing-mode: horizontal-tb; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-cancelados-panel { transition: none; }
-}
-
 .admin-pedidos-tablero {
   display: flex;
   align-items: stretch;
@@ -1871,7 +1766,8 @@ p {
   flex: 1 1 0;
   flex-direction: column;
   gap: 12px;
-  min-width: 260px;
+  min-width: 180px;
+  transition: flex-basis 0.2s ease, min-width 0.2s ease;
   height: 100%;
   padding: 14px;
   overflow: hidden;
@@ -1946,6 +1842,79 @@ p {
   color: var(--admin-texto-tenue);
   font-size: 0.78rem;
   text-align: center;
+}
+
+/* Cancelados: tira angosta (cerrada) o columna de 280px (abierta); las otras se achican */
+.admin-pedidos-columna.columna-cancelado {
+  flex: 0 0 280px;
+  min-width: 280px;
+}
+
+.admin-pedidos-columna.columna-cancelado .admin-pedido-tarjeta {
+  opacity: 0.8;
+}
+
+.admin-pedidos-columna.colapsada {
+  flex: 0 0 56px;
+  min-width: 56px;
+  padding: 14px 6px;
+  cursor: pointer;
+}
+
+.admin-pedidos-columna.colapsada .admin-pedidos-columna-cuerpo {
+  display: none;
+}
+
+.admin-pedidos-columna.colapsada .admin-pedidos-columna-head {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-pedidos-columna.colapsada .admin-pedidos-columna-titulo {
+  flex-direction: column;
+}
+
+.admin-pedidos-columna.colapsada .admin-pedidos-columna-titulo h3 {
+  writing-mode: vertical-rl;
+}
+
+.admin-pedidos-columna-titulo h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-pedidos-colapsar {
+  flex: 0 0 auto;
+  min-width: 36px;
+  min-height: 36px;
+  border: 1px solid var(--admin-borde-fuerte);
+  color: var(--admin-dorado);
+}
+
+/* Tarjetas en columnas angostas: sin desbordes */
+.admin-pedido-tarjeta {
+  min-width: 0;
+}
+
+.admin-pedido-tarjeta-top > *,
+.admin-pedido-tarjeta-cliente > *,
+.admin-pedido-tarjeta-meta > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-pedido-tarjeta-acciones button {
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-pedidos-columna {
+    transition: none;
+  }
 }
 
 .admin-pedido-tarjeta {
@@ -2397,14 +2366,6 @@ p {
   }
 }
 
-@media (max-width: 900px) {
-  .admin-pedidos-columna {
-    flex: 0 0 280px;
-    min-width: 0;
-    max-height: none;
-  }
-}
-
 @media (max-width: 1200px) {
   .admin-pedidos-toolbar {
     align-items: stretch;
@@ -2484,12 +2445,24 @@ p {
     width: 100%;
   }
 
+}
+
+@media (max-width: 720px) {
   .admin-pedidos-columna {
     flex: 0 0 82vw;
     min-width: 0;
     max-height: none;
   }
 
+  .admin-pedidos-columna.columna-cancelado {
+    flex: 0 0 85vw;
+    min-width: 0;
+  }
+
+  .admin-pedidos-columna.colapsada {
+    flex: 0 0 56px;
+    min-width: 56px;
+  }
 }
 
 @media print {
