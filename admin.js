@@ -4786,6 +4786,7 @@
     }
 
     if (el.btnGuardarFidelidad) el.btnGuardarFidelidad.disabled = true;
+    if (el.btnGuardarFidelidadTop) el.btnGuardarFidelidadTop.disabled = true;
     mostrarEstado(el.fidelidadFormEstado, 'Guardando...');
     try {
       const { error } = await cliente
@@ -4804,6 +4805,7 @@
         : 'No se pudo guardar la configuración de fidelidad.', 'error');
     } finally {
       if (el.btnGuardarFidelidad) el.btnGuardarFidelidad.disabled = false;
+      if (el.btnGuardarFidelidadTop) el.btnGuardarFidelidadTop.disabled = false;
     }
   }
 
