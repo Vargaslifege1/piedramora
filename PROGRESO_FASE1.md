@@ -853,3 +853,15 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 
 - Admin: pestaña Estadísticas (solo dueño) con `stats_resumen` y `stats_cupones_fidelidad` (022 aplicada): filtros sucursal/período (-03:00), tarjetas con variación, gráficos SVG, cupones/fidelidad y CSV. Sin SQL.
 - Admin: Estadísticas reorganizada en grilla compacta (KPIs auto-fit, gráficos 60/40, widgets 3/2/1 col, fidelidad en tarjetas); solo layout, sin cambios de datos ni SQL.
+
+## Pestaña Clientes / CRM (admin, solo dueño)
+
+Archivos: `admin.html`, `admin.js` (sección "Clientes / CRM"), `admin.css` (bloque `.crm-*`). Sin migración nueva: usa las RPC de 022 (`crm_clientes`, `crm_cliente_ficha`, `crm_exportar`), todas solo lectura y con `es_dueno()`.
+
+- Listado paginado (50 por vez, "Cargar más"), búsqueda con debounce de 300 ms, filtro por segmento y orden por pedidos / gasto / última visita (clic en el encabezado alterna asc/desc).
+- Ficha del cliente: datos, fidelidad, premios vigentes, favoritos y últimos 20 pedidos, con botón de WhatsApp (`wa.me` solo con dígitos).
+- Diseño compacto: en >= 1100px grilla 60/40 con la ficha como panel lateral sticky; en celular la ficha abre a pantalla completa (Escape o × cierra). Paddings chicos y `tabular-nums` en todos los números.
+- Exportar CSV con `crm_exportar` (opción "Solo acepta promos"), con `campoCsv` para evitar inyección de fórmulas.
+- Todo lo que viene del servidor se escapa con `PM.escaparHtml`.
+
+Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléfono, cambiar segmento y orden, abrir una ficha (en ventana ancha queda a la derecha; en < 1100px a pantalla completa), exportar CSV. Con rol de sucursal la pestaña no aparece.

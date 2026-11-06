@@ -69,6 +69,7 @@
         <button type="button" class="admin-tab" data-admin-vista="cupones" hidden>Cupones</button>
         <button type="button" class="admin-tab" data-admin-vista="fidelidad" hidden>Fidelidad</button>
         <button type="button" class="admin-tab" data-admin-vista="estadisticas" hidden>Estadísticas</button>
+        <button type="button" class="admin-tab" data-admin-vista="clientes" hidden>Clientes</button>
       </nav>
 
       <div id="admin-vista-carta" class="admin-vista">
@@ -624,6 +625,59 @@
             <section class="admin-card"><h3>Fidelidad</h3><div id="stats-fidelidad"></div></section>
             <section class="admin-card"><h3>Cupones</h3><div id="stats-cupones" class="admin-stats-scroll"></div></section>
           </div>
+        </div>
+      </section>
+
+      <section id="admin-vista-clientes" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Clientes</p>
+            <h2>CRM de clientes</h2>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <label class="crm-check"><input type="checkbox" id="crm-solo-promos"> Solo acepta promos</label>
+            <button type="button" id="btn-crm-csv" class="btn-secundario">Exportar CSV</button>
+            <button type="button" id="btn-crm-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <div class="crm-filtros">
+          <input id="crm-buscar" type="search" placeholder="Buscar por nombre o teléfono" maxlength="80" autocomplete="off" aria-label="Buscar cliente">
+          <div id="crm-segmentos" class="crm-segmentos" role="group" aria-label="Segmento">
+            <button type="button" class="btn-secundario activa" data-crm-segmento="">Todos</button>
+            <button type="button" class="btn-secundario" data-crm-segmento="nuevo">Nuevos</button>
+            <button type="button" class="btn-secundario" data-crm-segmento="ocasional">Ocasionales</button>
+            <button type="button" class="btn-secundario" data-crm-segmento="frecuente">Frecuentes</button>
+            <button type="button" class="btn-secundario" data-crm-segmento="inactivo">Inactivos</button>
+            <button type="button" class="btn-secundario" data-crm-segmento="registrado">Registrados</button>
+          </div>
+        </div>
+
+        <p id="crm-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="crm-aviso" class="admin-aviso" hidden></div>
+
+        <div class="crm-layout">
+          <section class="admin-card crm-lista-card">
+            <div class="crm-fila crm-cabecera" role="row">
+              <span>Cliente</span>
+              <button type="button" class="crm-orden" data-crm-orden="pedidos">Ped.</button>
+              <button type="button" class="crm-orden" data-crm-orden="gasto">Gasto</button>
+              <button type="button" class="crm-orden activa" data-crm-orden="ultima_visita">Última</button>
+            </div>
+            <div id="crm-lista" class="crm-lista"></div>
+            <div class="crm-pie">
+              <span id="crm-total" class="crm-total"></span>
+              <button type="button" id="btn-crm-mas" class="btn-secundario" hidden>Cargar más</button>
+            </div>
+          </section>
+
+          <aside id="crm-ficha" class="crm-ficha" aria-label="Ficha del cliente" hidden>
+            <div class="crm-ficha-head">
+              <h3 id="crm-ficha-titulo">Cliente</h3>
+              <button type="button" id="btn-crm-ficha-cerrar" class="btn-icono" aria-label="Cerrar ficha">×</button>
+            </div>
+            <div id="crm-ficha-cuerpo" class="crm-ficha-cuerpo"></div>
+          </aside>
         </div>
       </section>
     </section>

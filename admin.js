@@ -680,6 +680,7 @@
       if (tab.dataset.adminVista === 'cupones') tab.hidden = !puedeVerCupones();
       if (tab.dataset.adminVista === 'fidelidad') tab.hidden = !puedeVerFidelidad();
       if (tab.dataset.adminVista === 'estadisticas') tab.hidden = !puedeVerCupones();
+      if (tab.dataset.adminVista === 'clientes') tab.hidden = !puedeVerCupones();
     });
 
     poblarFiltroSucursalesPedidos();
@@ -704,6 +705,10 @@
     }
     const vistaStatsPerm = document.getElementById('admin-vista-estadisticas');
     if (!puedeVerCupones() && vistaStatsPerm && !vistaStatsPerm.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    const vistaCrmPerm = document.getElementById('admin-vista-clientes');
+    if (!puedeVerCupones() && vistaCrmPerm && !vistaCrmPerm.hidden) {
       mostrarVistaAdmin('pedidos');
     }
 
@@ -5092,7 +5097,327 @@
     if (csv) csv.addEventListener('click', exportarEstadisticasCsv);
   }
 
+  // ---------------------------------------------------------------
+  // Clientes / CRM (solo dueño, solo lectura). El servidor segmenta y calcula.
+  // ---------------------------------------------------------------
+  const CRM_LIMITE = 50;
+  const CRM_SEGMENTOS = {
+    nuevo: 'Nuevo', ocasional: 'Ocasional', frecuente: 'Frecuente', inactivo: 'Inactivo', registrado: 'Registrado'
+  };
+  const crm = {
+    seq: 0, fichaSeq: 0, buscar: '', segmento: '', orden: 'ultima_visita', dir: 'desc',
+    filas: [], total: 0, cargado: false, telSel: null, bloqueoScroll: false, timer: null
+  };
+
+  function crmEl(id) { return document.getElementById(id); }
+
+  function crmNombre(c) {
+    return [c.nombre, c.apellido].map(x => String(x || '').trim()).filter(Boolean).join(' ') || 'Sin nombre';
+  }
+
+  function crmFecha(iso) {
+    if (!iso) return '—';
+    const f = new Date(iso);
+    if (Number.isNaN(f.getTime())) return '—';
+    return new Intl.DateTimeFormat('es-AR', { timeZone: ZONA_AR, day: '2-digit', month: '2-digit', year: '2-digit' }).format(f);
+  }
+
+  function crmHace(dias) {
+    if (dias === null || dias === undefined || !Number.isFinite(Number(dias))) return '';
+    const d = Number(dias);
+    return d <= 0 ? 'hoy' : `hace ${d} d`;
+  }
+
+  function crmInsignia(segmento) {
+    const s = CRM_SEGMENTOS[segmento] ? segmento : 'nuevo';
+    return `<span class="crm-seg crm-seg-${s}">${PM.escaparHtml(CRM_SEGMENTOS[s])}</span>`;
+  }
+
+  function avisoCrm(texto) {
+    const aviso = crmEl('crm-aviso');
+    if (!aviso) return;
+    aviso.hidden = !texto;
+    aviso.dataset.tipo = 'error';
+    aviso.textContent = texto || '';
+  }
+
+  function mensajeErrorCrm(error, base) {
+    if (esErrorPermiso(error)) return 'No tenés permiso para hacer esto.';
+    const msg = String((error && error.message) || '');
+    if (msg.includes('No tenés permiso')) return 'No tenés permiso para hacer esto.';
+    return base;
+  }
+
+  function renderCrmLista() {
+    const cont = crmEl('crm-lista');
+    if (!cont) return;
+    if (!crm.filas.length) {
+      cont.innerHTML = '<p class="admin-envios-vacio">No hay clientes para este filtro.</p>';
+    } else {
+      cont.innerHTML = crm.filas.map(c => {
+        const tel = String(c.telefono || '');
+        const sel = tel === crm.telSel ? ' seleccionada' : '';
+        const hace = crmHace(c.dias_sin_pedir);
+        return `<button type="button" class="crm-fila crm-item${sel}" data-crm-tel="${PM.escaparHtml(tel)}">
+          <span class="crm-cliente">
+            <strong>${PM.escaparHtml(crmNombre(c))}</strong>
+            <small>${PM.escaparHtml(tel)} ${crmInsignia(c.segmento)}${c.acepta_promos ? ' <span class="crm-promo" title="Acepta promos">✉</span>' : ''}</small>
+          </span>
+          <span class="crm-num">${statsNum(c.pedidos)}</span>
+          <span class="crm-num">${PM.escaparHtml(statsPlata(c.gasto))}</span>
+          <span class="crm-num crm-ultima">${PM.escaparHtml(crmFecha(c.ultima_visita))}<small>${PM.escaparHtml(hace)}</small></span>
+        </button>`;
+      }).join('');
+    }
+    const total = crmEl('crm-total');
+    if (total) total.textContent = `${crm.filas.length} de ${crm.total} clientes`;
+    const mas = crmEl('btn-crm-mas');
+    if (mas) mas.hidden = crm.filas.length >= crm.total;
+    document.querySelectorAll('[data-crm-orden]').forEach(b => {
+      const activa = b.dataset.crmOrden === crm.orden;
+      b.classList.toggle('activa', activa);
+      b.dataset.dir = activa ? crm.dir : '';
+    });
+  }
+
+  async function cargarCrm(append = false) {
+    if (!cliente || !puedeVerCupones()) return;
+    const estado = crmEl('crm-estado');
+    const mi = ++crm.seq;
+    avisoCrm('');
+    const offset = append ? crm.filas.length : 0;
+    mostrarEstado(estado, 'Cargando clientes...');
+    try {
+      const { data, error } = await cliente.rpc('crm_clientes', {
+        p_buscar: crm.buscar || null,
+        p_orden: crm.orden,
+        p_dir: crm.dir,
+        p_segmento: crm.segmento || null,
+        p_limite: CRM_LIMITE,
+        p_offset: offset
+      });
+      if (mi !== crm.seq) return;
+      if (error) throw error;
+      const filas = Array.isArray(data && data.filas) ? data.filas : [];
+      crm.filas = append ? crm.filas.concat(filas) : filas;
+      crm.total = statsNum(data && data.total);
+      crm.cargado = true;
+      mostrarEstado(estado, '');
+      renderCrmLista();
+    } catch (error) {
+      if (mi !== crm.seq) return;
+      console.warn('No se pudieron cargar los clientes:', error);
+      mostrarEstado(estado, '');
+      avisoCrm(mensajeErrorCrm(error, 'No se pudieron cargar los clientes. Probá de nuevo.'));
+    }
+  }
+
+  function crmDescribirPremio(p) {
+    if (p.tipo === 'descuento_porcentaje') {
+      const tope = p.tope_en_pesos ? ` (tope ${statsPlata(p.tope_en_pesos)})` : '';
+      return `${statsNum(p.valor)}% de descuento${tope}`;
+    }
+    if (p.tipo === 'producto_gratis') return `Producto gratis${p.producto_id ? ` (${p.producto_id})` : ''}`;
+    return String(p.tipo || 'Premio');
+  }
+
+  function crmSeccion(titulo, html) {
+    return `<section class="crm-sec"><h4>${PM.escaparHtml(titulo)}</h4>${html}</section>`;
+  }
+
+  function renderCrmFicha(f) {
+    const cont = crmEl('crm-ficha-cuerpo');
+    const titulo = crmEl('crm-ficha-titulo');
+    if (!cont) return;
+    const c = f.cliente || {};
+    if (titulo) titulo.textContent = crmNombre(c);
+    const tel = String(c.telefono || '').replace(/\D/g, '');
+    const wa = tel ? `<a class="btn-secundario crm-wa" href="https://wa.me/${tel}" target="_blank" rel="noopener noreferrer">WhatsApp</a>` : '';
+    const dato = (t, v) => `<div><dt>${PM.escaparHtml(t)}</dt><dd>${PM.escaparHtml(v)}</dd></div>`;
+    const hace = crmHace(c.dias_sin_pedir);
+
+    let html = `<div class="crm-ficha-top"><span>${PM.escaparHtml(tel)} ${crmInsignia(c.segmento)}</span>${wa}</div>`;
+    html += `<dl class="crm-dl">
+      ${dato('Pedidos', String(statsNum(c.pedidos)))}
+      ${dato('Gasto', statsPlata(c.gasto))}
+      ${dato('Ticket prom.', statsPlata(c.ticket_promedio))}
+      ${dato('Última visita', c.ultima_visita ? `${crmFecha(c.ultima_visita)}${hace ? ' · ' + hace : ''}` : '—')}
+      ${dato('Promos', c.acepta_promos ? 'Acepta' : 'No acepta')}
+      ${dato('Origen', c.origen === 'registro' ? 'Registro' : 'Pedido')}
+    </dl>`;
+
+    const fid = f.fidelidad || {};
+    let fidHtml;
+    if (!fid.activo) {
+      fidHtml = `<p class="crm-linea">Programa inactivo · ${statsNum(fid.pedidos_contados)} pedidos contados</p>`;
+    } else {
+      const sig = fid.siguiente_nivel;
+      const meta = sig ? ` · faltan ${statsNum(sig.faltan)} para el nivel de ${statsNum(sig.en)}` : '';
+      fidHtml = `<p class="crm-linea">${statsNum(fid.pedidos_contados)} de ${statsNum(fid.ciclo)} del ciclo${PM.escaparHtml(meta)}</p>`;
+    }
+    html += crmSeccion('Fidelidad', fidHtml);
+
+    const premios = f.premios || {};
+    const vig = Array.isArray(premios.vigentes) ? premios.vigentes : [];
+    const usa = Array.isArray(premios.usados) ? premios.usados : [];
+    let prHtml = vig.length
+      ? '<ul class="crm-mini">' + vig.map(p => `<li><span>${PM.escaparHtml(crmDescribirPremio(p))}</span><small>vence ${PM.escaparHtml(crmFecha(p.vencimiento))}</small></li>`).join('') + '</ul>'
+      : '<p class="crm-linea">Sin premios vigentes</p>';
+    if (usa.length) prHtml += `<p class="crm-linea crm-suave">${usa.length} premio(s) usado(s)</p>`;
+    html += crmSeccion('Premios', prHtml);
+
+    const favs = Array.isArray(f.favoritos) ? f.favoritos : [];
+    html += crmSeccion('Favoritos', favs.length
+      ? '<ul class="crm-mini">' + favs.map(p => `<li><span>${PM.escaparHtml(p.nombre || p.producto_id || '')}</span><small>×${statsNum(p.cantidad)}</small></li>`).join('') + '</ul>'
+      : '<p class="crm-linea">Todavía sin pedidos entregados</p>');
+
+    const peds = Array.isArray(f.pedidos) ? f.pedidos : [];
+    html += crmSeccion('Últimos pedidos', peds.length
+      ? '<ul class="crm-mini crm-pedidos">' + peds.map(p => `<li>
+          <span>PM-${PM.escaparHtml(String(p.numero_orden ?? ''))} <small>${PM.escaparHtml(formatearFechaCupon(p.fecha))} · ${PM.escaparHtml(SUCURSALES_CORTO[p.sucursal] || p.sucursal || '')}${p.cupon_codigo ? ' · ' + PM.escaparHtml(p.cupon_codigo) : ''}</small></span>
+          <span class="crm-num">${PM.escaparHtml(statsPlata(p.total))} <small>${PM.escaparHtml(String(p.estado || ''))}</small></span></li>`).join('') + '</ul>'
+      : '<p class="crm-linea">Sin pedidos</p>');
+
+    cont.innerHTML = html;
+  }
+
+  function cerrarCrmFicha() {
+    crm.telSel = null;
+    crm.fichaSeq++;
+    const ficha = crmEl('crm-ficha');
+    if (ficha) ficha.hidden = true;
+    const layout = document.querySelector('.crm-layout');
+    if (layout) layout.classList.remove('con-ficha');
+    if (crm.bloqueoScroll) {
+      document.body.classList.remove('admin-modal-abierto');
+      crm.bloqueoScroll = false;
+    }
+    document.querySelectorAll('.crm-item.seleccionada').forEach(n => n.classList.remove('seleccionada'));
+  }
+
+  async function abrirCrmFicha(tel) {
+    if (!cliente || !tel) return;
+    const ficha = crmEl('crm-ficha');
+    const cuerpo = crmEl('crm-ficha-cuerpo');
+    const titulo = crmEl('crm-ficha-titulo');
+    if (!ficha || !cuerpo) return;
+    const mi = ++crm.fichaSeq;
+    crm.telSel = tel;
+    ficha.hidden = false;
+    const layout = document.querySelector('.crm-layout');
+    if (layout) layout.classList.add('con-ficha');
+    if (!crm.bloqueoScroll && window.matchMedia('(max-width: 1099px)').matches) {
+      document.body.classList.add('admin-modal-abierto');
+      crm.bloqueoScroll = true;
+    }
+    document.querySelectorAll('.crm-item').forEach(n => n.classList.toggle('seleccionada', n.dataset.crmTel === tel));
+    if (titulo) titulo.textContent = 'Cliente';
+    cuerpo.innerHTML = '<p class="admin-estado">Cargando ficha...</p>';
+    try {
+      const { data, error } = await cliente.rpc('crm_cliente_ficha', { p_telefono: tel });
+      if (mi !== crm.fichaSeq) return;
+      if (error) throw error;
+      if (!data) {
+        cuerpo.innerHTML = '<p class="admin-envios-vacio">No se encontró el cliente.</p>';
+        return;
+      }
+      renderCrmFicha(data);
+    } catch (error) {
+      if (mi !== crm.fichaSeq) return;
+      console.warn('No se pudo cargar la ficha:', error);
+      cuerpo.innerHTML = `<p class="admin-envios-vacio">${PM.escaparHtml(mensajeErrorCrm(error, 'No se pudo cargar la ficha. Probá de nuevo.'))}</p>`;
+    }
+  }
+
+  async function exportarCrmCsv() {
+    if (!cliente || !puedeVerCupones()) return;
+    const btn = crmEl('btn-crm-csv');
+    if (btn) btn.disabled = true;
+    avisoCrm('');
+    try {
+      const { data, error } = await cliente.rpc('crm_exportar', {
+        p_segmento: crm.segmento || null,
+        p_solo_promos: !!(crmEl('crm-solo-promos') || {}).checked
+      });
+      if (error) throw error;
+      const filas = Array.isArray(data) ? data : [];
+      const cab = ['Telefono', 'Nombre', 'Apellido', 'Segmento', 'Pedidos', 'Gasto total', 'Ultima visita', 'Acepta promos'];
+      const cuerpo = filas.map(r => [r.telefono, r.nombre, r.apellido, r.segmento, r.pedidos, r.gasto_total,
+        r.ultima_visita ? fechaArgentinaISO(new Date(r.ultima_visita)) : '', r.acepta_promos ? 'Si' : 'No']);
+      const contenido = '﻿' + [cab, ...cuerpo].map(fila => fila.map(campoCsv).join(';')).join('\r\n');
+      const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clientes-${fechaArgentinaISO(new Date())}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.warn('No se pudo exportar:', error);
+      avisoCrm(mensajeErrorCrm(error, 'No se pudo exportar. Probá de nuevo.'));
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function conectarEventosCrm() {
+    const buscar = crmEl('crm-buscar');
+    if (buscar) {
+      buscar.addEventListener('input', () => {
+        clearTimeout(crm.timer);
+        crm.timer = setTimeout(() => {
+          crm.buscar = buscar.value.trim();
+          cerrarCrmFicha();
+          cargarCrm();
+        }, 300);
+      });
+    }
+    document.querySelectorAll('[data-crm-segmento]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        crm.segmento = boton.dataset.crmSegmento;
+        document.querySelectorAll('[data-crm-segmento]').forEach(b => b.classList.toggle('activa', b === boton));
+        cerrarCrmFicha();
+        cargarCrm();
+      });
+    });
+    document.querySelectorAll('[data-crm-orden]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        const campo = boton.dataset.crmOrden;
+        if (crm.orden === campo) crm.dir = crm.dir === 'desc' ? 'asc' : 'desc';
+        else { crm.orden = campo; crm.dir = 'desc'; }
+        cargarCrm();
+      });
+    });
+    const lista = crmEl('crm-lista');
+    if (lista) {
+      lista.addEventListener('click', ev => {
+        const fila = ev.target.closest('[data-crm-tel]');
+        if (fila) abrirCrmFicha(fila.dataset.crmTel);
+      });
+    }
+    const mas = crmEl('btn-crm-mas');
+    if (mas) mas.addEventListener('click', () => cargarCrm(true));
+    const rec = crmEl('btn-crm-recargar');
+    if (rec) rec.addEventListener('click', () => cargarCrm());
+    const csv = crmEl('btn-crm-csv');
+    if (csv) csv.addEventListener('click', exportarCrmCsv);
+    const cerrar = crmEl('btn-crm-ficha-cerrar');
+    if (cerrar) cerrar.addEventListener('click', cerrarCrmFicha);
+    document.addEventListener('keydown', ev => {
+      const ficha = crmEl('crm-ficha');
+      if (ev.key === 'Escape' && ficha && !ficha.hidden) cerrarCrmFicha();
+    });
+  }
+
   function mostrarVistaAdmin(vista) {
+    if (vista === 'clientes' && !puedeVerCupones()) vista = 'pedidos';
+    const esCrm = vista === 'clientes';
+    const vistaCrm = crmEl('admin-vista-clientes');
+    if (vistaCrm) vistaCrm.hidden = !esCrm;
+    if (!esCrm) cerrarCrmFicha();
+    if (esCrm && cliente) cargarCrm();
     if (vista === 'cupones' && !puedeVerCupones()) vista = 'pedidos';
     if (vista === 'fidelidad' && !puedeVerFidelidad()) vista = 'pedidos';
     if (vista === 'estadisticas' && !puedeVerCupones()) vista = 'pedidos';
@@ -5109,7 +5434,7 @@
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats || esCrm;
     if (el.vistaFidelidad) el.vistaFidelidad.hidden = !esFidelidad;
     if (esFidelidad && cliente) {
       if (!fidelidadCargada) cargarFidelidad();
@@ -5289,6 +5614,7 @@
     if (el.btnNuevoTramo) el.btnNuevoTramo.addEventListener('click', () => abrirFormTramo(null));
     conectarEventosFidelidad();
     conectarEventosEstadisticas();
+    conectarEventosCrm();
     if (el.btnNuevoCupon) el.btnNuevoCupon.addEventListener('click', () => abrirFormCupon(null));
     if (el.btnCuponesRecargar) el.btnCuponesRecargar.addEventListener('click', () => cargarCupones());
     [el.btnCancelarCupon, el.btnCancelarCuponArriba, el.btnCerrarCupon].forEach(boton => {
