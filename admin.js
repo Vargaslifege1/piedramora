@@ -3665,8 +3665,8 @@
     el.zonasNormalesLista.innerHTML = visibles.map(zona => {
       const id = escaparHtml(zona.id);
       const editable = puedeEditarFilaSucursal(zona.sucursal_id);
-      return `<div class="admin-envios-zona${editable ? '' : ' admin-solo-lectura'}" data-zona-id="${id}">
-        <div class="admin-envios-zona-nombre">
+      return `<div class="admin-zona-fila${editable ? '' : ' admin-solo-lectura'}" data-zona-id="${id}">
+        <div class="admin-zona-nombre">
           <strong>${escaparHtml(zona.nombre || 'Zona normal')}</strong>
           <small>${escaparHtml(etiquetaSucursalEnvios(zona.sucursal_id))}</small>
         </div>
@@ -3682,7 +3682,7 @@
           <input type="checkbox" data-zona-activa ${zona.activa ? 'checked' : ''}${editable ? '' : ' disabled'}>
           <span>Activa</span>
         </label>
-        ${editable ? '<button type="button" class="btn-primario" data-zona-guardar>Guardar</button>' : '<span class="admin-chip">Solo lectura</span>'}
+        ${editable ? '<button type="button" class="btn-primario admin-zona-guardar" data-zona-guardar>Guardar</button>' : '<span class="admin-chip">Solo lectura</span>'}
       </div>`;
     }).join('');
   }
@@ -3706,7 +3706,8 @@
       return Number(a.desde_cuadras) - Number(b.desde_cuadras);
     });
 
-    el.tramosLista.innerHTML = ordenados.map(tramo => {
+    const cabecera = '<div class="admin-tramo-cab" aria-hidden="true"><span>Sucursal</span><span>Desde</span><span>Hasta</span><span>Costo</span><span>Estado</span><span></span></div>';
+    el.tramosLista.innerHTML = cabecera + ordenados.map(tramo => {
       const id = escaparHtml(tramo.id);
       const activa = !!tramo.activa;
       const editable = puedeEditarFilaSucursal(tramo.sucursal_id);
@@ -3715,27 +3716,13 @@
           <button type="button" class="btn-secundario" data-tramo-accion="toggle">${activa ? 'Desactivar' : 'Activar'}</button>
           <button type="button" class="btn-peligro" data-tramo-accion="eliminar">Borrar</button>`
         : '<span class="admin-chip">Solo lectura</span>';
-      return `<div class="admin-envios-tramo ${activa ? '' : 'inactivo'}${editable ? '' : ' admin-solo-lectura'}" data-tramo-id="${id}">
-        <div class="admin-envios-tramo-dato">
-          <small>Sucursal</small>
-          <span>${escaparHtml(etiquetaSucursalEnvios(tramo.sucursal_id))}</span>
-        </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Desde</small>
-          <span>${Number(tramo.desde_cuadras) || 0} cuadras</span>
-        </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Hasta</small>
-          <span>${Number(tramo.hasta_cuadras) || 0} cuadras</span>
-        </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Costo</small>
-          <span>${formatearPrecio(tramo.costo)}</span>
-        </div>
-        <div class="admin-envios-tramo-acciones">
-          <span class="admin-envios-tramo-badge ${activa ? 'activa' : 'inactiva'}">${activa ? 'Activo' : 'Inactivo'}</span>
-          ${acciones}
-        </div>
+      return `<div class="admin-tramo-fila${activa ? '' : ' inactivo'}${editable ? '' : ' admin-solo-lectura'}" data-tramo-id="${id}">
+        <span class="admin-tramo-suc">${escaparHtml(etiquetaSucursalEnvios(tramo.sucursal_id))}</span>
+        <span class="admin-tramo-num" data-et="Desde">${Number(tramo.desde_cuadras) || 0}</span>
+        <span class="admin-tramo-num" data-et="Hasta">${Number(tramo.hasta_cuadras) || 0}</span>
+        <span class="admin-tramo-num admin-tramo-costo" data-et="Costo">${formatearPrecio(tramo.costo)}</span>
+        <span class="admin-envios-tramo-badge ${activa ? 'activa' : 'inactiva'}">${activa ? 'Activo' : 'Inactivo'}</span>
+        <div class="admin-tramo-acc">${acciones}</div>
       </div>`;
     }).join('');
   }

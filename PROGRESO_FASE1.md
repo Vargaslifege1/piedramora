@@ -878,3 +878,4 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - Fix scroll sucursales (3): destino = #sucursales-lista - alto navbar - alto .titulo-seccion - 8px (medido en JS, sin el translateY de .reveal), reajuste tras scrollend/900 ms, reduced-motion respetado.
 - Cupones en layout compacto (solo layout): form 2 columnas max 960px, opciones tipo chip, Guardar arriba, lista en grilla de tarjetas. Sin cambios de SQL/RPC.
 - Cupones: el formulario pasa a modal accesible (dialog, focus trap, Esc/backdrop/✕/Cancelar con confirmación si hay cambios, foco de vuelta al botón, scroll de fondo bloqueado). Solo layout/apertura; sin cambios de SQL/RPC.
+- Envíos en layout compacto (solo layout): config en grilla 2 col (max 960px) con Guardar en el pie, Zona normal en una tarjeta con filas por sucursal, tramos en filas alineadas (tarjeta de dos líneas en celular). Sin cambios de SQL/RPC/permisos.
