@@ -889,3 +889,5 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - Admin: pestaña Horarios (dueño y admin de sucursal): estado manual, turnos por día, cierres especiales (dueño) y pedidos programados en el tablero (etiqueta, sin ding-dong al crear, sonido/badge dentro de 3 h). Sin SQL nuevo.
 
 - Admin: Horarios en dos columnas (estado + cierres a la izquierda, días a la derecha; 1 columna <1024px), filas de día compactas y lista de cierres con scroll interno. Solo layout (`admin.html`, `admin.css`).
+
+- 2026-11-06: fix(whatsapp) emojis del mensaje como escapes `\u{...}` en `construirMensajePedido`; link con `encodeURIComponent` (verificado con node).

@@ -3884,21 +3884,21 @@ function construirMensajePedido({
   const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
   const cabecera = `*NUEVO PEDIDO - ${nombreNegocio}*\n\n`;
   let mensaje = sinRegistrar
-    ? `\u26a0\ufe0f PEDIDO SIN REGISTRAR EN EL SISTEMA\n\n${cabecera}`
+    ? `\u{26A0}\u{FE0F} PEDIDO SIN REGISTRAR EN EL SISTEMA\n\n${cabecera}`
     : cabecera;
-  if (numeroOrden) mensaje += `\ud83e\uddfe *Pedido:* ${normalizarTextoMensaje(numeroOrden, true)}\n`;
+  if (numeroOrden) mensaje += `\u{1F9FE} *Pedido:* ${normalizarTextoMensaje(numeroOrden, true)}\n`;
   if (programadoPara) {
-    mensaje += `\ud83d\uddd3\ufe0f *Pedido PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.\n`;
+    mensaje += `\u{1F5D3}\u{FE0F} *Pedido PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.\n`;
   }
-  mensaje += `\ud83d\udce2 *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
-  mensaje += `\ud83d\udef5 *Modalidad:* ${modalidadTexto}\n`;
-  mensaje += `\ud83d\udc64 *Cliente:* ${nombre}\n`;
-  mensaje += `\ud83d\udcf1 *Teléfono:* ${PM.formatearTelefonoAR(telefono)}\n`;
-  if (!esMesa) mensaje += `\ud83d\udce6 *Entrega:* ${tipoEntrega}\n`;
-  if (direccionFormateada) mensaje += `\ud83d\udccd *Dirección:* ${direccionFormateada}\n`;
+  mensaje += `\u{1F4E2} *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
+  mensaje += `\u{1F6F5} *Modalidad:* ${modalidadTexto}\n`;
+  mensaje += `\u{1F464} *Cliente:* ${nombre}\n`;
+  mensaje += `\u{1F4F1} *Teléfono:* ${PM.formatearTelefonoAR(telefono)}\n`;
+  if (!esMesa) mensaje += `\u{1F4E6} *Entrega:* ${tipoEntrega}\n`;
+  if (direccionFormateada) mensaje += `\u{1F4CD} *Dirección:* ${direccionFormateada}\n`;
   const porcentaje = Number(pago.porcentaje) || 0;
-  mensaje += `\ud83d\udcb0 *Pago:* ${pago.nombre}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}\n`;
-  if (notas) mensaje += `\ud83d\udcdd *Notas:* ${notas}\n`;
+  mensaje += `\u{1F4B0} *Pago:* ${pago.nombre}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}\n`;
+  if (notas) mensaje += `\u{1F4DD} *Notas:* ${notas}\n`;
 
   mensaje += `*Detalle del pedido:*\n`;
   (items || []).forEach((item) => {
