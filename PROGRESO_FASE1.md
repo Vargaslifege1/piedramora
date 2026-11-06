@@ -845,3 +845,4 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Checkout: totalMostrado considera cupón; si el servidor devuelve otro total con el pedido ya guardado solo se avisa (sin cancelar) y se sigue a WhatsApp.
 - Admin: exportación CSV prefija con ' los valores que empiezan con = + - @ tab o CR.
 - Promesas sin catch (main.js/admin.js) y accesos al DOM del modal de cantidad con chequeo.
+- Seguridad: scripts externos con versión fija + SRI (supabase-js 2.119.0 UMD, Leaflet 1.9.4 js/css), crossorigin anonymous y defer; GTM sin cambios.
