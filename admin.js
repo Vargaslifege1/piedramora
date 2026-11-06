@@ -662,6 +662,7 @@
 
     if (!yaVisible) {
       await cargarCarta();
+      cargarAgotados({ silencioso: true });
       await cargarPedidos({ silencioso: true });
       iniciarRealtimePedidos();
       iniciarRealtimeAgotados();
@@ -906,6 +907,8 @@
               <button type="button" class="btn-peligro" data-accion="eliminar-producto" data-id="${escaparHtml(id)}">Eliminar</button>
             </div>
           </div>
+
+          <div class="admin-prod-disponibilidad" data-disponibilidad="${escaparHtml(id)}">${htmlDisponibilidadProducto(producto)}</div>
 
           <div class="admin-prod-editor" ${abierto ? '' : 'hidden'}>
             <div class="admin-grid-campos">
@@ -3472,7 +3475,47 @@
     }
   }
 
-  function renderDisponibilidadCarta() {}
+  const SUCURSALES_CORTO = { 'intendente-lascano': 'Lascano', 'maestro-quiroga': 'Maestro Quiroga' };
+  const SUCURSALES_SWITCH = { 'intendente-lascano': 'Int. Lascano', 'maestro-quiroga': 'Maestro Quiroga' };
+
+  function htmlDisponibilidadProducto(producto) {
+    const id = String(producto.id);
+    const sucursales = (Array.isArray(producto.sucursales) ? producto.sucursales : [])
+      .map(String)
+      .filter(sid => SUCURSALES_NOMBRES[sid] || SUCURSALES_SWITCH[sid]);
+    if (!sucursales.length) return '';
+    sucursales.sort((a, b) => (SUCURSALES_SWITCH[a] || a).localeCompare(SUCURSALES_SWITCH[b] || b, 'es'));
+
+    const etiquetas = [];
+    if (PM.productoEstaAgotado(producto)) etiquetas.push('Agotado en todas');
+    sucursales.forEach(sid => {
+      if (estaAgotadoEn(sid, id)) etiquetas.push(`Agotado en ${SUCURSALES_CORTO[sid] || SUCURSALES_NOMBRES[sid] || sid}`);
+    });
+    const chips = etiquetas.map(t => `<span class="admin-badge admin-badge-agotado">${escaparHtml(t)}</span>`).join('');
+
+    const filas = sucursales.map(sid => {
+      const agotado = estaAgotadoEn(sid, id);
+      const guardando = agotadosGuardando.has(`${sid}|${id}`);
+      const sucNombre = SUCURSALES_SWITCH[sid] || SUCURSALES_NOMBRES[sid] || sid;
+      const prodNombre = producto.nombre || id;
+      return `<div class="admin-disp-fila${agotado ? ' es-agotado' : ''}">
+        <span class="admin-disp-nombre">${escaparHtml(sucNombre)}</span>
+        <span class="admin-agotado-estado">${agotado ? 'Agotado' : 'Disponible'}</span>
+        <button type="button" class="admin-switch" role="switch" aria-checked="${agotado ? 'true' : 'false'}" aria-label="${escaparHtml(`${prodNombre} en ${sucNombre}`)}" data-agotado-carta="${escaparHtml(id)}" data-agotado-sucursal="${escaparHtml(sid)}"${guardando ? ' disabled' : ''}><span class="admin-switch-perilla"></span></button>
+      </div>`;
+    }).join('');
+
+    return `<p class="admin-disp-titulo">Disponibilidad</p>${chips ? `<div class="admin-disp-chips">${chips}</div>` : ''}${filas}`;
+  }
+
+  // Actualiza solo los bloques de disponibilidad (no toca los editores abiertos).
+  function renderDisponibilidadCarta() {
+    if (!el.listaProductos) return;
+    el.listaProductos.querySelectorAll('[data-disponibilidad]').forEach(cont => {
+      const producto = buscarProducto(cont.dataset.disponibilidad);
+      if (producto) cont.innerHTML = htmlDisponibilidadProducto(producto);
+    });
+  }
 
   function programarRecargaAgotados() {
     if (agotadosRealtimeTimer) clearTimeout(agotadosRealtimeTimer);
@@ -5116,6 +5159,13 @@
       });
 
       el.listaProductos.addEventListener('click', (evento) => {
+        const sw = evento.target.closest('[data-agotado-carta]');
+        if (sw) {
+          if (!sw.disabled) {
+            cambiarAgotado(sw.dataset.agotadoCarta, sw.dataset.agotadoSucursal, sw.getAttribute('aria-checked') !== 'true', { origen: 'carta' });
+          }
+          return;
+        }
         const zona = evento.target.closest('[data-upload-zona]');
         const boton = evento.target.closest('[data-accion]');
 
