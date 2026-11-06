@@ -250,6 +250,7 @@
           <div class="carta-header-text">
             <div id="carta-titulo-marca" class="carta-titulo-marca" data-marca data-marca-mayusculas>PIEDRA MORA</div>
             <div id="carta-titulo-sucursal" class="carta-titulo-sucursal-nombre"></div>
+            <div id="carta-estado" class="carta-estado" aria-live="polite" hidden></div>
           </div>
         </div>
         <button id="carta-cerrar" class="carta-cerrar" type="button" aria-label="Cerrar carta" data-carta-cerrar>
@@ -261,6 +262,7 @@
       </header>
 
       <div class="carta-body">
+        <p id="carta-aviso-cerrado" class="aviso-cerrado" role="status" hidden>Estamos cerrados. Podés dejar tu pedido programado y lo verán cuando abran.</p>
         <!-- Tarjeta de fidelidad (se muestra en categorías y productos; la maneja main.js) -->
         <section id="fidelidad-tarjeta" class="fidelidad-tarjeta" aria-label="Tarjeta de fidelidad" hidden>
           <button type="button" id="fidelidad-barra" class="fidelidad-barra" aria-expanded="false" aria-controls="fidelidad-panel">
@@ -548,6 +550,29 @@
             </button>
           </div>
           <p id="checkout-pago-condicion" class="pago-condicion" aria-live="polite">Sin descuentos activos por medio de pago.</p>
+        </div>
+
+        <p id="checkout-aviso-cerrado" class="aviso-cerrado" role="status" hidden>Estamos cerrados. Podés dejar tu pedido programado y lo verán cuando abran.</p>
+
+        <div class="form-grupo checkout-programar" id="checkout-programar">
+          <label class="fidelidad-check">
+            <input type="checkbox" id="checkout-programar-check">
+            <span>Programar para otro día</span>
+          </label>
+          <div id="checkout-programar-campos" class="programar-campos" hidden>
+            <div class="programar-fila">
+              <div class="form-grupo">
+                <label for="programar-fecha">Fecha</label>
+                <input type="date" id="programar-fecha">
+              </div>
+              <div class="form-grupo">
+                <label for="programar-hora">Hora</label>
+                <input type="time" id="programar-hora">
+              </div>
+            </div>
+            <span id="programar-ayuda" class="form-ayuda"></span>
+            <span id="programar-error" class="form-error" role="alert" hidden></span>
+          </div>
         </div>
 
         <div class="form-grupo">

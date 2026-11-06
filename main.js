@@ -925,7 +925,11 @@ async function cargarSucursales() {
 
     inicializarAnimacionesReveal();
     actualizarEstados();
-    setInterval(actualizarEstados, 60 * 1000);
+    refrescarEstados(true);
+    setInterval(() => refrescarEstados(true), 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refrescarEstados(false);
+    });
     pedirUbicacion();
 
     cargarCartasEnSegundoPlano();
@@ -986,27 +990,275 @@ function estaAbiertoAhora(sucursal) {
   return false;
 }
 
+/* ===== Estado de sucursales: servidor (sucursal_estado) con respaldo local ===== */
+
+const TZ_AR = 'America/Argentina/Buenos_Aires';
+const ESTADO_TTL_MS = 3 * 60 * 1000;      // más viejo que esto => se usa el cálculo local
+const ESTADO_CACHE_MS = 20 * 1000;        // caché corta entre consultas no forzadas
+const ESTADOS_SUCURSAL = {};
+let estadosPromesa = null;
+let estadosUltimaCarga = 0;
+let programarMaxDias = 15;
+let programarMaxDiasCargado = false;
+
+const formateadorAR = new Intl.DateTimeFormat('es-AR', {
+  timeZone: TZ_AR, year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+});
+
+function partesAR(fecha) {
+  const p = {};
+  formateadorAR.formatToParts(fecha).forEach((x) => { p[x.type] = x.value; });
+  return { y: p.year, m: p.month, d: p.day, hh: p.hour, mm: p.minute };
+}
+function claveDiaAR(fecha) { const p = partesAR(fecha); return `${p.y}-${p.m}-${p.d}`; }
+function diaMesAR(fecha) { const p = partesAR(fecha); return `${p.d}/${p.m}`; }
+function horaAR(fecha) { const p = partesAR(fecha); return `${p.hh}:${p.mm}`; }
+
+function estadoLocalSucursal(sucursal) {
+  const abierto = estaAbiertoAhora(sucursal);
+  let proxima = null;
+  const a = sucursal.horarios && sucursal.horarios.apertura;
+  if (!abierto && a) {
+    const d = new Date();
+    d.setHours(a.hora, a.minuto, 0, 0);
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+    proxima = d;
+  }
+  return { abierto, motivo: abierto ? 'horario' : 'fuera_de_horario', proxima, origen: 'local' };
+}
+
+function obtenerEstadoSucursal(id) {
+  const e = ESTADOS_SUCURSAL[id];
+  if (e && (Date.now() - e.ts) < ESTADO_TTL_MS) return e;
+  const sucursal = SUCURSALES[id];
+  if (sucursal && sucursal.horarios) return estadoLocalSucursal(sucursal);
+  return { abierto: true, motivo: 'horario', proxima: null, origen: 'local' };
+}
+
+function textoEstadoSucursal(e) {
+  if (e.abierto) return 'Abierto ahora';
+  const prox = e.proxima;
+  if (e.motivo === 'cierre_especial' && prox) return `Cerrado hasta el ${diaMesAR(prox)}`;
+  if (e.motivo === 'forzado_cerrado' || !prox) return 'Cerrado por el momento';
+  const hoy = claveDiaAR(new Date());
+  const manana = claveDiaAR(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const dia = claveDiaAR(prox);
+  const cuando = dia === hoy ? '' : (dia === manana ? 'mañana ' : `el ${diaMesAR(prox)} `);
+  return `Cerrado, abrimos ${cuando}a las ${horaAR(prox)}`;
+}
+
+async function consultarEstadoServidor(id) {
+  await cargarConfigNube();
+  const cliente = obtenerClienteNube();
+  if (!cliente) return null;
+  const { data, error } = await conTiempoLimite(cliente.rpc('sucursal_estado', { p_sucursal_id: id }), 6000);
+  if (error || !data || typeof data.abierto !== 'boolean') return null;
+  const prox = data.proxima_apertura ? new Date(data.proxima_apertura) : null;
+  return {
+    abierto: data.abierto,
+    motivo: String(data.motivo || ''),
+    proxima: prox && !Number.isNaN(prox.getTime()) ? prox : null,
+    origen: 'servidor',
+    ts: Date.now()
+  };
+}
+
+function refrescarEstados(forzar) {
+  if (estadosPromesa) return estadosPromesa;
+  if (!forzar && (Date.now() - estadosUltimaCarga) < ESTADO_CACHE_MS) return Promise.resolve();
+  estadosPromesa = (async () => {
+    try {
+      await Promise.all(Object.keys(SUCURSALES).map(async (id) => {
+        try {
+          const e = await consultarEstadoServidor(id);
+          if (e) ESTADOS_SUCURSAL[id] = e;
+        } catch (error) {
+          console.warn('No se pudo consultar el estado de la sucursal; se usa el horario local.', error);
+        }
+      }));
+    } finally {
+      estadosUltimaCarga = Date.now();
+      estadosPromesa = null;
+      actualizarEstados();
+    }
+  })();
+  return estadosPromesa;
+}
+
 function actualizarEstados() {
   document.querySelectorAll('.sucursal-card').forEach((tarjeta) => {
     const id = tarjeta.dataset.sucursal;
-    const sucursal = SUCURSALES[id];
-    if (!sucursal) return;
+    if (!SUCURSALES[id]) return;
 
     const badge = tarjeta.querySelector('[data-estado]');
     if (!badge) return;
     const textoEstado = badge.querySelector('[data-estado-texto]');
-    const abierto = estaAbiertoAhora(sucursal);
+    const e = obtenerEstadoSucursal(id);
 
-    if (abierto) {
-      textoEstado.textContent = 'Abierto ahora';
-      badge.classList.add('abierto');
-      badge.classList.remove('cerrado');
-    } else {
-      textoEstado.textContent = 'Cerrado';
-      badge.classList.add('cerrado');
-      badge.classList.remove('abierto');
-    }
+    textoEstado.textContent = textoEstadoSucursal(e);
+    badge.classList.toggle('abierto', e.abierto);
+    badge.classList.toggle('cerrado', !e.abierto);
   });
+  try { actualizarVistaEstadoCarta(); } catch (error) {}
+}
+
+/* ===== Carta / checkout: cartel de cerrado y selector de pedido programado ===== */
+
+function actualizarVistaEstadoCarta() {
+  if (!cartaActualSucursalId || !SUCURSALES[cartaActualSucursalId]) return;
+  const e = obtenerEstadoSucursal(cartaActualSucursalId);
+
+  const estadoEl = document.getElementById('carta-estado');
+  if (estadoEl) {
+    estadoEl.textContent = textoEstadoSucursal(e);
+    estadoEl.hidden = false;
+    estadoEl.classList.toggle('abierto', e.abierto);
+    estadoEl.classList.toggle('cerrado', !e.abierto);
+  }
+
+  const mostrarCartel = !e.abierto && !esCartaSoloLectura();
+  ['carta-aviso-cerrado', 'checkout-aviso-cerrado'].forEach((idEl) => {
+    const el = document.getElementById(idEl);
+    if (el) el.hidden = !mostrarCartel;
+  });
+
+  actualizarProgramarUI();
+}
+
+function actualizarProgramarUI() {
+  const check = document.getElementById('checkout-programar-check');
+  const campos = document.getElementById('checkout-programar-campos');
+  if (!check || !campos || !cartaActualSucursalId) return;
+  const e = obtenerEstadoSucursal(cartaActualSucursalId);
+
+  if (!e.abierto) {
+    // Cerrado: solo se puede dejar el pedido programado.
+    if (!check.checked) check.dataset.forzado = '1';
+    check.checked = true;
+    check.disabled = true;
+  } else {
+    check.disabled = false;
+    if (check.dataset.forzado === '1') {
+      check.checked = false;
+      delete check.dataset.forzado;
+    }
+  }
+  campos.hidden = !check.checked;
+  if (!campos.hidden) prepararCamposProgramar();
+}
+
+function armarFechaAR(clave, hora, minuto) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return new Date(`${clave}T${pad(hora)}:${pad(minuto)}:00-03:00`);
+}
+
+function prepararCamposProgramar() {
+  const fecha = document.getElementById('programar-fecha');
+  const hora = document.getElementById('programar-hora');
+  const ayuda = document.getElementById('programar-ayuda');
+  if (!fecha || !hora) return;
+  const sucursal = SUCURSALES[cartaActualSucursalId];
+  const e = obtenerEstadoSucursal(cartaActualSucursalId);
+
+  fecha.min = claveDiaAR(new Date());
+  fecha.max = claveDiaAR(new Date(Date.now() + programarMaxDias * 24 * 60 * 60 * 1000));
+
+  if (!fecha.value || !hora.value) {
+    let porDefecto = e.proxima;
+    if (!porDefecto) {
+      const a = (sucursal && sucursal.horarios && sucursal.horarios.apertura) || { hora: 20, minuto: 30 };
+      const base = e.abierto ? new Date(Date.now() + 24 * 60 * 60 * 1000) : new Date();
+      porDefecto = armarFechaAR(claveDiaAR(base), a.hora, a.minuto);
+    }
+    fecha.value = claveDiaAR(porDefecto);
+    hora.value = horaAR(porDefecto);
+  }
+  if (ayuda) {
+    ayuda.textContent = `Podés elegir hasta ${programarMaxDias} días adelante, dentro de nuestro horario${sucursal && sucursal.horarioTexto ? ` (${sucursal.horarioTexto})` : ''}. Lo confirmamos cuando abramos.`;
+  }
+}
+
+async function cargarProgramarMaxDias() {
+  if (programarMaxDiasCargado) return;
+  programarMaxDiasCargado = true;
+  try {
+    await cargarConfigNube();
+    const cliente = obtenerClienteNube();
+    if (!cliente) return;
+    const { data, error } = await conTiempoLimite(
+      cliente.from('config_negocio').select('valor').eq('clave', 'programar_max_dias').maybeSingle(),
+      6000
+    );
+    const n = Number(data && data.valor);
+    if (!error && Number.isFinite(n) && n >= 1 && n <= 90) {
+      programarMaxDias = Math.floor(n);
+      actualizarProgramarUI();
+    }
+  } catch (error) {
+    programarMaxDiasCargado = false;
+  }
+}
+
+function mostrarErrorProgramar(mensaje) {
+  const check = document.getElementById('checkout-programar-check');
+  const err = document.getElementById('programar-error');
+  if (check && !check.checked) check.checked = true;
+  actualizarProgramarUI();
+  if (err) {
+    err.textContent = mensaje;
+    err.hidden = false;
+  }
+  const bloque = document.getElementById('checkout-programar');
+  if (bloque) {
+    const reducir = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    bloque.scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', block: 'center' });
+  }
+}
+
+function limpiarErrorProgramar() {
+  const err = document.getElementById('programar-error');
+  if (err) { err.textContent = ''; err.hidden = true; }
+}
+
+// Validación solo de ayuda: el servidor decide.
+function leerProgramadoCheckout() {
+  const check = document.getElementById('checkout-programar-check');
+  if (!check || !check.checked) return { programado: false };
+  const f = document.getElementById('programar-fecha')?.value;
+  const h = document.getElementById('programar-hora')?.value;
+  if (!f || !h) return { programado: true, error: 'Elegí la fecha y la hora para tu pedido.' };
+  const hm = h.slice(0, 5);
+  const fecha = new Date(`${f}T${hm}:00-03:00`);
+  if (Number.isNaN(fecha.getTime())) return { programado: true, error: 'La fecha u hora no son válidas.' };
+  if (fecha.getTime() <= Date.now()) return { programado: true, error: 'La fecha y la hora tienen que ser futuras.' };
+  if (fecha.getTime() > Date.now() + programarMaxDias * 24 * 60 * 60 * 1000) {
+    return { programado: true, error: `Solo podés programar hasta ${programarMaxDias} días adelante.` };
+  }
+  return { programado: true, iso: `${f}T${hm}:00-03:00`, fecha };
+}
+
+function resetearProgramarCheckout() {
+  const check = document.getElementById('checkout-programar-check');
+  const fecha = document.getElementById('programar-fecha');
+  const hora = document.getElementById('programar-hora');
+  if (check) { check.checked = false; delete check.dataset.forzado; }
+  if (fecha) fecha.value = '';
+  if (hora) hora.value = '';
+  limpiarErrorProgramar();
+  actualizarProgramarUI();
+}
+
+document.getElementById('checkout-programar-check')?.addEventListener('change', () => {
+  limpiarErrorProgramar();
+  actualizarProgramarUI();
+});
+['programar-fecha', 'programar-hora'].forEach((idEl) => {
+  document.getElementById(idEl)?.addEventListener('input', limpiarErrorProgramar);
+});
+
+function esRechazoPorHorario(error) {
+  return /cerrado|programar|programad|horario de atenci|futuras|d[ií]as adelante/i.test(String((error && error.message) || ''));
 }
 
 function calcularDistanciaKm(lat1, lng1, lat2, lng2) {
@@ -2365,6 +2617,8 @@ function abrirModalCheckout() {
   programarCotizacionEnvio();
   refrescarDescuentosPagoCheckout();
   try { fidelidadProgramarConsultaPremios(); } catch (e) {}
+  actualizarVistaEstadoCarta();
+  cargarProgramarMaxDias();
 
   overlay.hidden = false;
   panel.hidden = false;
@@ -2468,7 +2722,7 @@ function cerrarPedidoRecibido() {
   }, 200);
 }
 
-function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad, premioTexto }) {
+function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad, premioTexto, programadoPara }) {
   const overlay = document.getElementById('pedido-recibido-overlay');
   const panel = document.getElementById('pedido-recibido');
   if (!overlay || !panel) return;
@@ -2488,7 +2742,7 @@ function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad, premioTex
 
   const numeroOrden = pedido && pedido.numero_orden ? String(pedido.numero_orden) : '';
 
-  if (titulo) titulo.textContent = esFallback ? 'Pedido enviado por WhatsApp' : '¡Pedido recibido!';
+  if (titulo) titulo.textContent = esFallback ? 'Pedido enviado por WhatsApp' : (programadoPara ? '¡Pedido programado!' : '¡Pedido recibido!');
   if (icono) {
     icono.classList.toggle('es-aviso', !!esFallback);
     icono.textContent = esFallback ? '!' : '✓';
@@ -2500,9 +2754,14 @@ function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad, premioTex
   if (totalEl) totalEl.textContent = formatearPrecioAR(Number(total) || 0);
   if (modalidadEl) modalidadEl.textContent = modalidad || '-';
   if (aviso) {
-    aviso.textContent = esFallback
-      ? 'Tu pedido se envía por WhatsApp. Esperá nuestra confirmación.'
-      : 'Enviá el mensaje de WhatsApp que se abrió para que lo confirmemos.';
+    const textoProgramado = programadoPara
+      ? `Pedido PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}. Lo confirmamos cuando abramos.`
+      : '';
+    aviso.textContent = textoProgramado
+      ? textoProgramado
+      : (esFallback
+        ? 'Tu pedido se envía por WhatsApp. Esperá nuestra confirmación.'
+        : 'Enviá el mensaje de WhatsApp que se abrió para que lo confirmemos.');
   }
   if (filaTiempo) filaTiempo.hidden = true;
   if (tiempoEl) tiempoEl.textContent = '';
@@ -2520,7 +2779,7 @@ function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad, premioTex
     try { panel.focus({ preventScroll: true }); } catch (error) {}
   });
 
-  if (!esFallback) {
+  if (!esFallback && !programadoPara) {
     obtenerTiempoEstimadoEntrega().then((minutos) => {
       if (!minutos || !filaTiempo || !tiempoEl) return;
       if (panel.hidden) return;
@@ -3534,7 +3793,8 @@ function construirMensajePedido({
   sinRegistrar,
   cuponAplicadoEnPedido,
   premioAplicadoEnPedido,
-  cuponNoAplicado
+  cuponNoAplicado,
+  programadoPara
 }) {
   const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
   const cabecera = `*NUEVO PEDIDO - ${nombreNegocio}*\n\n`;
@@ -3542,6 +3802,9 @@ function construirMensajePedido({
     ? `\u26a0\ufe0f PEDIDO SIN REGISTRAR EN EL SISTEMA\n\n${cabecera}`
     : cabecera;
   if (numeroOrden) mensaje += `\ud83e\uddfe *Pedido:* ${normalizarTextoMensaje(numeroOrden, true)}\n`;
+  if (programadoPara) {
+    mensaje += `\ud83d\uddd3\ufe0f *Pedido PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.\n`;
+  }
   mensaje += `\ud83d\udce2 *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
   mensaje += `\ud83d\udef5 *Modalidad:* ${modalidadTexto}\n`;
   mensaje += `\ud83d\udc64 *Cliente:* ${nombre}\n`;
@@ -3726,6 +3989,24 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     alert('Esta carta es solo para consulta. El pedido lo toma el personal del local.');
     return;
   }
+
+  // Horario del servidor: se refresca antes de enviar. Si está cerrado y no se
+  // eligió programar, no se envía: se ofrece programar. El servidor decide igual.
+  const progAntes = leerProgramadoCheckout();
+  pedidoEnviando = true;
+  try { await refrescarEstados(true); } catch (error) {}
+  pedidoEnviando = false;
+  actualizarVistaEstadoCarta();
+  if (!obtenerEstadoSucursal(cartaActualSucursalId).abierto && !progAntes.programado) {
+    mostrarErrorProgramar('Ahora estamos cerrados. Elegí cuándo querés tu pedido y enviá de nuevo.');
+    return;
+  }
+  const prog = leerProgramadoCheckout();
+  if (prog.error) {
+    mostrarErrorProgramar(prog.error);
+    return;
+  }
+
   const tipoEntregaEl = document.querySelector('[data-tipo-entrega].activa');
   const tipoEntrega = esMesa
     ? 'Mesa (salón)'
@@ -3835,6 +4116,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
         p_premio_id: premioUsado ? premioUsado.id : null,
         p_acepta_promos: document.getElementById('cliente-acepta-promos')?.checked ? true : null
       };
+      if (prog.programado) payloadPedido.p_programado_para = prog.iso;
 
       try {
         pedidoGuardado = await crearPedidoConReintento(clienteNube, payloadPedido);
@@ -3847,6 +4129,13 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           borrarIdempotencyKeyPedido();
           cerrarVentanaPedido(ventanaWhatsapp);
           alert(`${mensajePremio} Revisá tu pedido y volvé a enviarlo.`);
+          return;
+        } else if (esRechazoPorHorario(error)) {
+          // Horario / fecha: texto del servidor en el checkout, sin WhatsApp "sin registrar"
+          // y sin perder el carrito ni la idempotency key.
+          cerrarVentanaPedido(ventanaWhatsapp);
+          mostrarErrorProgramar(String(error.message || 'No pudimos programar el pedido.'));
+          refrescarEstados(true);
           return;
         } else if (codigoCuponConfirmado && esRechazoPorCupon(error)) {
           const mensajeCupon = String(error.message || 'El cupón ya no es válido.');
@@ -3938,6 +4227,14 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           ? Number(pedidoGuardado.envio_cuadras)
           : (envioCotizado && Number.isFinite(Number(envioCotizado.cuadras)) ? Number(envioCotizado.cuadras) : null));
 
+    let programadoMostrar = null;
+    if (prog.programado) {
+      const dServidor = pedidoGuardado && pedidoGuardado.programado_para
+        ? new Date(pedidoGuardado.programado_para)
+        : null;
+      programadoMostrar = dServidor && !Number.isNaN(dServidor.getTime()) ? dServidor : prog.fecha;
+    }
+
     const mensaje = construirMensajePedido({
       sucursal,
       esMesa,
@@ -3955,7 +4252,8 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       sinRegistrar: !pedidoGuardado,
       cuponAplicadoEnPedido: pedidoGuardado && !premioUsado ? codigoCuponConfirmado : null,
       premioAplicadoEnPedido: pedidoGuardado && premioUsado ? fidelidadDescribirPremio(premioUsado) : null,
-      cuponNoAplicado: !pedidoGuardado && !!codigoCuponOriginal
+      cuponNoAplicado: !pedidoGuardado && !!codigoCuponOriginal,
+      programadoPara: programadoMostrar
     });
 
     const mensajeLimpio = normalizarTextoMensaje(mensaje).normalize('NFC');
@@ -3968,7 +4266,8 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       esFallback: !pedidoGuardado,
       total: totalesMensaje.total,
       modalidad: tipoEntrega,
-      premioTexto: pedidoGuardado && premioUsado ? fidelidadDescribirPremio(premioUsado) : ''
+      premioTexto: pedidoGuardado && premioUsado ? fidelidadDescribirPremio(premioUsado) : '',
+      programadoPara: programadoMostrar
     });
 
     if (pedidoGuardado) {
@@ -3977,6 +4276,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       cerrarModalCheckout();
       actualizarVistaCarrito();
       borrarIdempotencyKeyPedido();
+      resetearProgramarCheckout();
     }
   } catch (error) {
     console.error('No se pudo abrir WhatsApp con el pedido.', error);
@@ -4207,6 +4507,8 @@ async function abrirCartaDosEtapas(sucursalId) {
   if (cartaTituloSucursalEl) {
     cartaTituloSucursalEl.textContent = sucursal.tituloCarta || sucursal.nombre;
   }
+  actualizarVistaEstadoCarta();
+  refrescarEstados(false);
 
   cartaRequiereModalidad = !!sucursal.requiereModalidad;
   aplicarModoVisualizacionCarta();

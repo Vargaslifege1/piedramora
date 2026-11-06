@@ -881,3 +881,5 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - Envíos en layout compacto (solo layout): config en grilla 2 col (max 960px) con Guardar en el pie, Zona normal en una tarjeta con filas por sucursal, tramos en filas alineadas (tarjeta de dos líneas en celular). Sin cambios de SQL/RPC/permisos.
 
 - Migración 024 (SIN APLICAR, falta backup): horarios por sucursal en BD (`sucursal_horarios`, `cierres_especiales`, `sucursal_estado_manual`, RLS + seed de sucursales.json), `sucursal_estado()`, `pedidos.programado_para` y `crear_pedido` de 16 parámetros (rechaza si está cerrado; permite programar hasta `programar_max_dias`=15 dentro del horario). Sin cambios de frontend todavía.
+
+- Sitio: estado Abierto/Cerrado desde `sucursal_estado` (refresco 60 s y al volver a la pestaña, respaldo local), cartel de cerrado en carta y checkout, selector de fecha/hora para pedidos programados (`p_programado_para`, máx. `programar_max_dias`) y mensajes de WhatsApp/modal "PROGRAMADO". Errores de horario del servidor se muestran en el checkout. Archivos: `main.js`, `index.html`, `style.css`.

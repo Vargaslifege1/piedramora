@@ -5035,3 +5035,79 @@ body.confirmacion-abierta {
   text-align: center;
 }
 .pedido-recibido-premio[hidden] { display: none; }
+
+
+/* ===== Horarios del servidor y pedidos programados ===== */
+.estado-badge.cerrado {
+  white-space: normal;
+  max-width: 100%;
+  text-align: left;
+  line-height: 1.25;
+}
+
+.carta-estado {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+.carta-estado:not([hidden])::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--color-rojo);
+}
+
+.carta-estado.abierto::before {
+  background: #4caf50;
+}
+
+.aviso-cerrado {
+  margin: 0;
+  padding: 10px 14px;
+  background: rgba(217, 164, 65, 0.12);
+  border: 1px solid rgba(217, 164, 65, 0.45);
+  border-radius: 10px;
+  color: var(--color-dorado);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.carta-body > .aviso-cerrado {
+  flex: 0 0 auto;
+  margin: 8px 12px 0;
+}
+
+.programar-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.programar-campos[hidden] {
+  display: none;
+}
+
+.programar-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.checkout-programar input[type="date"],
+.checkout-programar input[type="time"] {
+  color-scheme: dark;
+  min-height: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .programar-campos .form-error:not([hidden]) {
+    animation: none;
+  }
+}
