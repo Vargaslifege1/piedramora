@@ -252,6 +252,16 @@
           </div>
           <p id="agotados-estado" class="admin-estado" aria-live="polite"></p>
           <div id="agotados-aviso" class="admin-aviso" hidden></div>
+          <div class="admin-agotados-barra">
+            <div class="admin-agotados-resumen">
+              <strong id="agotados-resumen" aria-live="polite">0 agotados</strong>
+              <button type="button" id="agotados-solo" class="btn-secundario" aria-pressed="false">Ver solo agotados</button>
+            </div>
+            <div class="admin-agotados-filtros">
+              <input id="agotados-buscar" type="search" placeholder="Buscar producto..." autocomplete="off" aria-label="Buscar producto">
+              <select id="agotados-categoria" aria-label="Filtrar por categoría"></select>
+            </div>
+          </div>
           <div id="agotados-lista" class="admin-agotados-lista"></div>
         </section>
 

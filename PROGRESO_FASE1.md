@@ -811,3 +811,12 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Animación de altura/opacidad de 0,22 s (grid 0fr→1fr); con `prefers-reduced-motion` sin transición. Panel cerrado con `visibility:hidden` (no se llega con Tab).
 - Intacto: registro, caché, canje en el checkout, try/catch. La tarjeta es parte del flujo de la carta, no se superpone con la píldora flotante.
 - Probar: `node --check main.js`; a 360px y 1280px ver la barra cerrada, abrir/cerrar con teclado, con y sin cliente guardado, con y sin premio.
+
+## Agotados con buscador y switches (2026-11-05)
+
+- Pestaña Pedidos > "Agotados (hasta que los reactives)": la grilla de checkboxes pasó a una lista compacta con scroll interno (max 55vh), filas de 52px y switch (`button role="switch"`, `aria-checked`, `aria-label` con el nombre).
+- Buscador (sin tildes ni mayúsculas), filtro por categoría, resumen "N agotados" y botón "Ver solo agotados". Agotados primero y resaltados en rojo.
+- Un toque guarda al instante en `agotados_sucursal` (upsert/delete como antes). La fila se actualiza al toque, el switch queda deshabilitado mientras guarda y, si falla, se revierte y se muestra el error ("No tenés permiso para hacer esto." ante 403/42501).
+- El Realtime sigue recargando la lista; el buscador está fuera de la lista y se conserva el scroll al re-renderizar.
+- Sin cambios de SQL/migraciones. Archivos: `admin.html`, `admin.js`, `admin.css`.
+- Probar: en 360px buscar "pizza", filtrar por categoría, tocar un switch, cortar la red y verificar que revierte; cambiar un agotado desde otro admin y ver que se actualiza sin perder el texto buscado.

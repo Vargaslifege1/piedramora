@@ -163,6 +163,10 @@
     agotadosEstado: document.getElementById('agotados-estado'),
     agotadosAviso: document.getElementById('agotados-aviso'),
     agotadosLista: document.getElementById('agotados-lista'),
+    agotadosResumen: document.getElementById('agotados-resumen'),
+    agotadosSolo: document.getElementById('agotados-solo'),
+    agotadosBuscar: document.getElementById('agotados-buscar'),
+    agotadosCategoria: document.getElementById('agotados-categoria'),
     pedidosFiltroPeriodo: document.getElementById('pedidos-filtro-periodo'),
     pedidosPeriodoEtiqueta: document.getElementById('pedidos-periodo-etiqueta'),
     btnPedidosAnterior: document.getElementById('btn-pedidos-anterior'),
@@ -223,6 +227,8 @@
   let agotadosCargados = false;
   let agotadosCargando = false;
   let agotadosProductos = new Set();
+  let agotadosSoloAgotados = false;
+  const agotadosGuardando = new Set();
   let agotadosCanal = null;
   let agotadosRealtimeTimer = null;
 
@@ -3230,8 +3236,23 @@
       });
   }
 
+  function normalizarBusquedaAgotados(texto) {
+    return String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  }
+
+  function poblarCategoriasAgotados(productos) {
+    if (!el.agotadosCategoria) return;
+    const actual = el.agotadosCategoria.value;
+    const ids = [...new Set(productos.map(p => p.categoria))];
+    ids.sort((x, y) => nombreCategoria(x).localeCompare(nombreCategoria(y), 'es'));
+    el.agotadosCategoria.innerHTML = '<option value="">Todas las categorías</option>'
+      + ids.map(id => `<option value="${escaparHtml(id)}">${escaparHtml(nombreCategoria(id))}</option>`).join('');
+    el.agotadosCategoria.value = ids.includes(actual) ? actual : '';
+  }
+
   function renderAgotados() {
     if (!el.agotadosLista) return;
+    const scrollPrevio = el.agotadosLista.scrollTop;
     const sucursalId = sucursalAgotadosSeleccionada();
     if (!sucursalId) {
       el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">Sin sucursal asignada. Recargá la página o pedile al dueño que asigne una sucursal.</p>';
@@ -3244,17 +3265,45 @@
       return;
     }
 
-    el.agotadosLista.innerHTML = productos.map(producto => {
+    poblarCategoriasAgotados(productos);
+    const cantidad = productos.filter(p => agotadosProductos.has(String(p.id))).length;
+    if (el.agotadosResumen) el.agotadosResumen.textContent = `${cantidad} ${cantidad === 1 ? 'agotado' : 'agotados'}`;
+    if (el.agotadosSolo) {
+      el.agotadosSolo.setAttribute('aria-pressed', agotadosSoloAgotados ? 'true' : 'false');
+      el.agotadosSolo.textContent = agotadosSoloAgotados ? 'Ver todos' : 'Ver solo agotados';
+    }
+
+    const consulta = normalizarBusquedaAgotados(el.agotadosBuscar && el.agotadosBuscar.value);
+    const categoria = el.agotadosCategoria ? el.agotadosCategoria.value : '';
+    const filtrados = productos.filter(p => {
+      if (categoria && p.categoria !== categoria) return false;
+      if (agotadosSoloAgotados && !agotadosProductos.has(String(p.id))) return false;
+      if (consulta && !normalizarBusquedaAgotados(p.nombre || p.id).includes(consulta)) return false;
+      return true;
+    });
+    // Agotados primero; el resto conserva el orden por categoría/nombre.
+    filtrados.sort((x, y) => Number(agotadosProductos.has(String(y.id))) - Number(agotadosProductos.has(String(x.id))));
+
+    if (!filtrados.length) {
+      el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">No hay productos que coincidan.</p>';
+      return;
+    }
+
+    el.agotadosLista.innerHTML = filtrados.map(producto => {
       const id = String(producto.id);
-      const marcado = agotadosProductos.has(id);
-      return `<label class="admin-agotado-item">
-        <input type="checkbox" data-agotado-id="${escaparHtml(id)}"${marcado ? ' checked' : ''}>
-        <span>
-          <strong>${escaparHtml(producto.nombre || id)}</strong>
+      const agotado = agotadosProductos.has(id);
+      const guardando = agotadosGuardando.has(id);
+      const nombre = producto.nombre || id;
+      return `<div class="admin-agotado-fila${agotado ? ' es-agotado' : ''}">
+        <span class="admin-agotado-texto">
+          <strong>${escaparHtml(nombre)}</strong>
           <small>${escaparHtml(nombreCategoria(producto.categoria))}</small>
         </span>
-      </label>`;
+        <span class="admin-agotado-estado">${agotado ? 'Agotado' : 'Disponible'}</span>
+        <button type="button" class="admin-switch" role="switch" aria-checked="${agotado ? 'true' : 'false'}" aria-label="${escaparHtml(nombre)}" data-agotado-id="${escaparHtml(id)}"${guardando ? ' disabled' : ''}><span class="admin-switch-perilla"></span></button>
+      </div>`;
     }).join('');
+    el.agotadosLista.scrollTop = scrollPrevio;
   }
 
   async function cargarAgotados(opciones = {}) {
@@ -3295,38 +3344,44 @@
     }
   }
 
-  async function cambiarAgotado(productoId, marcar, checkbox) {
+  async function cambiarAgotado(productoId, marcar) {
     const sucursalId = sucursalAgotadosSeleccionada();
-    if (!cliente || !productoId || !sucursalId) return;
-    if (checkbox) checkbox.disabled = true;
+    const id = String(productoId || '');
+    if (!cliente || !id || !sucursalId || agotadosGuardando.has(id)) return;
+    agotadosGuardando.add(id);
+    // Feedback inmediato: se actualiza la fila y el switch queda deshabilitado mientras guarda.
+    if (marcar) agotadosProductos.add(id);
+    else agotadosProductos.delete(id);
+    renderAgotados();
+    mostrarAvisoAgotados('');
 
     try {
       let error = null;
       if (marcar) {
         const respuesta = await cliente
           .from('agotados_sucursal')
-          .upsert({ producto_id: productoId, sucursal_id: sucursalId }, { onConflict: 'producto_id,sucursal_id' });
+          .upsert({ producto_id: id, sucursal_id: sucursalId }, { onConflict: 'producto_id,sucursal_id' });
         error = respuesta.error;
       } else {
         const respuesta = await cliente
           .from('agotados_sucursal')
           .delete()
-          .eq('producto_id', productoId)
+          .eq('producto_id', id)
           .eq('sucursal_id', sucursalId);
         error = respuesta.error;
       }
       if (error) throw error;
-
-      if (marcar) agotadosProductos.add(String(productoId));
-      else agotadosProductos.delete(String(productoId));
       mostrarEstadoAgotados(marcar ? 'Producto marcado como agotado.' : 'Producto reactivado.', 'ok');
-      mostrarAvisoAgotados('');
     } catch (error) {
       console.warn('No se pudo cambiar el agotado:', error);
-      if (checkbox) checkbox.checked = !marcar;
+      // Revierte el switch.
+      if (marcar) agotadosProductos.delete(id);
+      else agotadosProductos.add(id);
+      mostrarEstadoAgotados('');
       mostrarAvisoAgotados(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : `No se pudo guardar el agotado: ${error.message || 'error de conexión'}`, 'error');
     } finally {
-      if (checkbox) checkbox.disabled = false;
+      agotadosGuardando.delete(id);
+      renderAgotados();
     }
   }
 
@@ -4750,10 +4805,18 @@
       });
     }
     if (el.agotadosLista) {
-      el.agotadosLista.addEventListener('change', async (evento) => {
-        const checkbox = evento.target.closest('[data-agotado-id]');
-        if (!checkbox) return;
-        await cambiarAgotado(checkbox.dataset.agotadoId, checkbox.checked, checkbox);
+      el.agotadosLista.addEventListener('click', (evento) => {
+        const boton = evento.target.closest('[data-agotado-id]');
+        if (!boton || boton.disabled) return;
+        cambiarAgotado(boton.dataset.agotadoId, boton.getAttribute('aria-checked') !== 'true');
+      });
+    }
+    if (el.agotadosBuscar) el.agotadosBuscar.addEventListener('input', renderAgotados);
+    if (el.agotadosCategoria) el.agotadosCategoria.addEventListener('change', renderAgotados);
+    if (el.agotadosSolo) {
+      el.agotadosSolo.addEventListener('click', () => {
+        agotadosSoloAgotados = !agotadosSoloAgotados;
+        renderAgotados();
       });
     }
 
