@@ -1131,14 +1131,44 @@ if (navbar) {
   });
 }
 
-// Scroll a sucursales: el offset lo da scroll-margin-top (CSS), así sigue
-// correcto aunque la altura cambie mientras baja (barra del navegador, reveal).
+// Scroll a sucursales: apunta al inicio de la sección; el offset lo da scroll-margin-top
+// (alto real del navbar ya "scrolled" + 16px - padding). Se recalcula al terminar el scroll.
+function medirNavbarSucursales() {
+  const nav = document.querySelector('.navbar');
+  if (!nav) return;
+  // Al llegar abajo el navbar queda compacto (-10px de padding); medimos ese alto final.
+  const alto = nav.offsetHeight - (nav.classList.contains('scrolled') ? 0 : 10);
+  document.documentElement.style.setProperty('--navbar-alto', alto + 'px');
+}
+
 function desplazarASucursales(e) {
   if (e && typeof e.preventDefault === 'function') e.preventDefault();
   const seccion = document.getElementById('sucursales');
   if (!seccion) return;
-  seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const behavior = reducido ? 'auto' : 'smooth';
+  medirNavbarSucursales();
+  seccion.scrollIntoView({ behavior, block: 'start' });
+  // Segundo ajuste: reveal/imágenes/barra del navegador pueden mover el destino.
+  let hecho = false;
+  const reajustar = () => {
+    if (hecho) return;
+    hecho = true;
+    medirNavbarSucursales();
+    seccion.scrollIntoView({ behavior: 'auto', block: 'start' });
+  };
+  if ('onscrollend' in window) {
+    window.addEventListener('scrollend', () => setTimeout(reajustar, 50), { once: true });
+  }
+  setTimeout(reajustar, reducido ? 100 : 900);
 }
+
+// Hash directo (#sucursales) al cargar: mismo ajuste cuando termina de cargar todo.
+window.addEventListener('load', () => {
+  if (location.hash === '#sucursales') setTimeout(() => desplazarASucursales(), 150);
+});
+window.addEventListener('resize', medirNavbarSucursales);
+medirNavbarSucursales();
 
 // Vinculación automática para botones o enlaces que llevan a sucursales
 document.addEventListener('click', (e) => {

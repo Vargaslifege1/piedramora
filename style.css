@@ -343,8 +343,9 @@ body {
 .sucursales {
   padding: 90px 20px;
   text-align: center;
-  /* Deja visible el eyebrow/título debajo del navbar fijo (ancla #sucursales) */
-  scroll-margin-top: calc(var(--navbar-alto, 80px) - 60px + env(safe-area-inset-top, 0px));
+  /* Eyebrow a 16px debajo del navbar fijo: alto navbar (JS) + 16px - padding superior de la sección */
+  --suc-pad-top: 90px;
+  scroll-margin-top: calc(var(--navbar-alto, 70px) + 16px - var(--suc-pad-top));
 }
 
 .titulo-seccion {
@@ -785,6 +786,7 @@ body {
   .logo-grande { width: 150px; }
   .sucursales,
   .ventajas { padding: 60px 15px; }
+  .sucursales { --suc-pad-top: 60px; }
 
   .toast-ubicacion {
     top: 75px;

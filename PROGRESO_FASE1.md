@@ -874,3 +874,4 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 
 - Fidelidad: una sola consulta compartida (promesa) por recurso, caché en sessionStorage (5 min por teléfono) y enfriamiento de 2 min tras un fallo; el checkout usa la misma caché. Solo `main.js`.
 - Fix scroll "Elegir sucursal" en celular: CTA apuntaba a #sucursales-lista (saltaba el título); ahora ancla #sucursales + scroll-margin-top y scrollIntoView.
+- Fix scroll sucursales (2): scroll-margin-top = alto navbar compacto (medido en JS) + 16px - padding de la sección; reajuste tras scrollend/900 ms, respeta reduced-motion y funciona con #sucursales directo.
