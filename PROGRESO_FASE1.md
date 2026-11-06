@@ -790,3 +790,13 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Acciones: ícono de refrescar y botón ⚙️ arriba a la derecha. El menú ⚙️ tiene "Borrar mis datos" (con la confirmación de siempre); abre con clic/teclado, cierra con Escape, clic afuera o al elegir, y devuelve el foco al ⚙️. No hay "cerrar sesión" en el código, así que no se agregó.
 - La animación del premio principal respeta `prefers-reduced-motion`. Registro, caché de 5 min, canje en checkout y los try/catch quedan igual.
 - Probar: `node --check main.js`; con cliente registrado ver la tarjeta a 360px, probar con y sin premio, ⚙️ con teclado (Tab, Enter, Escape).
+
+## Barra flotante en píldora (2026-11-05)
+
+Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
+
+- `#acceso-carrito-global` ahora es una píldora de 48px centrada abajo: ícono + "Ver pedido (N)" + total. `aria-label` "Ver pedido, N productos, total $X". Mismas condiciones de visibilidad y misma acción (`retomarPedidoGlobal`); textos con `textContent`. Respeta `safe-area-inset-bottom`; máx. 92% de ancho.
+- Auto-ocultado: scroll pasivo + `requestAnimationFrame`; baja → se desliza hacia abajo; sube, frena 300 ms, toma foco, se actualiza el carrito (abrir/cerrar/agregar) o se toca "+ Agregar" → reaparece (con pulso). Se oculta con transform/opacity, nunca `display:none`, así nunca queda oculta de forma permanente.
+- `prefers-reduced-motion`: sin transición ni animación.
+- Padding inferior del body (`tiene-carrito-global`) para no tapar la última fila de "+ Agregar". La píldora solo se muestra con la carta cerrada, por lo que no se superpone con la barra de WhatsApp de la carta.
+- Probar: `node --check main.js`; agregar un ítem, cerrar la carta, scrollear arriba/abajo a 360px y 1280px.

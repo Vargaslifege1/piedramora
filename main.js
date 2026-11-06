@@ -1660,10 +1660,50 @@ function actualizarAccesoCarritoGlobal() {
   const importeTotal = calcularTotalesPedido(totalPrecio).total;
   const items = document.getElementById('acceso-carrito-items');
   const total = document.getElementById('acceso-carrito-total');
-  if (items) items.textContent = etiquetaCantidad;
+  if (items) items.textContent = `Ver pedido (${totalItems})`;
   if (total) total.textContent = formatearPrecioAR(importeTotal);
-  boton.setAttribute('aria-label', `Retomar pedido activo: ${etiquetaCantidad}, total ${formatearPrecioAR(importeTotal)}`);
+  boton.setAttribute('aria-label', `Ver pedido, ${etiquetaCantidad}, total ${formatearPrecioAR(importeTotal)}`);
+  // Siempre que se actualiza (abrir/cerrar carrito, agregar), la píldora vuelve a mostrarse
+  mostrarAccesoCarrito();
 }
+
+// ===== Píldora del pedido: auto-ocultado al scrollear =====
+let accesoScrollYPrev = 0;
+let accesoScrollTick = false;
+let accesoScrollTimer = null;
+
+function mostrarAccesoCarrito() {
+  const boton = document.getElementById('acceso-carrito-global');
+  if (boton) boton.classList.remove('acceso-oculto');
+}
+
+function pulsoAccesoCarrito() {
+  const boton = document.getElementById('acceso-carrito-global');
+  if (!boton || boton.hidden) return;
+  boton.classList.remove('acceso-pulso');
+  void boton.offsetWidth;
+  boton.classList.add('acceso-pulso');
+}
+
+function procesarScrollAcceso() {
+  accesoScrollTick = false;
+  const boton = document.getElementById('acceso-carrito-global');
+  if (!boton || boton.hidden) return;
+  const y = window.scrollY || window.pageYOffset || 0;
+  const delta = y - accesoScrollYPrev;
+  accesoScrollYPrev = y;
+  if (Math.abs(delta) < 6) return;
+  if (delta > 0 && y > 80) boton.classList.add('acceso-oculto');
+  else mostrarAccesoCarrito();
+  clearTimeout(accesoScrollTimer);
+  accesoScrollTimer = setTimeout(mostrarAccesoCarrito, 300);
+}
+
+window.addEventListener('scroll', () => {
+  if (accesoScrollTick) return;
+  accesoScrollTick = true;
+  requestAnimationFrame(procesarScrollAcceso);
+}, { passive: true });
 
 function actualizarBotonFlotanteWhatsapp() {
   actualizarAccesoCarritoGlobal();
@@ -2204,7 +2244,7 @@ function renderProductosCategoria(categoria) {
           btnAgregar.textContent = 'Agotado';
         } else {
           btnAgregar.textContent = '+ Agregar';
-          btnAgregar.addEventListener('click', () => alHacerClicAgregar(prod.id));
+          btnAgregar.addEventListener('click', () => { alHacerClicAgregar(prod.id); mostrarAccesoCarrito(); pulsoAccesoCarrito(); });
         }
         contenedorControles.appendChild(btnAgregar);
       } else {
@@ -4166,6 +4206,7 @@ if (cartaCerrar) {
 if (cartaOverlay) cartaOverlay.addEventListener('click', solicitarCerrarCarta);
 
 document.getElementById('acceso-carrito-global')?.addEventListener('click', retomarPedidoGlobal);
+document.getElementById('acceso-carrito-global')?.addEventListener('focus', mostrarAccesoCarrito);
 document.getElementById('confirmacion-aceptar')?.addEventListener('click', () => resolverConfirmacion('aceptar'));
 document.getElementById('confirmacion-cancelar')?.addEventListener('click', () => resolverConfirmacion('cancelar'));
 document.getElementById('confirmacion-cerrar')?.addEventListener('click', () => resolverConfirmacion(null));
