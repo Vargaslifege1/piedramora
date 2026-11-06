@@ -800,3 +800,14 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - `prefers-reduced-motion`: sin transición ni animación.
 - Padding inferior del body (`tiene-carrito-global`) para no tapar la última fila de "+ Agregar". La píldora solo se muestra con la carta cerrada, por lo que no se superpone con la barra de WhatsApp de la carta.
 - Probar: `node --check main.js`; agregar un ítem, cerrar la carta, scrollear arriba/abajo a 360px y 1280px.
+
+## Tarjeta de fidelidad colapsable (2026-11-05)
+
+Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
+
+- `#fidelidad-tarjeta` ahora es un acordeón: barra `<button id="fidelidad-barra">` (44px, una línea, ellipsis, flecha que rota; `aria-expanded` + `aria-controls="fidelidad-panel"`) y panel `#fidelidad-panel` con todo el contenido anterior (invitación, formulario, banner, sellos, premios, refrescar y ⚙️).
+- Texto de la barra (siempre con `textContent`): premio disponible `🎁 Tenés <premio> · vence dd/mm` (prioridad), progreso `⭐ 6/10 · Te faltan 4 para tu <premio>` (o `¡Tu próximo pedido te da <premio>!`), sin datos `⭐ Pedí 5 veces y ganá 30% · Ver mi progreso` (del primer nivel de la config). Con cliente guardado, los datos se piden en segundo plano con el mismo caché de 5 min; si falla, la barra dice "Mi tarjeta de fidelidad" y reintenta a los 60 s.
+- Estado: arranca cerrada; la apertura se guarda en `sessionStorage` (`pm_fidelidad_abierto`) y solo se restaura al recargar en la misma sesión y con cliente guardado. Tocar la barra sin datos abre el panel directo con el formulario.
+- Animación de altura/opacidad de 0,22 s (grid 0fr→1fr); con `prefers-reduced-motion` sin transición. Panel cerrado con `visibility:hidden` (no se llega con Tab).
+- Intacto: registro, caché, canje en el checkout, try/catch. La tarjeta es parte del flujo de la carta, no se superpone con la píldora flotante.
+- Probar: `node --check main.js`; a 360px y 1280px ver la barra cerrada, abrir/cerrar con teclado, con y sin cliente guardado, con y sin premio.

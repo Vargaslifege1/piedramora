@@ -4471,6 +4471,110 @@ function fidelidadMostrarVista(vista) {
   if (inv) inv.hidden = vista !== 'invitacion';
   if (form) form.hidden = vista !== 'form';
   if (prog) prog.hidden = vista !== 'progreso';
+  fidelidadActualizarBarra();
+}
+
+/* Barra compacta + panel desplegable (acordeón) */
+const FIDELIDAD_CLAVE_ABIERTO = 'pm_fidelidad_abierto';
+let fidelidadBarraFalloEn = 0;
+let fidelidadBarraConsultando = false;
+
+function fidelidadPanelAbierto() {
+  const barra = fidelidadEl('fidelidad-barra');
+  return !!barra && barra.getAttribute('aria-expanded') === 'true';
+}
+
+function fidelidadFormatearVenceCorto(valor) {
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return '';
+  return fecha.toLocaleDateString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit'
+  });
+}
+
+function fidelidadSetPanel(abrir, recordar) {
+  const barra = fidelidadEl('fidelidad-barra');
+  const tarjeta = fidelidadEl('fidelidad-tarjeta');
+  if (!barra || !tarjeta) return;
+  barra.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  tarjeta.classList.toggle('abierta', !!abrir);
+  if (!abrir) fidelidadCerrarMenu(false);
+  if (recordar) {
+    try { window.sessionStorage.setItem(FIDELIDAD_CLAVE_ABIERTO, abrir ? '1' : '0'); } catch (e) {}
+  }
+}
+
+function fidelidadTextoBarra() {
+  const cliente = fidelidadLeerCliente();
+  if (!cliente) {
+    const niveles = (fidelidadConfig && fidelidadConfig.niveles ? fidelidadConfig.niveles.slice() : [])
+      .sort((a, b) => a.en - b.en);
+    const n = niveles[0];
+    if (!n) return '⭐ Sumá pedidos y ganá premios · Ver mi progreso';
+    const premio = n.tipo === 'producto_gratis' ? 'un producto gratis' : `${Number(n.valor) || 0}%`;
+    return `⭐ Pedí ${n.en} veces y ganá ${premio} · Ver mi progreso`;
+  }
+  const cache = fidelidadCache.telefono === cliente.telefono ? fidelidadCache : null;
+  if (!cache || !cache.progreso) return '⭐ Mi tarjeta de fidelidad';
+  const ahora = Date.now();
+  const vigentes = (cache.premios || [])
+    .filter((p) => p && new Date(p.vencimiento).getTime() > ahora)
+    .sort((a, b) => new Date(a.vencimiento).getTime() - new Date(b.vencimiento).getTime());
+  if (vigentes.length) {
+    const venc = fidelidadFormatearVenceCorto(vigentes[0].vencimiento);
+    return `🎁 Tenés ${fidelidadDescribirPremio(vigentes[0])}${venc ? ` · vence ${venc}` : ''}`;
+  }
+  const progreso = cache.progreso;
+  if (progreso.activo === false) return '⭐ Mi tarjeta de fidelidad';
+  const pos = Number(progreso.pedidos_en_ciclo) || 0;
+  const nFaltan = Number(progreso.faltan_para_proximo);
+  const premio = fidelidadDescribirProximo(progreso.proximo_premio);
+  const ciclo = fidelidadConfig ? fidelidadConfig.ciclo : null;
+  if (Number.isFinite(nFaltan) && nFaltan >= 1 && premio) {
+    if (nFaltan === 1) return `⭐ ¡Tu próximo pedido te da ${premio}!`;
+    return `⭐ ${pos}${ciclo ? `/${ciclo}` : ''} · Te faltan ${nFaltan} para tu ${premio}`;
+  }
+  return `⭐ Llevás ${pos} ${pos === 1 ? 'pedido' : 'pedidos'}`;
+}
+
+function fidelidadActualizarBarra() {
+  try {
+    const texto = fidelidadEl('fidelidad-barra-texto');
+    if (!texto) return;
+    texto.textContent = fidelidadTextoBarra();
+    // Con cliente guardado y sin datos frescos, se consultan en segundo plano (con caché de 5 min).
+    const cliente = fidelidadLeerCliente();
+    if (!cliente || !fidelidadConfig || fidelidadBarraConsultando) return;
+    if (Date.now() - fidelidadBarraFalloEn < 60000) return;
+    const cache = fidelidadCache.telefono === cliente.telefono ? fidelidadCache : null;
+    const fresco = cache && cache.progreso && Date.now() - cache.progresoEn <= FIDELIDAD_CACHE_MS
+      && cache.premios && Date.now() - cache.premiosEn <= FIDELIDAD_CACHE_MS;
+    if (fresco) return;
+    fidelidadBarraConsultando = true;
+    fidelidadObtenerDatos(cliente.telefono, false).then(() => {
+      fidelidadBarraConsultando = false;
+      fidelidadBarraFalloEn = 0;
+      fidelidadActualizarBarra();
+    }).catch((error) => {
+      fidelidadBarraConsultando = false;
+      fidelidadBarraFalloEn = Date.now();
+      console.warn('Fidelidad: no se pudo actualizar la barra.', error);
+    });
+  } catch (error) {
+    console.warn('Fidelidad: error al dibujar la barra.', error);
+  }
+}
+
+function fidelidadClickBarra() {
+  const abrir = !fidelidadPanelAbierto();
+  fidelidadSetPanel(abrir, true);
+  if (!abrir) return;
+  fidelidadMostrarEstado('', false);
+  // Con datos guardados abre directo el progreso; sin datos, el formulario.
+  if (fidelidadVista === 'invitacion') {
+    if (fidelidadLeerCliente()) fidelidadMostrarProgreso(false);
+    else { fidelidadMostrarErrorForm(''); fidelidadMostrarVista('form'); }
+  }
 }
 
 function fidelidadSetEtapaVisible(visible) {
@@ -4501,6 +4605,7 @@ function fidelidadActualizarTarjeta() {
     }
 
     tarjeta.hidden = false;
+    fidelidadActualizarBarra();
     const textoNiveles = fidelidadEl('fidelidad-texto-niveles');
     if (textoNiveles) textoNiveles.textContent = fidelidadTextoNiveles(fidelidadConfig);
 
@@ -4704,6 +4809,7 @@ function fidelidadDibujarProgreso(cliente, datos) {
       }
     }
   }
+  fidelidadActualizarBarra();
 }
 
 /* Menú ⚙️ de la tarjeta */
@@ -4995,6 +5101,7 @@ function fidelidadTrasPedido() {
     fidelidadResetCheckout();
     if (fidelidadVista === 'progreso') fidelidadMostrarVista('invitacion');
     fidelidadActualizarTarjeta();
+    if (fidelidadPanelAbierto() && fidelidadLeerCliente()) fidelidadMostrarProgreso(true);
   } catch (error) {
     console.warn('Fidelidad: error al limpiar tras el pedido.', error);
   }
@@ -5002,6 +5109,14 @@ function fidelidadTrasPedido() {
 
 function fidelidadIniciar() {
   try {
+    fidelidadEl('fidelidad-barra')?.addEventListener('click', fidelidadClickBarra);
+    // Arranca siempre cerrada: el estado de sessionStorage solo se usa al volver a mostrar la tarjeta en la misma sesión.
+    try {
+      if (window.sessionStorage.getItem(FIDELIDAD_CLAVE_ABIERTO) === '1' && fidelidadLeerCliente()) {
+        fidelidadSetPanel(true, false);
+        fidelidadMostrarProgreso(false);
+      }
+    } catch (e) {}
     fidelidadEl('fidelidad-btn-ver')?.addEventListener('click', fidelidadClickVer);
     fidelidadEl('fidelidad-form')?.addEventListener('submit', fidelidadEnviarFormulario);
     fidelidadEl('fidelidad-btn-cancelar')?.addEventListener('click', () => {

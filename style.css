@@ -4749,14 +4749,58 @@ body.confirmacion-abierta {
 
 /* ===== Fidelidad: tarjeta en la carta, premios en el checkout (3D-2) ===== */
 .fidelidad-tarjeta {
-  margin: 0 0 16px;
-  padding: 14px 16px;
+  margin: 0 0 12px;
+  padding: 0;
   background: var(--color-card);
   border: 1px solid rgba(217, 164, 65, 0.45);
   border-radius: 12px;
   color: var(--color-texto);
 }
 .fidelidad-tarjeta[hidden] { display: none; }
+/* Barra compacta (acordeón) */
+.fidelidad-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 6px 12px;
+  background: none;
+  border: 0;
+  color: var(--color-texto);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.fidelidad-barra-texto { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fidelidad-barra-flecha { flex: 0 0 auto; color: var(--color-dorado); transition: transform 0.2s ease; }
+.fidelidad-barra[aria-expanded="true"] .fidelidad-barra-flecha { transform: rotate(180deg); }
+.fidelidad-barra:focus-visible { outline: 2px solid var(--color-dorado); outline-offset: -2px; border-radius: 12px; }
+/* Panel desplegable: anima altura (grid 0fr -> 1fr) y opacidad */
+.fidelidad-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows 0.22s ease, opacity 0.22s ease, visibility 0s linear 0.22s;
+}
+.fidelidad-tarjeta.abierta .fidelidad-panel {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition: grid-template-rows 0.22s ease, opacity 0.22s ease, visibility 0s;
+}
+.fidelidad-panel-int { min-height: 0; overflow: hidden; padding: 0 16px; }
+.fidelidad-tarjeta.abierta .fidelidad-panel-int { padding: 4px 16px 14px; }
+@media (prefers-reduced-motion: reduce) {
+  .fidelidad-panel,
+  .fidelidad-tarjeta.abierta .fidelidad-panel,
+  .fidelidad-barra-flecha { transition: none; }
+}
 .fidelidad-titulo {
   margin: 0 0 8px;
   font-size: 1rem;
