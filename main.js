@@ -3894,7 +3894,6 @@ function construirMensajePedido({
   mensaje += `\u{1F6F5} *Modalidad:* ${modalidadTexto}\n`;
   mensaje += `\u{1F464} *Cliente:* ${nombre}\n`;
   mensaje += `\u{1F4F1} *Teléfono:* ${PM.formatearTelefonoAR(telefono)}\n`;
-  if (!esMesa) mensaje += `\u{1F4E6} *Entrega:* ${tipoEntrega}\n`;
   if (direccionFormateada) mensaje += `\u{1F4CD} *Dirección:* ${direccionFormateada}\n`;
   const porcentaje = Number(pago.porcentaje) || 0;
   mensaje += `\u{1F4B0} *Pago:* ${pago.nombre}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}\n`;
@@ -4323,7 +4322,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     const mensaje = construirMensajePedido({
       sucursal,
       esMesa,
-      modalidadTexto: esMesa ? 'Mesa (salón)' : (cartaModalidadSeleccionada === 'delivery_takeaway' ? 'Delivery / Takeaway' : 'Delivery'),
+      modalidadTexto: tipoEntrega, // misma fuente que p_modalidad
       nombre,
       telefono,
       tipoEntrega,
