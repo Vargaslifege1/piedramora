@@ -4399,7 +4399,12 @@ programarRefrescoCarta();
 const FIDELIDAD_CACHE_MS = 5 * 60 * 1000;
 const FIDELIDAD_CLAVE_LOCAL = 'pm_fidelidad_cliente';
 const FIDELIDAD_MSG_ERROR = 'No pudimos consultar tus datos ahora. Probá de nuevo en unos minutos.';
-let fidelidadCache = { telefono: '', progreso: null, progresoEn: 0, premios: null, premiosEn: 0 };
+const FIDELIDAD_MSG_PROGRESO = 'No pudimos cargar tu progreso ahora';
+const FIDELIDAD_CLAVE_CACHE = 'pm_fidelidad_cache';
+const FIDELIDAD_ENFRIAMIENTO_MS = 2 * 60 * 1000;
+let fidelidadCache = { telefono: '', progreso: null, progresoEn: 0, premios: null, premiosEn: 0, progresoFalloHasta: 0, premiosFalloHasta: 0 };
+// Consultas en curso compartidas: { progreso: {tel, promesa}, premios: {tel, promesa} }.
+const fidelidadEnCurso = { progreso: null, premios: null };
 let fidelidadVista = 'invitacion'; // invitacion | form | progreso
 let fidelidadOcupada = false;
 let fidelidadActualizarBloqueadoHasta = 0;
@@ -4443,7 +4448,8 @@ function fidelidadOlvidarCliente() {
 }
 
 function fidelidadInvalidarCache() {
-  fidelidadCache = { telefono: '', progreso: null, progresoEn: 0, premios: null, premiosEn: 0 };
+  fidelidadCache = { telefono: '', progreso: null, progresoEn: 0, premios: null, premiosEn: 0, progresoFalloHasta: 0, premiosFalloHasta: 0 };
+  try { window.sessionStorage.removeItem(FIDELIDAD_CLAVE_CACHE); } catch (e) {}
 }
 
 // Valida lo mínimo para dibujar; si algo no cierra, el programa queda oculto.
@@ -4620,7 +4626,7 @@ function fidelidadActualizarBarra() {
     if (Date.now() - fidelidadBarraFalloEn < 60000) return;
     const cache = fidelidadCache.telefono === cliente.telefono ? fidelidadCache : null;
     const fresco = cache && cache.progreso && Date.now() - cache.progresoEn <= FIDELIDAD_CACHE_MS
-      && cache.premios && Date.now() - cache.premiosEn <= FIDELIDAD_CACHE_MS;
+      && ((cache.premios && Date.now() - cache.premiosEn <= FIDELIDAD_CACHE_MS) || Date.now() < cache.premiosFalloHasta);
     if (fresco) return;
     fidelidadBarraConsultando = true;
     fidelidadObtenerDatos(cliente.telefono, false).then(() => {
@@ -4629,8 +4635,7 @@ function fidelidadActualizarBarra() {
       fidelidadActualizarBarra();
     }).catch((error) => {
       fidelidadBarraConsultando = false;
-      fidelidadBarraFalloEn = Date.now();
-      console.warn('Fidelidad: no se pudo actualizar la barra.', error);
+      fidelidadBarraFalloEn = Date.now(); // sin ruido en consola: el enfriamiento ya evita reintentos
     });
   } catch (error) {
     console.warn('Fidelidad: error al dibujar la barra.', error);
@@ -4698,42 +4703,87 @@ async function fidelidadRpc(nombre, parametros) {
   return data;
 }
 
+function fidelidadGuardarCacheSesion() {
+  try {
+    const c = fidelidadCache;
+    if (!c.telefono) return;
+    window.sessionStorage.setItem(FIDELIDAD_CLAVE_CACHE, JSON.stringify(c));
+  } catch (e) {}
+}
+
+// Caché en memoria, respaldada en sessionStorage (sobrevive a recargas) y atada a un teléfono.
 function fidelidadCacheParaTelefono(tel) {
   if (fidelidadCache.telefono !== tel) {
-    fidelidadCache = { telefono: tel, progreso: null, progresoEn: 0, premios: null, premiosEn: 0 };
+    let guardado = null;
+    try {
+      const dato = JSON.parse(window.sessionStorage.getItem(FIDELIDAD_CLAVE_CACHE) || 'null');
+      if (dato && dato.telefono === tel) guardado = dato;
+    } catch (e) {}
+    fidelidadCache = {
+      telefono: tel,
+      progreso: (guardado && guardado.progreso) || null,
+      progresoEn: Number(guardado && guardado.progresoEn) || 0,
+      premios: (guardado && Array.isArray(guardado.premios)) ? guardado.premios : null,
+      premiosEn: Number(guardado && guardado.premiosEn) || 0,
+      progresoFalloHasta: Number(guardado && guardado.progresoFalloHasta) || 0,
+      premiosFalloHasta: Number(guardado && guardado.premiosFalloHasta) || 0
+    };
   }
   return fidelidadCache;
 }
 
-// Solo premios (para el checkout y la tarjeta). Caché de 5 minutos por teléfono.
-async function fidelidadObtenerPremios(telefono, forzar) {
-  const tel = fidelidadTelefonoDigitos(telefono);
+// Consulta genérica con una sola promesa en curso por recurso, caché de 5 min y enfriamiento de 2 min tras un fallo.
+function fidelidadConsultar(recurso, rpc, tel, forzar) {
+  if (!tel) return Promise.reject(new Error('sin-telefono'));
   const cache = fidelidadCacheParaTelefono(tel);
-  if (!forzar && cache.premios && Date.now() - cache.premiosEn <= FIDELIDAD_CACHE_MS) {
-    return cache.premios;
+  const campo = recurso; // 'progreso' | 'premios'
+  const ahora = Date.now();
+  const hayDato = campo === 'progreso' ? !!cache.progreso : !!cache.premios;
+  const fresco = hayDato && ahora - cache[campo + 'En'] <= FIDELIDAD_CACHE_MS;
+  if (fresco && !forzar) return Promise.resolve(cache[campo]);
+  const enCurso = fidelidadEnCurso[recurso];
+  if (enCurso && enCurso.tel === tel) return enCurso.promesa;
+  if (ahora < cache[campo + 'FalloHasta']) {
+    // En enfriamiento: no se llama al servidor; si hay algo viejo se usa.
+    return hayDato ? Promise.resolve(cache[campo]) : Promise.reject(new Error('enfriamiento'));
   }
-  const data = await fidelidadRpc('mis_premios', { p_telefono: tel });
-  if (!data || !data.ok) throw new Error('premios-no-ok');
-  cache.premios = Array.isArray(data.premios) ? data.premios : [];
-  cache.premiosEn = Date.now();
-  return cache.premios;
+  const promesa = (async () => {
+    try {
+      const data = await fidelidadRpc(rpc, { p_telefono: tel });
+      if (!data || !data.ok) throw new Error(recurso + '-no-ok');
+      const c = fidelidadCacheParaTelefono(tel);
+      c[campo] = campo === 'premios' ? (Array.isArray(data.premios) ? data.premios : []) : data;
+      c[campo + 'En'] = Date.now();
+      c[campo + 'FalloHasta'] = 0;
+      fidelidadGuardarCacheSesion();
+      return c[campo];
+    } catch (error) {
+      const c = fidelidadCacheParaTelefono(tel);
+      c[campo + 'FalloHasta'] = Date.now() + FIDELIDAD_ENFRIAMIENTO_MS;
+      fidelidadGuardarCacheSesion();
+      throw error;
+    } finally {
+      if (fidelidadEnCurso[recurso] && fidelidadEnCurso[recurso].promesa === promesa) fidelidadEnCurso[recurso] = null;
+    }
+  })();
+  fidelidadEnCurso[recurso] = { tel, promesa };
+  return promesa;
 }
 
-// Devuelve { progreso, premios } usando caché de 5 minutos por teléfono.
+// Solo premios (checkout y tarjeta). Misma caché y misma promesa que el resto.
+function fidelidadObtenerPremios(telefono, forzar) {
+  return fidelidadConsultar('premios', 'mis_premios', fidelidadTelefonoDigitos(telefono), !!forzar);
+}
+
+// Devuelve { progreso, premios }. Si el progreso respondió, un fallo de premios no lo oculta.
 async function fidelidadObtenerDatos(telefono, forzar) {
   const tel = fidelidadTelefonoDigitos(telefono);
-  const cache = fidelidadCacheParaTelefono(tel);
-  const tareas = [];
-  if (forzar || !cache.progreso || Date.now() - cache.progresoEn > FIDELIDAD_CACHE_MS) {
-    tareas.push(fidelidadRpc('mi_progreso_fidelidad', { p_telefono: tel }).then((d) => {
-      if (!d || !d.ok) throw new Error('progreso-no-ok');
-      cache.progreso = d;
-      cache.progresoEn = Date.now();
-    }));
-  }
-  tareas.push(fidelidadObtenerPremios(tel, !!forzar));
-  await Promise.all(tareas);
-  return { progreso: cache.progreso, premios: cache.premios || [] };
+  const [rProgreso, rPremios] = await Promise.allSettled([
+    fidelidadConsultar('progreso', 'mi_progreso_fidelidad', tel, !!forzar),
+    fidelidadObtenerPremios(tel, !!forzar)
+  ]);
+  if (rProgreso.status !== 'fulfilled') throw rProgreso.reason;
+  return { progreso: rProgreso.value, premios: rPremios.status === 'fulfilled' ? rPremios.value : [] };
 }
 
 // Íconos de hito (SVG inline): lleno = cumplido, contorno = pendiente.
@@ -4925,8 +4975,7 @@ async function fidelidadMostrarProgreso(forzar) {
     fidelidadMostrarEstado('', false);
   } catch (error) {
     if (token !== fidelidadConsultaToken) return;
-    console.warn('Fidelidad: no se pudo consultar el progreso.', error);
-    fidelidadMostrarEstado(FIDELIDAD_MSG_ERROR, true);
+    fidelidadMostrarEstado(FIDELIDAD_MSG_PROGRESO, true);
   }
 }
 
