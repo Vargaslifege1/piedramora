@@ -3893,8 +3893,8 @@ function construirMensajePedido({
   mensaje += `\u{1F4E2} *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
   mensaje += `\u{1F6F5} *Modalidad:* ${modalidadTexto}\n`;
   mensaje += `\u{1F464} *Cliente:* ${nombre}\n`;
-  mensaje += `\u{1F4F1} *Teléfono:* ${PM.formatearTelefonoAR(telefono)}\n`;
-  if (direccionFormateada) mensaje += `\u{1F4CD} *Dirección:* ${direccionFormateada}\n`;
+  mensaje += `\u{1F4F1} *Tel\u{E9}fono:* ${PM.formatearTelefonoAR(telefono)}\n`;
+  if (direccionFormateada) mensaje += `\u{1F4CD} *Direcci\u{F3}n:* ${direccionFormateada}\n`;
   const porcentaje = Number(pago.porcentaje) || 0;
   mensaje += `\u{1F4B0} *Pago:* ${pago.nombre}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}\n`;
   if (notas) mensaje += `\u{1F4DD} *Notas:* ${notas}\n`;
@@ -3906,7 +3906,7 @@ function construirMensajePedido({
     const detalleConfig = especificaciones.length > 0
       ? ` (${especificaciones.map(esp => normalizarTextoMensaje(esp, true)).join(', ')})`
       : '';
-    mensaje += `- ${item.cantidad} x ${normalizarTextoMensaje(item.nombre, true)}${detalleConfig} — ${formatearPrecioAR(subtotal)}\n`;
+    mensaje += `\u{2022} ${item.cantidad} x ${normalizarTextoMensaje(item.nombre, true)}${detalleConfig} \u{2014} ${formatearPrecioAR(subtotal)}\n`;
   });
 
   const subtotal = Number(totales.subtotal) || 0;
@@ -3918,7 +3918,7 @@ function construirMensajePedido({
     const etiquetaDescuento = premioAplicadoEnPedido
       ? `Premio ${premioAplicadoEnPedido}`
       : (cuponAplicadoEnPedido
-        ? `Cupón ${cuponAplicadoEnPedido}`
+        ? `Cup\u{F3}n ${cuponAplicadoEnPedido}`
         : `${pago.nombre} ${porcentaje}%`);
     mensaje += `*Descuento (${etiquetaDescuento}):* - ${formatearPrecioAR(descuento)}\n`;
   }
@@ -3927,7 +3927,7 @@ function construirMensajePedido({
     const detalleCuadras = Number.isFinite(cuadras) && cuadras > 0
       ? ` (a ${cuadras} cuadra${cuadras === 1 ? '' : 's'} de la sucursal)`
       : '';
-    mensaje += `*Envío:* ${formatearPrecioAR(envio)}${detalleCuadras}\n`;
+    mensaje += `*Env\u{ED}o:* ${formatearPrecioAR(envio)}${detalleCuadras}\n`;
   }
   mensaje += `*TOTAL:* ${formatearPrecioAR(total)}`;
   if (premioAplicadoEnPedido && descuento <= 0) {
@@ -3935,7 +3935,7 @@ function construirMensajePedido({
 *Premio de fidelidad:* ${premioAplicadoEnPedido}`;
   }
   if (cuponNoAplicado) {
-    mensaje += '\n_Cupón no aplicado: no se pudo validar sin registrar el pedido. Se envió sin ese descuento._';
+    mensaje += '\n_Cup\u{F3}n no aplicado: no se pudo validar sin registrar el pedido. Se envi\u{F3} sin ese descuento._';
   }
   return mensaje;
 }
