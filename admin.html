@@ -313,7 +313,20 @@
         </div>
 
         <div id="pedidos-contenedor" class="admin-pedidos-contenedor">
-          <div id="pedidos-tablero" class="admin-pedidos-tablero"></div>
+          <div class="admin-pedidos-tablero-fila">
+            <div id="pedidos-tablero" class="admin-pedidos-tablero"></div>
+            <button type="button" id="pedidos-cancelados-tira" class="admin-cancelados-tira" aria-expanded="false" aria-controls="pedidos-cancelados-panel">
+              <span class="admin-cancelados-tira-titulo">Cancelados</span>
+              <span class="admin-pedidos-contador" id="pedidos-cancelados-contador">0</span>
+            </button>
+          </div>
+          <aside id="pedidos-cancelados-panel" class="admin-cancelados-panel" aria-labelledby="pedidos-cancelados-titulo" hidden>
+            <header class="admin-cancelados-panel-head">
+              <h3 id="pedidos-cancelados-titulo">Cancelados (<span id="pedidos-cancelados-n">0</span>)</h3>
+              <button type="button" id="pedidos-cancelados-cerrar" class="btn-icono" aria-label="Cerrar cancelados">✕</button>
+            </header>
+            <div id="pedidos-cancelados-cuerpo" class="admin-cancelados-cuerpo" data-columna="cancelado"></div>
+          </aside>
           <div id="pedidos-lista" class="admin-pedidos-lista" hidden></div>
         </div>
       </section>

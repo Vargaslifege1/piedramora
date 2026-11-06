@@ -825,3 +825,11 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 
 - enderProductosCategoria (main.js) ordena los agotados (globales o por sucursal, vía PM.productoEstaAgotado) al final de cada categoría, con orden estable para el resto. Opacidad de la tarjeta 0.82 → 0.55; la etiqueta AGOTADO y el botón deshabilitado ya existían. Sin cambios de lógica de pedido.
 
+
+## Cancelados como panel lateral (2026-11-05)
+
+- Pedidos > tablero: Cancelados dejó de ser columna del carril. Queda la tira angosta `#pedidos-cancelados-tira` (`<button>`, título vertical + contador, `aria-expanded`/`aria-controls`) siempre visible a la derecha; en <1024px pasa a barra horizontal bajo el tablero.
+- Al tocarla abre `#pedidos-cancelados-panel` (fixed, desliza desde la derecha, 340px / ancho completo en celular, alto de ventana, header "Cancelados (N)" + ✕, lista con scroll propio). Tarjetas con opacidad 0.75, sin botón de avanzar; imprimir y demás se mantienen.
+- Cierra con ✕, Escape o clic fuera; el foco vuelve a la tira. El tablero no se mueve. Realtime/filtros actualizan contador y tarjetas sin cerrar el panel ni perder el scroll. Vista lista: tira oculta y panel cerrado.
+- Tablero principal con 5 columnas `flex: 1 1 0; min-width: 260px`. `prefers-reduced-motion`: sin transición. Sin SQL/migraciones.
+- Probar: `node --check admin.js`; en 1280px ver 5 columnas sin scroll horizontal; abrir/cerrar panel (✕, Esc, afuera); cancelar un pedido con el panel abierto; a 360px abrir el panel.
