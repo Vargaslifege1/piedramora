@@ -780,3 +780,13 @@ Panel del dueño para editar `config_negocio.fidelidad`. Sin cambios de base de 
 - Todo escapado con `escaparHtml`/`textContent`. `node --check admin.js` sin errores.
 
 Cómo probar: (1) como dueño aparece la pestaña; como sucursal no. (2) Se carga el seed (ciclo 10, niveles 5 y 10). (3) Probar `en` repetido o mayor al ciclo, % 0 o >100, tope 0, días 0/366, producto vacío: bloquea con mensaje. (4) Guardar válido y revisar `config_negocio`; desactivar pide confirmación. (5) Dejar la config inválida desde SQL y recargar: aviso rojo y formulario lleno. (6) Cortar la lectura de `premios` y verificar el mensaje de estadísticas.
+
+## Mejora visual tarjeta de fidelidad (2026-11-05)
+
+Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
+
+- Banner destacado: "¡Estás a solo X pedidos de tu <premio>!" / "¡Tu próximo pedido te da <premio>!". Si hay premio disponible (`mis_premios`) pasa a ser el banner principal, con vencimiento en hora Argentina, y el próximo hito queda en texto chico. Textos del servidor siempre con `textContent`.
+- Sellos numerados en grilla pareja (hasta 6 por fila, 10 → 5+5), sin scroll horizontal. Hitos: estrella (descuento) o regalo (producto gratis) en SVG inline, lleno si se cumplió y contorno si no. `role="img"` con aria-label generado ("Llevás N de C pedidos. Pedido 5: ..."); el nombre del producto gratis solo se conoce para el próximo hito, el resto dice "producto gratis".
+- Acciones: ícono de refrescar y botón ⚙️ arriba a la derecha. El menú ⚙️ tiene "Borrar mis datos" (con la confirmación de siempre); abre con clic/teclado, cierra con Escape, clic afuera o al elegir, y devuelve el foco al ⚙️. No hay "cerrar sesión" en el código, así que no se agregó.
+- La animación del premio principal respeta `prefers-reduced-motion`. Registro, caché de 5 min, canje en checkout y los try/catch quedan igual.
+- Probar: `node --check main.js`; con cliente registrado ver la tarjeta a 360px, probar con y sin premio, ⚙️ con teclado (Tab, Enter, Escape).

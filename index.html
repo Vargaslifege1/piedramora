@@ -299,14 +299,23 @@
 
           <!-- Vista: progreso -->
           <div id="fidelidad-vista-progreso" hidden>
-            <p id="fidelidad-saludo" class="fidelidad-saludo"></p>
-            <div id="fidelidad-sellos" class="fidelidad-sellos" role="img" aria-label="Progreso de pedidos"></div>
-            <p id="fidelidad-faltan" class="fidelidad-texto" aria-live="polite"></p>
-            <div id="fidelidad-premios" class="fidelidad-premios"></div>
-            <div class="fidelidad-acciones">
-              <button type="button" id="fidelidad-btn-actualizar" class="fidelidad-btn-link">Actualizar</button>
-              <button type="button" id="fidelidad-btn-borrar" class="fidelidad-btn-link fidelidad-btn-borrar">Borrar mis datos</button>
+            <div class="fidelidad-cabecera">
+              <p id="fidelidad-saludo" class="fidelidad-saludo"></p>
+              <div class="fidelidad-herramientas">
+                <button type="button" id="fidelidad-btn-actualizar" class="fidelidad-icono-btn" aria-label="Actualizar" title="Actualizar">
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="fidelidad-menu-contenedor">
+                  <button type="button" id="fidelidad-btn-opciones" class="fidelidad-icono-btn" aria-label="Opciones" title="Opciones" aria-haspopup="true" aria-expanded="false" aria-controls="fidelidad-menu">⚙️</button>
+                  <div id="fidelidad-menu" class="fidelidad-menu" role="menu" aria-label="Opciones de fidelidad" hidden>
+                    <button type="button" id="fidelidad-btn-borrar" class="fidelidad-menu-item" role="menuitem">Borrar mis datos</button>
+                  </div>
+                </div>
+              </div>
             </div>
+            <div id="fidelidad-premios" class="fidelidad-premios"></div>
+            <p id="fidelidad-faltan" class="fidelidad-proximo" aria-live="polite"></p>
+            <div id="fidelidad-sellos" class="fidelidad-sellos" role="img" aria-label="Progreso de pedidos"></div>
           </div>
 
           <p id="fidelidad-estado" class="fidelidad-estado" role="status" aria-live="polite" hidden></p>

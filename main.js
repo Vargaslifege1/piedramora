@@ -4518,6 +4518,60 @@ async function fidelidadObtenerDatos(telefono, forzar) {
   return { progreso: cache.progreso, premios: cache.premios || [] };
 }
 
+// Íconos de hito (SVG inline): lleno = cumplido, contorno = pendiente.
+function fidelidadIconoHito(tipo, lleno) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('class', 'fidelidad-sello-icono');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const trazo = (d) => {
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', d);
+    p.setAttribute('fill', lleno ? 'currentColor' : 'none');
+    p.setAttribute('stroke', 'currentColor');
+    p.setAttribute('stroke-width', '2');
+    p.setAttribute('stroke-linejoin', 'round');
+    p.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(p);
+  };
+  if (tipo === 'producto_gratis') {
+    trazo('M3 9h18v4H3z');   // tapa
+    trazo('M5 13h14v8H5z');  // caja
+    trazo('M12 9v12');       // cinta
+    trazo('M12 9C9 9 7.5 7.5 8.3 6c.9-1.6 3.7-.6 3.7 3zM12 9c3 0 4.5-1.5 3.7-3-.9-1.6-3.7-.6-3.7 3z'); // moño
+  } else {
+    trazo('M12 2.8l2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.2l-5.7 3.1 1.1-6.3L2.8 9.5l6.4-.9z'); // estrella
+  }
+  return svg;
+}
+
+// Filas parejas de hasta 6 círculos (10 → 5+5, 12 → 6+6).
+function fidelidadColumnas(ciclo) {
+  const filas = Math.ceil(ciclo / 6);
+  return Math.ceil(ciclo / filas);
+}
+
+// El nombre del producto gratis solo lo informa el servidor para el próximo hito.
+function fidelidadTextoNivelAria(nivel, proximo) {
+  if (nivel.tipo === 'producto_gratis') {
+    const coincide = proximo && proximo.tipo === 'producto_gratis' && proximo.producto
+      && proximo.enPedido === nivel.en;
+    return coincide ? `${String(proximo.producto)} gratis` : 'producto gratis';
+  }
+  return `${nivel.valor}% de descuento`;
+}
+
+function fidelidadFormatearVencimientoHora(valor) {
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return '';
+  return fecha.toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).replace(',', '');
+}
+
 function fidelidadDibujarProgreso(cliente, datos) {
   const saludo = fidelidadEl('fidelidad-saludo');
   const sellos = fidelidadEl('fidelidad-sellos');
@@ -4525,51 +4579,118 @@ function fidelidadDibujarProgreso(cliente, datos) {
   const premiosEl = fidelidadEl('fidelidad-premios');
   const progreso = datos.progreso || {};
   const pos = Number(progreso.pedidos_en_ciclo) || 0;
+  const nFaltan = Number(progreso.faltan_para_proximo);
+  const proximo = progreso.proximo_premio
+    ? Object.assign({}, progreso.proximo_premio, { enPedido: pos + nFaltan })
+    : null;
 
   if (saludo) saludo.textContent = cliente.nombre ? `¡Hola, ${cliente.nombre}!` : '¡Hola!';
+
+  // Premios vigentes: lo más destacado de la tarjeta.
+  const ahora = Date.now();
+  const vigentes = (datos.premios || [])
+    .filter((p) => p && new Date(p.vencimiento).getTime() > ahora)
+    .sort((a, b) => new Date(a.vencimiento).getTime() - new Date(b.vencimiento).getTime());
 
   if (sellos) {
     sellos.textContent = '';
     const config = fidelidadConfig;
     if (config && config.ciclo <= 24) {
-      const marcas = new Set(config.niveles.map((n) => n.en));
+      const porEn = new Map(config.niveles.map((n) => [n.en, n]));
+      sellos.style.setProperty('--fid-cols', String(fidelidadColumnas(config.ciclo)));
       for (let i = 1; i <= config.ciclo; i++) {
         const sello = document.createElement('span');
+        const hecho = i <= pos;
+        const nivel = porEn.get(i);
         sello.className = 'fidelidad-sello';
-        if (i <= pos) sello.classList.add('lleno');
-        if (marcas.has(i)) sello.classList.add('premio');
+        if (hecho) sello.classList.add('lleno');
+        if (nivel) {
+          sello.classList.add('hito');
+          sello.appendChild(fidelidadIconoHito(nivel.tipo, hecho));
+        }
+        const num = document.createElement('span');
+        num.className = 'fidelidad-sello-num';
+        num.textContent = String(i);
+        sello.appendChild(num);
         sellos.appendChild(sello);
       }
-      sellos.setAttribute('aria-label', `${pos} de ${config.ciclo} pedidos del ciclo`);
+      const hitos = config.niveles
+        .map((n) => `Pedido ${n.en}: ${fidelidadTextoNivelAria(n, proximo)}.`)
+        .join(' ');
+      sellos.setAttribute('aria-label', `Llevás ${pos} de ${config.ciclo} pedidos. ${hitos}`);
     } else {
-      sellos.setAttribute('aria-label', `${pos} pedidos en el ciclo`);
-    }
-  }
-
-  if (faltan) {
-    if (progreso.activo === false) {
-      faltan.textContent = 'El programa de fidelidad no está activo por ahora.';
-    } else {
-      const n = Number(progreso.faltan_para_proximo);
-      const premio = fidelidadDescribirProximo(progreso.proximo_premio);
-      faltan.textContent = Number.isFinite(n) && premio
-        ? `Llevás ${pos} ${pos === 1 ? 'pedido' : 'pedidos'}. ${n === 1 ? 'Te falta 1 pedido' : `Te faltan ${n} pedidos`} para: ${premio}.`
-        : `Llevás ${pos} ${pos === 1 ? 'pedido' : 'pedidos'}.`;
+      sellos.setAttribute('aria-label', `Llevás ${pos} pedidos en el ciclo.`);
     }
   }
 
   if (premiosEl) {
     premiosEl.textContent = '';
-    const ahora = Date.now();
-    (datos.premios || []).forEach((premio) => {
-      if (new Date(premio.vencimiento).getTime() <= ahora) return;
+    vigentes.forEach((premio, idx) => {
       const item = document.createElement('div');
-      item.className = 'fidelidad-premio-item';
-      const venc = fidelidadFormatearVencimiento(premio.vencimiento);
-      item.textContent = `🎁 ${fidelidadDescribirPremio(premio)}${venc ? ` — vence el ${venc}` : ''}`;
+      item.className = 'fidelidad-premio-item' + (idx === 0 ? ' principal' : '');
+      const titulo = document.createElement('strong');
+      titulo.className = 'fidelidad-banner-titulo';
+      titulo.textContent = idx === 0
+        ? `🎁 ¡Tenés un premio! ${fidelidadDescribirPremio(premio)}`
+        : `🎁 ${fidelidadDescribirPremio(premio)}`;
+      item.appendChild(titulo);
+      const venc = fidelidadFormatearVencimientoHora(premio.vencimiento);
+      if (venc) {
+        const sub = document.createElement('span');
+        sub.className = 'fidelidad-banner-sub';
+        sub.textContent = `Vence el ${venc} (hora Argentina)`;
+        item.appendChild(sub);
+      }
       premiosEl.appendChild(item);
     });
   }
+
+  if (faltan) {
+    faltan.textContent = '';
+    faltan.classList.toggle('secundario', vigentes.length > 0);
+    if (progreso.activo === false) {
+      faltan.textContent = 'El programa de fidelidad no está activo por ahora.';
+      faltan.classList.add('secundario');
+    } else {
+      const premio = fidelidadDescribirProximo(progreso.proximo_premio);
+      if (Number.isFinite(nFaltan) && nFaltan >= 1 && premio) {
+        faltan.textContent = nFaltan === 1
+          ? `¡Tu próximo pedido te da ${premio}!`
+          : `¡Estás a solo ${nFaltan} pedidos de tu ${premio}!`;
+      } else {
+        faltan.textContent = `Llevás ${pos} ${pos === 1 ? 'pedido' : 'pedidos'}.`;
+        faltan.classList.add('secundario');
+      }
+    }
+  }
+}
+
+/* Menú ⚙️ de la tarjeta */
+function fidelidadMenuAbierto() {
+  const menu = fidelidadEl('fidelidad-menu');
+  return !!menu && !menu.hidden;
+}
+
+function fidelidadCerrarMenu(devolverFoco) {
+  const menu = fidelidadEl('fidelidad-menu');
+  const boton = fidelidadEl('fidelidad-btn-opciones');
+  if (!menu || menu.hidden) return;
+  menu.hidden = true;
+  if (boton) {
+    boton.setAttribute('aria-expanded', 'false');
+    if (devolverFoco) boton.focus();
+  }
+}
+
+function fidelidadAlternarMenu() {
+  const menu = fidelidadEl('fidelidad-menu');
+  const boton = fidelidadEl('fidelidad-btn-opciones');
+  if (!menu || !boton) return;
+  if (!menu.hidden) { fidelidadCerrarMenu(true); return; }
+  menu.hidden = false;
+  boton.setAttribute('aria-expanded', 'true');
+  const primero = menu.querySelector('[role="menuitem"]');
+  if (primero) primero.focus();
 }
 
 async function fidelidadMostrarProgreso(forzar) {
@@ -4847,7 +4968,19 @@ function fidelidadIniciar() {
       fidelidadMostrarVista('invitacion');
     });
     fidelidadEl('fidelidad-btn-actualizar')?.addEventListener('click', fidelidadClickActualizar);
-    fidelidadEl('fidelidad-btn-borrar')?.addEventListener('click', fidelidadBorrarDatos);
+    fidelidadEl('fidelidad-btn-borrar')?.addEventListener('click', () => {
+      fidelidadCerrarMenu(true);
+      fidelidadBorrarDatos();
+    });
+    fidelidadEl('fidelidad-btn-opciones')?.addEventListener('click', fidelidadAlternarMenu);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && fidelidadMenuAbierto()) { e.preventDefault(); fidelidadCerrarMenu(true); }
+    });
+    document.addEventListener('click', (e) => {
+      if (!fidelidadMenuAbierto()) return;
+      const cont = e.target.closest ? e.target.closest('.fidelidad-menu-contenedor') : null;
+      if (!cont) fidelidadCerrarMenu(false);
+    });
     fidelidadEl('cliente-telefono')?.addEventListener('input', fidelidadProgramarConsultaPremios);
     // Precarga la config para que la tarjeta aparezca rápido al abrir la carta.
     fidelidadCargarConfig().catch(() => {});
