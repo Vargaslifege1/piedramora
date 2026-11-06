@@ -103,6 +103,7 @@
     cuponesEstado: document.getElementById('cupones-estado'),
     cuponesAviso: document.getElementById('cupones-aviso'),
     cuponesLista: document.getElementById('cupones-lista'),
+    modalCupon: document.getElementById('modal-cupon'),
     formCupon: document.getElementById('form-cupon'),
     cuponId: document.getElementById('cupon-id'),
     cuponCodigo: document.getElementById('cupon-codigo'),
@@ -122,9 +123,7 @@
     cuponNotaUsos: document.getElementById('cupon-nota-usos'),
     cuponFormEstado: document.getElementById('cupon-form-estado'),
     btnGuardarCupon: document.getElementById('btn-guardar-cupon'),
-    btnGuardarCuponArriba: document.getElementById('btn-guardar-cupon-arriba'),
     btnCancelarCupon: document.getElementById('btn-cancelar-cupon'),
-    btnCancelarCuponArriba: document.getElementById('btn-cancelar-cupon-arriba'),
     btnCerrarCupon: document.getElementById('btn-cerrar-cupon'),
     cuponFormTitulo: document.getElementById('cupon-form-titulo'),
     enviosAyuda: document.getElementById('envios-ayuda'),
@@ -242,6 +241,8 @@
   let cuponesUsos = [];
   let cuponesCargados = false;
   let cuponesCargando = false;
+  let cuponBotonOrigen = null;
+  let cuponSnapshot = '';
   let fidelidadCargada = false;
   let fidelidadCargando = false;
   let fidelidadConfigGuardada = null;
@@ -607,6 +608,7 @@
     if (el.sesion) el.sesion.hidden = true;
     if (el.passwordInput) el.passwordInput.value = '';
     cerrarModalCategoria();
+    cerrarFormCupon(true);
     cerrarModalPedido();
     cerrarFormTramo();
     detenerRealtimePedidos();
@@ -4328,8 +4330,8 @@
   }
 
   function abrirFormCupon(cupon) {
-    if (!el.formCupon) return;
-    el.formCupon.hidden = false;
+    if (!el.formCupon || !el.modalCupon) return;
+    cuponBotonOrigen = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const editando = !!cupon;
     const nulo = valor => (valor === null || valor === undefined ? '' : Number(valor));
     const unico = lista => (Array.isArray(lista) && lista.length === 1 ? lista[0] : '');
@@ -4354,15 +4356,48 @@
     mostrarEstado(el.cuponFormEstado, '');
     if (el.cuponFormTitulo) el.cuponFormTitulo.textContent = editando ? 'Editar cupón' : 'Nuevo cupón';
     actualizarEtiquetaValorCupon();
-    el.formCupon.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.modalCupon.hidden = false;
+    document.body.classList.add('admin-modal-abierto');
+    const cuerpo = el.formCupon.querySelector('.admin-cupon-modal-cuerpo');
+    if (cuerpo) cuerpo.scrollTop = 0;
+    cuponSnapshot = fotoFormCupon();
     (editando ? el.cuponValor : el.cuponCodigo).focus({ preventScroll: true });
   }
 
-  function cerrarFormCupon() {
-    if (!el.formCupon) return;
-    el.formCupon.hidden = true;
+  function fotoFormCupon() {
+    return Array.from(el.formCupon.querySelectorAll('input:not([type=hidden]), select'))
+      .map(campo => (campo.type === 'checkbox' ? (campo.checked ? '1' : '0') : campo.value))
+      .join('');
+  }
+
+  function cerrarFormCupon(forzar = false) {
+    if (!el.formCupon || !el.modalCupon || el.modalCupon.hidden) return;
+    if (forzar !== true && fotoFormCupon() !== cuponSnapshot
+        && !window.confirm('Hay cambios sin guardar. ¿Cerrar igual?')) return;
+    el.modalCupon.hidden = true;
+    document.body.classList.remove('admin-modal-abierto');
     mostrarEstado(el.cuponFormEstado, '');
-    if (el.cuponesLista) el.cuponesLista.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const origen = cuponBotonOrigen;
+    cuponBotonOrigen = null;
+    if (origen && origen.isConnected) origen.focus({ preventScroll: true });
+  }
+
+  function atraparFocoCupon(evento) {
+    if (evento.key !== 'Tab' || !el.modalCupon || el.modalCupon.hidden) return;
+    const focables = Array.from(el.formCupon.querySelectorAll(
+      'input:not([type=hidden]):not([disabled]), select:not([disabled]), button:not([disabled])'
+    )).filter(nodo => nodo.offsetParent !== null);
+    if (!focables.length) return;
+    const primero = focables[0];
+    const ultimo = focables[focables.length - 1];
+    const activo = document.activeElement;
+    if (evento.shiftKey && (activo === primero || !el.formCupon.contains(activo))) {
+      evento.preventDefault();
+      ultimo.focus();
+    } else if (!evento.shiftKey && (activo === ultimo || !el.formCupon.contains(activo))) {
+      evento.preventDefault();
+      primero.focus();
+    }
   }
 
   function enteroOpcional(valor) {
@@ -4420,7 +4455,6 @@
     };
 
     el.btnGuardarCupon.disabled = true;
-    if (el.btnGuardarCuponArriba) el.btnGuardarCuponArriba.disabled = true;
     mostrarEstado(el.cuponFormEstado, 'Guardando...');
     try {
       const consulta = id
@@ -4428,7 +4462,7 @@
         : cliente.from('cupones').insert({ ...datos, codigo });
       const { error: errorGuardar } = await consulta;
       if (errorGuardar) throw errorGuardar;
-      cerrarFormCupon();
+      cerrarFormCupon(true);
       await cargarCupones({ silencioso: true });
       mostrarEstadoCupones(id ? 'Cupón actualizado.' : 'Cupón creado.', 'ok');
     } catch (errorGuardar) {
@@ -4436,7 +4470,6 @@
       mostrarEstado(el.cuponFormEstado, mensajeErrorCupones(errorGuardar, 'guardar'), 'error');
     } finally {
       el.btnGuardarCupon.disabled = false;
-      if (el.btnGuardarCuponArriba) el.btnGuardarCuponArriba.disabled = false;
     }
   }
 
@@ -5633,9 +5666,15 @@
     conectarEventosCrm();
     if (el.btnNuevoCupon) el.btnNuevoCupon.addEventListener('click', () => abrirFormCupon(null));
     if (el.btnCuponesRecargar) el.btnCuponesRecargar.addEventListener('click', () => cargarCupones());
-    [el.btnCancelarCupon, el.btnCancelarCuponArriba, el.btnCerrarCupon].forEach(boton => {
-      if (boton) boton.addEventListener('click', cerrarFormCupon);
+    [el.btnCancelarCupon, el.btnCerrarCupon].forEach(boton => {
+      if (boton) boton.addEventListener('click', () => cerrarFormCupon());
     });
+    if (el.modalCupon) {
+      el.modalCupon.addEventListener('click', (evento) => {
+        if (evento.target === el.modalCupon) cerrarFormCupon();
+      });
+      el.modalCupon.addEventListener('keydown', atraparFocoCupon);
+    }
     if (el.formCupon) el.formCupon.addEventListener('submit', guardarCupon);
     if (el.cuponTipo) el.cuponTipo.addEventListener('change', actualizarEtiquetaValorCupon);
     if (el.cuponesLista) {
@@ -5839,7 +5878,7 @@
 
     document.addEventListener('keydown', (evento) => {
       if (evento.key !== 'Escape') return;
-      if (el.formCupon && !el.formCupon.hidden && el.formCupon.contains(document.activeElement)) {
+      if (el.modalCupon && !el.modalCupon.hidden) {
         cerrarFormCupon();
         return;
       }

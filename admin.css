@@ -2214,42 +2214,60 @@ p {
 }
 
 /* Cupones (3B) */
-.admin-cupon-form {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  max-width: 960px;
-  margin-bottom: 16px;
-  padding: 14px;
-  border: 1px solid var(--admin-borde-fuerte);
-  border-radius: var(--admin-radio-chico);
-  background: var(--admin-panel-2);
+.admin-cupon-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
+  max-height: 90vh;
+  max-height: 90dvh;
+  padding: 0;
+  overflow: hidden;
 }
+
+.admin-cupon-modal-head,
+.admin-cupon-modal-pie {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+}
+
+.admin-cupon-modal-head { border-bottom: 1px solid var(--admin-borde); }
+.admin-cupon-modal-head h2 { margin: 0; font-size: clamp(1.15rem, 3vw, 1.4rem); }
+
+.admin-cupon-modal-pie {
+  border-top: 1px solid var(--admin-borde);
+  flex-wrap: wrap;
+}
+
+.admin-cupon-modal-pie .admin-estado { margin: 0; flex: 1 1 200px; min-width: 0; }
+.admin-cupon-modal-botones { display: flex; gap: 8px; margin-left: auto; }
+.admin-cupon-modal-botones button { min-height: 44px; }
+
+.admin-cupon-modal-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 18px 20px;
+  align-content: start;
+}
+
+.admin-cupon-modal-cuerpo > * { min-width: 0; }
 
 .admin-cupon-nota {
   grid-column: 1 / -1;
 }
 
-.admin-cupon-form-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.admin-cupon-form-head h3 {
-  margin: 0;
-}
-
-.admin-cupon-form-head-acciones {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.admin-cupon-form > * { min-width: 0; }
+.admin-cupon-nota[hidden] { display: none; }
 
 .admin-cupon-opciones {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -2269,7 +2287,7 @@ p {
 
 .admin-cupones-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 12px;
 }
 
@@ -2319,6 +2337,8 @@ p {
 
 @media (prefers-reduced-motion: reduce) {
   .admin-cupon-chip { transition: none; }
+  .admin-cupon-overlay,
+  .admin-cupon-modal { animation: none; backdrop-filter: none; }
 }
 
 .admin-cupon-fila.pausado,
@@ -2435,10 +2455,14 @@ p {
 
 
 
-@media (max-width: 720px) {
-  .admin-cupon-form { grid-template-columns: 1fr; }
-  .admin-cupones-grid { grid-template-columns: 1fr; }
+@media (max-width: 719px) {
+  .admin-cupon-overlay { padding: 0; }
+  .admin-cupon-modal { width: 100%; height: 100dvh; max-height: none; border-radius: 0; border: 0; }
+  .admin-cupon-modal-cuerpo { grid-template-columns: 1fr; }
+  .admin-cupon-modal-botones { width: 100%; }
+  .admin-cupon-modal-botones button { flex: 1 1 0; }
 }
+
 
 @media (max-width: 860px) {
   .admin-envios-config,
