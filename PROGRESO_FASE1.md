@@ -844,3 +844,4 @@ Solo frontend (`index.html`, `main.js`, `style.css`); sin SQL ni migraciones.
 - Sin SQL ni migraciones. Probar: en 360px marcar/reactivar desde Pedidos y desde la carta y ver que ambos reflejan el cambio; cortar la red y verificar el revert; con admin de sucursal, verificar que solo ve y cambia la suya.
 - Checkout: totalMostrado considera cupón; si el servidor devuelve otro total con el pedido ya guardado solo se avisa (sin cancelar) y se sigue a WhatsApp.
 - Admin: exportación CSV prefija con ' los valores que empiezan con = + - @ tab o CR.
+- Promesas sin catch (main.js/admin.js) y accesos al DOM del modal de cantidad con chequeo.

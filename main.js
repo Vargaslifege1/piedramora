@@ -1995,17 +1995,21 @@ function actualizarPrecioModalPersonalizacion() {
 
 document.getElementById('adicionales-cantidad-mas')?.addEventListener('click', () => {
   cantidadPersonalizacion++;
-  document.getElementById('adicionales-cantidad-valor').textContent = String(cantidadPersonalizacion);
-  document.getElementById('adicionales-cantidad-menos').disabled = false;
+  const valorEl = document.getElementById('adicionales-cantidad-valor');
+  if (valorEl) valorEl.textContent = String(cantidadPersonalizacion);
+  const menosEl = document.getElementById('adicionales-cantidad-menos');
+  if (menosEl) menosEl.disabled = false;
   actualizarPrecioModalPersonalizacion();
 });
 
 document.getElementById('adicionales-cantidad-menos')?.addEventListener('click', () => {
   if (cantidadPersonalizacion > 1) {
     cantidadPersonalizacion--;
-    document.getElementById('adicionales-cantidad-valor').textContent = String(cantidadPersonalizacion);
+    const valorEl = document.getElementById('adicionales-cantidad-valor');
+    if (valorEl) valorEl.textContent = String(cantidadPersonalizacion);
     if (cantidadPersonalizacion === 1) {
-      document.getElementById('adicionales-cantidad-menos').disabled = true;
+      const menosEl = document.getElementById('adicionales-cantidad-menos');
+      if (menosEl) menosEl.disabled = true;
     }
     actualizarPrecioModalPersonalizacion();
   }
@@ -2475,7 +2479,7 @@ function mostrarPedidoRecibido({ pedido, esFallback, total, modalidad, premioTex
       if (panel.hidden) return;
       tiempoEl.textContent = `${minutos} ${minutos === 1 ? 'minuto' : 'minutos'}`;
       filaTiempo.hidden = false;
-    });
+    }).catch(() => {});
   }
 }
 
@@ -4153,7 +4157,7 @@ function abrirDesdeHash() {
   if (!sucursalId || !SUCURSALES[sucursalId]) return;
   cargarCartasEnSegundoPlano().then(() => {
     abrirCartaPorSucursal(sucursalId);
-  });
+  }).catch((e) => console.warn('No se pudo abrir la carta por sucursal.', e));
 }
 
 document.addEventListener('click', (e) => {

@@ -3110,7 +3110,7 @@
     if (pedidosSonidoActivo) {
       desbloquearAudioPedidos().then(desbloqueado => {
         if (desbloqueado) reproducirDingDong();
-      });
+      }).catch(() => {});
     }
     actualizarAlertaPedidos();
   }
