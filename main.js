@@ -3870,16 +3870,7 @@ function itemsPedidoDesdeRespuesta(pedido) {
 
 // Emojis del mensaje de WhatsApp: solo escapes unicode (nunca literales en el archivo).
 const EMOJI_WA = Object.freeze({
-  saludo: '\u{1F44B}',
-  persona: '\u{1F464}',
-  telefono: '\u{1F4DE}',
-  reloj: '\u{23F0}',
-  retiro: '\u{1F3C3}',
-  delivery: '\u{1F6F5}',
-  direccion: '\u{1F4CD}',
-  nota: '\u{1F4DD}',
-  mapa: '\u{1F5FA}\u{FE0F}',
-  gracias: '\u{1F64F}'
+  saludo: '\u{1F44B}'
 });
 
 // Dato del cliente a una línea y sin los caracteres que rompen el formato de WhatsApp (* _ ~ `).
@@ -3935,8 +3926,8 @@ function construirMensajePedido({
   if (numeroOrden) datos.push(`*Pedido:* ${textoWhatsapp(numeroOrden)}`);
   datos.push(`*Sucursal:* ${textoWhatsapp(sucursal.nombre)}`);
   datos.push(`*Fecha:* ${pf.d}/${pf.m}/${String(pf.y).slice(-2)} - ${pf.hh}:${pf.mm} hs`);
-  datos.push(`${E.persona} *Nombre:* ${textoWhatsapp(nombre)}`);
-  datos.push(`${E.telefono} *Tel\u{E9}fono:* ${PM.formatearTelefonoAR(telefono)}`);
+  datos.push(`*Nombre:* ${textoWhatsapp(nombre)}`);
+  datos.push(`*Tel\u{E9}fono:* ${PM.formatearTelefonoAR(telefono)}`);
   bloques.push(datos.join('\n'));
 
   // Pago y entrega: juntos, uno abajo del otro
@@ -3951,18 +3942,18 @@ function construirMensajePedido({
     if (cfgPago.titular) entrega.push(`*Titular:* ${textoWhatsapp(cfgPago.titular)}`);
   }
   if (programadoPara) {
-    entrega.push(`${E.reloj} *PEDIDO PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.`);
+    entrega.push(`*PEDIDO PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.`);
   }
   if (esDelivery) {
-    entrega.push(`${E.delivery} *Entrega:* Delivery`);
-    if (direccion) entrega.push(`${E.direccion} *Direcci\u{F3}n:* ${textoWhatsapp(direccion)}`);
-    if (notas) entrega.push(`${E.nota} *Referencia:* ${textoWhatsapp(notas)}`);
+    entrega.push(`*Entrega:* Delivery`);
+    if (direccion) entrega.push(`*Direcci\u{F3}n:* ${textoWhatsapp(direccion)}`);
+    if (notas) entrega.push(`*Referencia:* ${textoWhatsapp(notas)}`);
     if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) && lat !== null && lng !== null) {
-      entrega.push(`${E.mapa} *Ubicaci\u{F3}n:* https://www.google.com/maps?q=${Number(lat)},${Number(lng)}`);
+      entrega.push(`*Ubicaci\u{F3}n:* https://www.google.com/maps?q=${Number(lat)},${Number(lng)}`);
     }
   } else {
-    entrega.push(`${E.retiro} *Entrega:* Retira personalmente (${textoWhatsapp(sucursal.nombre)})`);
-    if (notas) entrega.push(`${E.nota} *Notas:* ${textoWhatsapp(notas)}`);
+    entrega.push(`*Entrega:* Retira personalmente (${textoWhatsapp(sucursal.nombre)})`);
+    if (notas) entrega.push(`*Notas:* ${textoWhatsapp(notas)}`);
   }
   bloques.push(entrega.join('\n'));
 
@@ -4005,7 +3996,7 @@ function construirMensajePedido({
   if (cuponNoAplicado) {
     bloques.push('_Cup\u{F3}n no aplicado: no se pudo validar sin registrar el pedido. Se envi\u{F3} sin ese descuento._');
   }
-  bloques.push(`_Espero tu respuesta para confirmar mi pedido_ ${E.gracias}`);
+  bloques.push(`_Espero tu respuesta para confirmar mi pedido_`);
   return bloques.join('\n\n');
 }
 
