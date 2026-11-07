@@ -3935,38 +3935,36 @@ function construirMensajePedido({
   if (numeroOrden) datos.push(`*Pedido:* ${textoWhatsapp(numeroOrden)}`);
   datos.push(`*Sucursal:* ${textoWhatsapp(sucursal.nombre)}`);
   datos.push(`*Fecha:* ${pf.d}/${pf.m}/${String(pf.y).slice(-2)} - ${pf.hh}:${pf.mm} hs`);
-  datos.push(`*Forma de pago:* ${textoWhatsapp(pago.nombre)}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}`);
-  if (cuponAplicadoEnPedido) datos.push(`*Cup\u{F3}n:* ${textoWhatsapp(cuponAplicadoEnPedido)}`);
-  else if (premioAplicadoEnPedido) datos.push(`*Premio de fidelidad:* ${textoWhatsapp(premioAplicadoEnPedido)}`);
-  datos.push(`*Total:* ${formatearPrecioAR(total)}`);
-  const cfgPago = (CONFIG_APP.pagos && pago.tipo && CONFIG_APP.pagos[pago.tipo]) || {};
-  if (pago.tipo === 'transferencia') {
-    if (cfgPago.alias) datos.push(`*Alias:* ${textoWhatsapp(cfgPago.alias)}`);
-    if (cfgPago.cbu) datos.push(`*CBU:* ${textoWhatsapp(cfgPago.cbu)}`);
-    if (cfgPago.titular) datos.push(`*Titular:* ${textoWhatsapp(cfgPago.titular)}`);
-  }
+  datos.push(`${E.persona} *Nombre:* ${textoWhatsapp(nombre)}`);
+  datos.push(`${E.telefono} *Tel\u{E9}fono:* ${PM.formatearTelefonoAR(telefono)}`);
   bloques.push(datos.join('\n'));
 
-  // Cliente y entrega (con emoji)
-  const cliente = [
-    `${E.persona} ${textoWhatsapp(nombre)}`,
-    `${E.telefono} ${PM.formatearTelefonoAR(telefono)}`
-  ];
+  // Pago y entrega: juntos, uno abajo del otro
+  const entrega = [];
+  entrega.push(`*Forma de pago:* ${textoWhatsapp(pago.nombre)}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}`);
+  if (cuponAplicadoEnPedido) entrega.push(`*Cup\u{F3}n:* ${textoWhatsapp(cuponAplicadoEnPedido)}`);
+  else if (premioAplicadoEnPedido) entrega.push(`*Premio de fidelidad:* ${textoWhatsapp(premioAplicadoEnPedido)}`);
+  const cfgPago = (CONFIG_APP.pagos && pago.tipo && CONFIG_APP.pagos[pago.tipo]) || {};
+  if (pago.tipo === 'transferencia') {
+    if (cfgPago.alias) entrega.push(`*Alias:* ${textoWhatsapp(cfgPago.alias)}`);
+    if (cfgPago.cbu) entrega.push(`*CBU:* ${textoWhatsapp(cfgPago.cbu)}`);
+    if (cfgPago.titular) entrega.push(`*Titular:* ${textoWhatsapp(cfgPago.titular)}`);
+  }
   if (programadoPara) {
-    cliente.push(`${E.reloj} *PEDIDO PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.`);
+    entrega.push(`${E.reloj} *PEDIDO PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.`);
   }
   if (esDelivery) {
-    cliente.push(`${E.delivery} *Entrega:* Delivery`);
-    if (direccion) cliente.push(`${E.direccion} *Direcci\u{F3}n:* ${textoWhatsapp(direccion)}`);
-    if (notas) cliente.push(`${E.nota} *Referencia:* ${textoWhatsapp(notas)}`);
+    entrega.push(`${E.delivery} *Entrega:* Delivery`);
+    if (direccion) entrega.push(`${E.direccion} *Direcci\u{F3}n:* ${textoWhatsapp(direccion)}`);
+    if (notas) entrega.push(`${E.nota} *Referencia:* ${textoWhatsapp(notas)}`);
     if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) && lat !== null && lng !== null) {
-      cliente.push(`${E.mapa} *Ubicaci\u{F3}n:* https://www.google.com/maps?q=${Number(lat)},${Number(lng)}`);
+      entrega.push(`${E.mapa} *Ubicaci\u{F3}n:* https://www.google.com/maps?q=${Number(lat)},${Number(lng)}`);
     }
   } else {
-    cliente.push(`${E.retiro} *Entrega:* Retira personalmente (${textoWhatsapp(sucursal.nombre)})`);
-    if (notas) cliente.push(`${E.nota} *Notas:* ${textoWhatsapp(notas)}`);
+    entrega.push(`${E.retiro} *Entrega:* Retira personalmente (${textoWhatsapp(sucursal.nombre)})`);
+    if (notas) entrega.push(`${E.nota} *Notas:* ${textoWhatsapp(notas)}`);
   }
-  bloques.push(cliente.join('\n'));
+  bloques.push(entrega.join('\n'));
 
   // Productos agrupados por categoría
   const grupos = new Map();

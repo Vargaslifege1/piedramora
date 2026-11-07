@@ -894,3 +894,4 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - 2026-11-06: fix(whatsapp) modalidad única en el mensaje (sale de tipoEntrega, igual que p_modalidad); se quitó la línea "Entrega" duplicada.
 - 2026-11-06: fix(whatsapp) viñetas `\u{2022}` y acentos del mensaje como escapes; sin "- " ni literales no ASCII en `construirMensajePedido`.
 - 2026-11-06: feat(whatsapp) mensaje al estilo Pedix (`EMOJI_WA`, categorías, datos de transferencia opcionales desde config); texto de cliente sin * _ ~ para no romper el formato.
+- 2026-11-06: fix(whatsapp) bloques del mensaje: pedido+cliente / pago+entrega / productos / totales al final.
