@@ -3870,7 +3870,8 @@ function itemsPedidoDesdeRespuesta(pedido) {
 
 // Emojis del mensaje de WhatsApp: solo escapes unicode (nunca literales en el archivo).
 const EMOJI_WA = Object.freeze({
-  saludo: '\u{1F44B}'
+  saludo: '\u{1F44B}',
+  pedido: '\u{1F924}'
 });
 
 // Dato del cliente a una línea y sin los caracteres que rompen el formato de WhatsApp (* _ ~ `).
@@ -3977,6 +3978,7 @@ function construirMensajePedido({
       }
     });
   });
+  bloques.push(`${E.pedido} *Mi pedido:*`);
   grupos.forEach((lineas, clave) => {
     bloques.push((clave ? `*${clave}*\n` : '') + lineas.join('\n'));
   });

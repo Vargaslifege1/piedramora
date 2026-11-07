@@ -896,3 +896,4 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - 2026-11-06: feat(whatsapp) mensaje al estilo Pedix (`EMOJI_WA`, categorías, datos de transferencia opcionales desde config); texto de cliente sin * _ ~ para no romper el formato.
 - 2026-11-06: fix(whatsapp) bloques del mensaje: pedido+cliente / pago+entrega / productos / totales al final.
 - 2026-11-06: mensaje WhatsApp solo con el emoji del saludo.
+- 2026-11-06: 🤤 en el título "Mi pedido" del mensaje WhatsApp (escape en EMOJI_WA).
