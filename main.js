@@ -809,6 +809,7 @@ function crearTarjetaSucursal(sucursal) {
             ${ICONO_PUNTO}
             <span data-estado-texto>...</span>
           </span>
+          <span class="sucursal-modalidad" data-modalidad-hoy hidden></span>
         </div>
       </div>
 
@@ -1060,8 +1061,40 @@ async function consultarEstadoServidor(id) {
     motivo: String(data.motivo || ''),
     proxima: prox && !Number.isNaN(prox.getTime()) ? prox : null,
     origen: 'servidor',
-    ts: Date.now()
+    ts: Date.now(),
+    ...leerModalidadesRpc(data)
   };
+}
+
+// Modalidades que devuelve sucursal_estado (si faltan, no se bloquea nada).
+function leerModalidadesRpc(data) {
+  const delivery = data.acepta_delivery !== false;
+  const retiro = data.acepta_retiro !== false;
+  if (!delivery && !retiro) return { acepta_delivery: true, acepta_retiro: true, modalidades_hoy: 'ambas' };
+  return {
+    acepta_delivery: delivery,
+    acepta_retiro: retiro,
+    modalidades_hoy: delivery && retiro ? 'ambas' : (delivery ? 'solo_delivery' : 'solo_retiro')
+  };
+}
+
+function modalidadesDeEstado(e) {
+  return { delivery: !e || e.acepta_delivery !== false, retiro: !e || e.acepta_retiro !== false };
+}
+
+// "Hoy" salvo que el local esté cerrado y la próxima apertura sea otro día.
+function prefijoDiaEstado(e) {
+  const prox = e && !e.abierto ? e.proxima : null;
+  if (!prox) return 'Hoy';
+  const dia = claveDiaAR(prox);
+  if (dia === claveDiaAR(new Date())) return 'Hoy';
+  if (dia === claveDiaAR(new Date(Date.now() + 24 * 60 * 60 * 1000))) return 'Mañana';
+  return `El ${diaMesAR(prox)}`;
+}
+
+function textoSoloModalidad(m) {
+  if (m.delivery && m.retiro) return '';
+  return m.delivery ? 'solo delivery' : 'solo retiro';
 }
 
 function refrescarEstados(forzar) {
@@ -1099,6 +1132,13 @@ function actualizarEstados() {
     textoEstado.textContent = textoEstadoSucursal(e);
     badge.classList.toggle('abierto', e.abierto);
     badge.classList.toggle('cerrado', !e.abierto);
+
+    const modEl = tarjeta.querySelector('[data-modalidad-hoy]');
+    if (modEl) {
+      const solo = textoSoloModalidad(modalidadesDeEstado(e));
+      modEl.textContent = solo ? `${prefijoDiaEstado(e)} ${solo}` : '';
+      modEl.hidden = !solo;
+    }
   });
   try { actualizarVistaEstadoCarta(); } catch (error) {}
 }
@@ -1122,6 +1162,13 @@ function actualizarVistaEstadoCarta() {
     const el = document.getElementById(idEl);
     if (el) el.hidden = !mostrarCartel;
   });
+
+  const avisoMod = document.getElementById('carta-aviso-modalidad');
+  if (avisoMod) {
+    const solo = textoSoloModalidad(modalidadesDeEstado(e));
+    avisoMod.textContent = solo ? `${prefijoDiaEstado(e)} ${solo}` : '';
+    avisoMod.hidden = !solo || esCartaSoloLectura();
+  }
 
   actualizarProgramarUI();
 }
@@ -1212,6 +1259,104 @@ function actualizarResumenProgramar() {
   }
   el.textContent = fecha ? `Tu pedido se programa para ${cuandoTextoAR(fecha)}. Lo confirmamos cuando abramos.` : '';
   el.hidden = !fecha;
+  programarConsultaModalidades();
+}
+
+/* ===== Modalidades por día (delivery / retiro) en el checkout ===== */
+
+const MODALIDADES_FECHA = {};   // `${sucursal}|${iso}` -> { delivery, retiro } (si falla: ambas)
+let modalidadesTimer = null;
+
+function claveModalidadesFecha(iso) { return `${cartaActualSucursalId}|${iso}`; }
+
+// Modalidades aplicables: las de la fecha elegida (si se pudieron consultar) o las del estado.
+function modalidadesVigentesCheckout() {
+  const e = obtenerEstadoSucursal(cartaActualSucursalId);
+  const prog = leerProgramadoCheckout();
+  if (prog.programado && prog.iso) {
+    const m = MODALIDADES_FECHA[claveModalidadesFecha(prog.iso)];
+    if (m) return { ...m, fecha: prog.fecha, estado: e };
+  }
+  return { ...modalidadesDeEstado(e), fecha: prog.programado ? prog.fecha : null, estado: e };
+}
+
+function programarConsultaModalidades() {
+  actualizarModalidadesUI();
+  const prog = leerProgramadoCheckout();
+  if (!prog.programado || !prog.iso || !cartaActualSucursalId) return;
+  if (MODALIDADES_FECHA[claveModalidadesFecha(prog.iso)]) return;
+  clearTimeout(modalidadesTimer);
+  modalidadesTimer = setTimeout(async () => {
+    const sucursalId = cartaActualSucursalId;
+    const iso = prog.iso;
+    let m = { delivery: true, retiro: true };   // si falla, no se bloquea: decide el servidor
+    try {
+      await cargarConfigNube();
+      const cliente = obtenerClienteNube();
+      if (cliente) {
+        const { data, error } = await conTiempoLimite(
+          cliente.rpc('sucursal_estado', { p_sucursal_id: sucursalId, p_ahora: iso }), 6000
+        );
+        if (!error && data && typeof data.abierto === 'boolean') {
+          const r = leerModalidadesRpc(data);
+          m = { delivery: r.acepta_delivery, retiro: r.acepta_retiro };
+        }
+      }
+    } catch (error) {}
+    MODALIDADES_FECHA[`${sucursalId}|${iso}`] = m;
+    if (sucursalId === cartaActualSucursalId) actualizarModalidadesUI();
+  }, 350);
+}
+
+function actualizarModalidadesUI() {
+  const btnDelivery = document.querySelector('[data-tipo-entrega="delivery"]');
+  const btnRetiro = document.querySelector('[data-tipo-entrega="retiro"]');
+  const aviso = document.getElementById('entrega-aviso');
+  if (!btnDelivery || !btnRetiro || !cartaActualSucursalId) return;
+  const v = modalidadesVigentesCheckout();
+  const solo = textoSoloModalidad(v);
+
+  btnDelivery.disabled = !v.delivery;
+  btnRetiro.disabled = !v.retiro;
+  btnDelivery.setAttribute('aria-disabled', v.delivery ? 'false' : 'true');
+  btnRetiro.setAttribute('aria-disabled', v.retiro ? 'false' : 'true');
+
+  let cambio = '';
+  const activo = document.querySelector('[data-tipo-entrega].activa');
+  const activoNoDisponible = !!(activo && activo.disabled);
+  if (activoNoDisponible || !activo) {
+    const destino = v.delivery ? btnDelivery : btnRetiro;
+    if (destino !== activo) {
+      destino.click();
+      if (activoNoDisponible) cambio = ` Cambiamos tu elección a ${v.delivery ? 'Delivery' : 'Retiro'}.`;
+    }
+  }
+
+  if (aviso) {
+    let prefijo;
+    if (v.fecha) prefijo = claveDiaAR(v.fecha) === claveDiaAR(new Date()) ? 'Hoy' : 'Ese día';
+    else prefijo = prefijoDiaEstado(v.estado);
+    const base = solo ? `${prefijo} este local ${v.delivery ? 'solo hace delivery' : 'solo hace retiro'}.` : '';
+    // El aviso de cambio se conserva mientras siga la restricción.
+    if (cambio) aviso.dataset.cambio = cambio;
+    else if (!solo) delete aviso.dataset.cambio;
+    aviso.textContent = base ? `${base}${aviso.dataset.cambio || ''}` : '';
+    aviso.hidden = !base;
+  }
+}
+
+function mostrarErrorModalidad(mensaje) {
+  const err = document.getElementById('entrega-error');
+  if (!err) return;
+  err.textContent = mensaje;
+  err.hidden = false;
+  const reducir = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  err.scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', block: 'center' });
+}
+
+function limpiarErrorModalidad() {
+  const err = document.getElementById('entrega-error');
+  if (err) { err.textContent = ''; err.hidden = true; }
 }
 
 function armarFechaAR(clave, hora, minuto) {
@@ -1341,6 +1486,10 @@ document.querySelectorAll('input[name="programar-modo"]').forEach((r) => {
     actualizarProgramarUI();
   });
 });
+
+function esRechazoPorModalidad(error) {
+  return /solo recibe pedidos|solo hace (delivery|retiro)|modalidad/i.test(String((error && error.message) || ''));
+}
 
 function esRechazoPorHorario(error) {
   return /cerrado|programar|programad|horario de atenci|futuras|d[ií]as adelante/i.test(String((error && error.message) || ''));
@@ -3296,6 +3445,7 @@ function sincronizarCheckoutConModalidad() {
     campoDelivery.hidden = esMesa;
     campoDelivery.style.display = (esMesa || !esDeliveryActivo) ? 'none' : 'block';
   }
+  if (!esMesa) { try { actualizarModalidadesUI(); } catch (error) {} }
 }
 
 // Selector Entrega / Pago
@@ -3309,6 +3459,7 @@ document.querySelectorAll('[data-tipo-entrega]').forEach(btn => {
       wrapDir.style.display = objetivo.dataset.tipoEntrega === 'delivery' ? 'block' : 'none';
     }
     if (objetivo.dataset.tipoEntrega !== 'delivery') limpiarErrorDireccion();
+    limpiarErrorModalidad();
     programarCotizacionEnvio();
   });
 });
@@ -4281,6 +4432,13 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           borrarIdempotencyKeyPedido();
           cerrarVentanaPedido(ventanaWhatsapp);
           alert(`${mensajePremio} Revisá tu pedido y volvé a enviarlo.`);
+          return;
+        } else if (esRechazoPorModalidad(error)) {
+          // Modalidad no aceptada: texto del servidor junto al selector, sin WhatsApp
+          // "sin registrar" y sin perder el carrito ni la idempotency key.
+          cerrarVentanaPedido(ventanaWhatsapp);
+          mostrarErrorModalidad(String(error.message || 'Esa modalidad no está disponible.'));
+          refrescarEstados(true);
           return;
         } else if (esRechazoPorHorario(error)) {
           // Horario / fecha: texto del servidor en el checkout, sin WhatsApp "sin registrar"

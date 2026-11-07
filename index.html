@@ -263,6 +263,7 @@
 
       <div class="carta-body">
         <p id="carta-aviso-cerrado" class="aviso-cerrado" role="status" hidden>Estamos cerrados. Podés dejar tu pedido programado y lo verán cuando abran.</p>
+        <p id="carta-aviso-modalidad" class="aviso-cerrado aviso-modalidad" role="status" hidden></p>
         <!-- Tarjeta de fidelidad (se muestra en categorías y productos; la maneja main.js) -->
         <section id="fidelidad-tarjeta" class="fidelidad-tarjeta" aria-label="Tarjeta de fidelidad" hidden>
           <button type="button" id="fidelidad-barra" class="fidelidad-barra" aria-expanded="false" aria-controls="fidelidad-panel">
@@ -484,6 +485,8 @@
             <button type="button" class="btn-opcion activa" data-tipo-entrega="delivery">🛵 Delivery</button>
             <button type="button" class="btn-opcion" data-tipo-entrega="retiro">🏃 Retiro / Takeaway</button>
           </div>
+          <p id="entrega-aviso" class="form-ayuda entrega-aviso" role="status" hidden></p>
+          <span id="entrega-error" class="form-error" role="alert" hidden></span>
         </div>
 
         <div class="form-grupo" id="form-grupo-mesa" hidden>

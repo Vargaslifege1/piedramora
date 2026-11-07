@@ -2086,6 +2086,39 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
   border-color: rgba(227, 30, 36, 0.6);
 }
 
+.btn-opcion:disabled,
+.btn-opcion[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.btn-opcion:disabled:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.entrega-aviso {
+  margin: 6px 0 0;
+  color: var(--color-dorado);
+  font-weight: 600;
+}
+
+.sucursal-modalidad {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(217, 164, 65, 0.14);
+  border: 1px solid rgba(217, 164, 65, 0.45);
+  color: var(--color-dorado);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sucursal-modalidad[hidden] {
+  display: none;
+}
+
 .btn-opcion.activa {
   background: var(--color-rojo);
   border-color: var(--color-rojo);
