@@ -897,3 +897,4 @@ Cómo probar: entrar como dueño → pestaña Clientes; buscar por nombre/teléf
 - 2026-11-06: fix(whatsapp) bloques del mensaje: pedido+cliente / pago+entrega / productos / totales al final.
 - 2026-11-06: mensaje WhatsApp solo con el emoji del saludo.
 - 2026-11-06: 🤤 en el título "Mi pedido" del mensaje WhatsApp (escape en EMOJI_WA).
+- Migración 025 (SIN APLICAR, falta backup): modalidades por turno (`acepta_delivery`/`acepta_retiro` en `sucursal_horarios`), tabla `excepciones_dia` (reemplaza la regla semanal de una fecha), `sucursal_estado` con modalidades y `crear_pedido` que rechaza la modalidad no aceptada (ahora y programado). Sin cambios de frontend.
