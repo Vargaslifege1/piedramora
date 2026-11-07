@@ -3852,92 +3852,163 @@ function itemsPedidoDesdeRespuesta(pedido) {
         if (adicional && adicional.nombre) especificaciones.push(adicional.nombre);
       });
     }
+    const subtotalItem = Number(item.subtotal) || 0;
     return {
       nombre: item.nombre || item.producto_id || 'Producto',
       cantidad: Number(item.cantidad) || 0,
-      subtotal: Number(item.subtotal) || 0,
-      especificaciones
+      subtotal: subtotalItem,
+      especificaciones,
+      variacion: item.variacion && item.variacion.nombre ? item.variacion.nombre : '',
+      adicionales: Array.isArray(item.adicionales)
+        ? item.adicionales.filter((a) => a && a.nombre).map((a) => ({ nombre: a.nombre, cantidad: Number(a.cantidad) || 1 }))
+        : [],
+      regalo: item.es_regalo === true || item.regalo === true || subtotalItem === 0,
+      categoria: item.categoria_nombre || item.categoria || categoriaNombreDeProducto(item.producto_id || item.id)
     };
   });
 }
 
+// Emojis del mensaje de WhatsApp: solo escapes unicode (nunca literales en el archivo).
+const EMOJI_WA = Object.freeze({
+  saludo: '\u{1F44B}',
+  persona: '\u{1F464}',
+  telefono: '\u{1F4DE}',
+  reloj: '\u{23F0}',
+  retiro: '\u{1F3C3}',
+  delivery: '\u{1F6F5}',
+  direccion: '\u{1F4CD}',
+  nota: '\u{1F4DD}',
+  mapa: '\u{1F5FA}\u{FE0F}',
+  gracias: '\u{1F64F}'
+});
+
+// Dato del cliente a una línea y sin los caracteres que rompen el formato de WhatsApp (* _ ~ `).
+function textoWhatsapp(valor) {
+  return normalizarTextoMensaje(valor, true).replace(/[*_~`]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Nombre de la categoría de un producto (para agrupar el detalle del mensaje). '' si no se encuentra.
+function categoriaNombreDeProducto(productoId) {
+  const productos = (CARTAS_UNIFICADAS && CARTAS_UNIFICADAS.productos) || [];
+  const categorias = (CARTAS_UNIFICADAS && CARTAS_UNIFICADAS.categorias) || [];
+  const prod = productos.find((p) => p && String(p.id) === String(productoId));
+  if (!prod) return '';
+  const cat = categorias.find((c) => c && String(c.id) === String(prod.categoria));
+  return cat ? String(cat.nombre || cat.titulo || '') : '';
+}
+
 function construirMensajePedido({
   sucursal,
-  esMesa,
-  modalidadTexto,
   nombre,
   telefono,
-  tipoEntrega,
-  direccionFormateada,
+  esDelivery,
+  direccion,
+  lat,
+  lng,
   pago,
   notas,
   items,
   totales,
   numeroOrden,
-  cuadrasEnvio,
   sinRegistrar,
   cuponAplicadoEnPedido,
   premioAplicadoEnPedido,
   cuponNoAplicado,
-  programadoPara
+  programadoPara,
+  fechaPedido
 }) {
-  const nombreNegocio = String(CONFIG_APP.negocio.nombre || 'Piedra Mora').toUpperCase();
-  const cabecera = `*NUEVO PEDIDO - ${nombreNegocio}*\n\n`;
-  let mensaje = sinRegistrar
-    ? `\u{26A0}\u{FE0F} PEDIDO SIN REGISTRAR EN EL SISTEMA\n\n${cabecera}`
-    : cabecera;
-  if (numeroOrden) mensaje += `\u{1F9FE} *Pedido:* ${normalizarTextoMensaje(numeroOrden, true)}\n`;
-  if (programadoPara) {
-    mensaje += `\u{1F5D3}\u{FE0F} *Pedido PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.\n`;
-  }
-  mensaje += `\u{1F4E2} *Sucursal:* ${normalizarTextoMensaje(sucursal.nombre, true)}\n`;
-  mensaje += `\u{1F6F5} *Modalidad:* ${modalidadTexto}\n`;
-  mensaje += `\u{1F464} *Cliente:* ${nombre}\n`;
-  mensaje += `\u{1F4F1} *Tel\u{E9}fono:* ${PM.formatearTelefonoAR(telefono)}\n`;
-  if (direccionFormateada) mensaje += `\u{1F4CD} *Direcci\u{F3}n:* ${direccionFormateada}\n`;
-  const porcentaje = Number(pago.porcentaje) || 0;
-  mensaje += `\u{1F4B0} *Pago:* ${pago.nombre}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}\n`;
-  if (notas) mensaje += `\u{1F4DD} *Notas:* ${notas}\n`;
-
-  mensaje += `*Detalle del pedido:*\n`;
-  (items || []).forEach((item) => {
-    const subtotal = Number(item.subtotal) || 0;
-    const especificaciones = Array.isArray(item.especificaciones) ? item.especificaciones : [];
-    const detalleConfig = especificaciones.length > 0
-      ? ` (${especificaciones.map(esp => normalizarTextoMensaje(esp, true)).join(', ')})`
-      : '';
-    mensaje += `\u{2022} ${item.cantidad} x ${normalizarTextoMensaje(item.nombre, true)}${detalleConfig} \u{2014} ${formatearPrecioAR(subtotal)}\n`;
-  });
-
+  const E = EMOJI_WA;
+  const nombreNegocio = textoWhatsapp((CONFIG_APP.negocio && CONFIG_APP.negocio.nombre) || 'Piedra Mora');
   const subtotal = Number(totales.subtotal) || 0;
   const descuento = Number(totales.descuento) || 0;
   const envio = Number(totales.costo_envio) || 0;
   const total = Number(totales.total) || 0;
-  mensaje += `\n*Subtotal:* ${formatearPrecioAR(subtotal)}\n`;
+  const porcentaje = Number(pago.porcentaje) || 0;
+  const bloques = [];
+
+  if (sinRegistrar) bloques.push('*PEDIDO SIN REGISTRAR*');
+  bloques.push(`_\u{A1}Hola ${nombreNegocio}! ${E.saludo} Te paso el resumen de mi pedido_`);
+
+  // Datos del pedido (sin emoji)
+  const pf = partesAR(fechaPedido instanceof Date && !Number.isNaN(fechaPedido.getTime()) ? fechaPedido : new Date());
+  const datos = [];
+  if (numeroOrden) datos.push(`*Pedido:* ${textoWhatsapp(numeroOrden)}`);
+  datos.push(`*Sucursal:* ${textoWhatsapp(sucursal.nombre)}`);
+  datos.push(`*Fecha:* ${pf.d}/${pf.m}/${String(pf.y).slice(-2)} - ${pf.hh}:${pf.mm} hs`);
+  datos.push(`*Forma de pago:* ${textoWhatsapp(pago.nombre)}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}`);
+  if (cuponAplicadoEnPedido) datos.push(`*Cup\u{F3}n:* ${textoWhatsapp(cuponAplicadoEnPedido)}`);
+  else if (premioAplicadoEnPedido) datos.push(`*Premio de fidelidad:* ${textoWhatsapp(premioAplicadoEnPedido)}`);
+  datos.push(`*Total:* ${formatearPrecioAR(total)}`);
+  const cfgPago = (CONFIG_APP.pagos && pago.tipo && CONFIG_APP.pagos[pago.tipo]) || {};
+  if (pago.tipo === 'transferencia') {
+    if (cfgPago.alias) datos.push(`*Alias:* ${textoWhatsapp(cfgPago.alias)}`);
+    if (cfgPago.cbu) datos.push(`*CBU:* ${textoWhatsapp(cfgPago.cbu)}`);
+    if (cfgPago.titular) datos.push(`*Titular:* ${textoWhatsapp(cfgPago.titular)}`);
+  }
+  bloques.push(datos.join('\n'));
+
+  // Cliente y entrega (con emoji)
+  const cliente = [
+    `${E.persona} ${textoWhatsapp(nombre)}`,
+    `${E.telefono} ${PM.formatearTelefonoAR(telefono)}`
+  ];
+  if (programadoPara) {
+    cliente.push(`${E.reloj} *PEDIDO PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.`);
+  }
+  if (esDelivery) {
+    cliente.push(`${E.delivery} *Entrega:* Delivery`);
+    if (direccion) cliente.push(`${E.direccion} *Direcci\u{F3}n:* ${textoWhatsapp(direccion)}`);
+    if (notas) cliente.push(`${E.nota} *Referencia:* ${textoWhatsapp(notas)}`);
+    if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) && lat !== null && lng !== null) {
+      cliente.push(`${E.mapa} *Ubicaci\u{F3}n:* https://www.google.com/maps?q=${Number(lat)},${Number(lng)}`);
+    }
+  } else {
+    cliente.push(`${E.retiro} *Entrega:* Retira personalmente (${textoWhatsapp(sucursal.nombre)})`);
+    if (notas) cliente.push(`${E.nota} *Notas:* ${textoWhatsapp(notas)}`);
+  }
+  bloques.push(cliente.join('\n'));
+
+  // Productos agrupados por categoría
+  const grupos = new Map();
+  (items || []).forEach((item) => {
+    const clave = item.categoria ? textoWhatsapp(item.categoria).toUpperCase() : '';
+    if (!grupos.has(clave)) grupos.set(clave, []);
+    const lineas = grupos.get(clave);
+    const cantidad = Number(item.cantidad) || 1;
+    const nombreItem = textoWhatsapp(item.nombre).toUpperCase();
+    if (item.regalo) {
+      lineas.push(`${cantidad}x ${nombreItem} (regalo): $0`);
+    } else {
+      const variacion = item.variacion ? ` (${textoWhatsapp(item.variacion).toUpperCase()})` : '';
+      lineas.push(`${cantidad}x ${nombreItem}${variacion}: ${formatearPrecioAR(Number(item.subtotal) || 0)}`);
+    }
+    (Array.isArray(item.adicionales) ? item.adicionales : []).forEach((adicional) => {
+      if (adicional && adicional.nombre) {
+        lineas.push(`    - ${Number(adicional.cantidad) || 1}x ${textoWhatsapp(adicional.nombre)}`);
+      }
+    });
+  });
+  grupos.forEach((lineas, clave) => {
+    bloques.push((clave ? `*${clave}*\n` : '') + lineas.join('\n'));
+  });
+
+  // Totales: solo el descuento que aplica
+  const totalesTxt = [`*Subtotal:* ${formatearPrecioAR(subtotal)}`];
   if (descuento > 0) {
     const etiquetaDescuento = premioAplicadoEnPedido
-      ? `Premio ${premioAplicadoEnPedido}`
-      : (cuponAplicadoEnPedido
-        ? `Cup\u{F3}n ${cuponAplicadoEnPedido}`
-        : `${pago.nombre} ${porcentaje}%`);
-    mensaje += `*Descuento (${etiquetaDescuento}):* - ${formatearPrecioAR(descuento)}\n`;
+      ? 'Descuento premio'
+      : (cuponAplicadoEnPedido ? 'Descuento cup\u{F3}n' : 'Descuento medio de pago');
+    totalesTxt.push(`*${etiquetaDescuento}:* -${formatearPrecioAR(descuento)}`);
   }
-  if (envio > 0) {
-    const cuadras = Number(cuadrasEnvio);
-    const detalleCuadras = Number.isFinite(cuadras) && cuadras > 0
-      ? ` (a ${cuadras} cuadra${cuadras === 1 ? '' : 's'} de la sucursal)`
-      : '';
-    mensaje += `*Env\u{ED}o:* ${formatearPrecioAR(envio)}${detalleCuadras}\n`;
-  }
-  mensaje += `*TOTAL:* ${formatearPrecioAR(total)}`;
-  if (premioAplicadoEnPedido && descuento <= 0) {
-    mensaje += `
-*Premio de fidelidad:* ${premioAplicadoEnPedido}`;
-  }
+  if (envio > 0) totalesTxt.push(`*Costo de env\u{ED}o:* +${formatearPrecioAR(envio)}`);
+  totalesTxt.push(`*TOTAL:* ${formatearPrecioAR(total)}`);
+  bloques.push(totalesTxt.join('\n'));
+
   if (cuponNoAplicado) {
-    mensaje += '\n_Cup\u{F3}n no aplicado: no se pudo validar sin registrar el pedido. Se envi\u{F3} sin ese descuento._';
+    bloques.push('_Cup\u{F3}n no aplicado: no se pudo validar sin registrar el pedido. Se envi\u{F3} sin ese descuento._');
   }
-  return mensaje;
+  bloques.push(`_Espero tu respuesta para confirmar mi pedido_ ${E.gracias}`);
+  return bloques.join('\n\n');
 }
 
 function abrirEnlaceWhatsapp(ventana, link) {
@@ -4129,7 +4200,13 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
     nombre: item.nombre,
     cantidad: item.cantidad,
     subtotal: item.precio * item.cantidad,
-    especificaciones: obtenerEspecificacionesLinea(item)
+    especificaciones: obtenerEspecificacionesLinea(item),
+    variacion: item.variacion && item.variacion.nombre ? item.variacion.nombre : '',
+    adicionales: Array.isArray(item.adicionalesLista)
+      ? item.adicionalesLista.filter((a) => a && a.nombre).map((a) => ({ nombre: a.nombre, cantidad: Number(a.cantidad) || 1 }))
+      : [],
+    regalo: false,
+    categoria: categoriaNombreDeProducto(item.productoBaseId)
   }));
   const totalGeneral = itemsCliente.reduce((acc, item) => acc + item.subtotal, 0);
   const totalesBase = calcularTotalesPedido(totalGeneral, pago);
@@ -4321,18 +4398,18 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
 
     const mensaje = construirMensajePedido({
       sucursal,
-      esMesa,
-      modalidadTexto: tipoEntrega, // misma fuente que p_modalidad
       nombre,
       telefono,
-      tipoEntrega,
-      direccionFormateada,
+      esDelivery: tipoEntrega === 'Delivery', // misma fuente que p_modalidad
+      direccion: direccionTexto,
+      lat,
+      lng,
       pago,
       notas,
       items: itemsMensaje,
       totales: totalesMensaje,
       numeroOrden,
-      cuadrasEnvio: cuadrasServidor,
+      fechaPedido: pedidoGuardado && pedidoGuardado.created_at ? new Date(pedidoGuardado.created_at) : new Date(),
       sinRegistrar: !pedidoGuardado,
       cuponAplicadoEnPedido: pedidoGuardado && !premioUsado ? codigoCuponConfirmado : null,
       premioAplicadoEnPedido: pedidoGuardado && premioUsado ? fidelidadDescribirPremio(premioUsado) : null,
