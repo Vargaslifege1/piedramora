@@ -5487,6 +5487,12 @@
     forzar_abierto: 'Forzar abierto',
     forzar_cerrado: 'Forzar cerrado'
   };
+  const MODOS_EXCEPCION = {
+    abierto: 'Abierto',
+    solo_delivery: 'Solo delivery',
+    solo_retiro: 'Solo retiro',
+    cerrado: 'Cerrado'
+  };
   const SUCURSALES_HORARIO_RESPALDO = ['maestro-quiroga', 'intendente-lascano'];
 
   let horSucursal = '';
@@ -5494,6 +5500,7 @@
   let horOriginales = [];  // filas leídas de la BD { id, dia_semana, desde }
   let horModo = 'automatico';
   let horCierres = [];
+  let horExcepciones = [];
   let horCargado = false;
   let horCargando = false;
   let horSucio = false;
@@ -5570,6 +5577,8 @@
     }
     const cierresCard = horEl('hor-cierres-card');
     if (cierresCard) cierresCard.hidden = !esDuenoHorarios();
+    const excSucursal = horEl('exc-sucursal-wrap');
+    if (excSucursal) excSucursal.hidden = !esDuenoHorarios();
   }
 
   async function cargarHorarios() {
@@ -5582,15 +5591,17 @@
     mostrarAvisoHorarios('');
     try {
       const consultas = [
-        cliente.from('sucursal_horarios').select('id,dia_semana,desde,hasta').eq('sucursal_id', sucursal).order('desde', { ascending: true }),
-        cliente.from('sucursal_estado_manual').select('modo').eq('sucursal_id', sucursal).maybeSingle()
+        cliente.from('sucursal_horarios').select('id,dia_semana,desde,hasta,acepta_retiro,acepta_delivery').eq('sucursal_id', sucursal).order('desde', { ascending: true }),
+        cliente.from('sucursal_estado_manual').select('modo').eq('sucursal_id', sucursal).maybeSingle(),
+        cliente.from('excepciones_dia').select('id,sucursal_id,fecha,modo,desde,hasta,motivo').eq('sucursal_id', sucursal).gte('fecha', fechaArgentinaHoy()).order('fecha', { ascending: true })
       ];
       if (esDuenoHorarios()) {
         consultas.push(cliente.from('cierres_especiales').select('id,sucursal_id,desde,hasta,motivo').order('desde', { ascending: true }));
       }
-      const [rHor, rModo, rCierres] = await Promise.all(consultas);
+      const [rHor, rModo, rExc, rCierres] = await Promise.all(consultas);
       if (rHor.error) throw rHor.error;
       if (rModo.error) throw rModo.error;
+      if (rExc.error) throw rExc.error;
       if (rCierres && rCierres.error) throw rCierres.error;
 
       horOriginales = (rHor.data || []).map(f => ({ id: f.id, dia_semana: Number(f.dia_semana), desde: hhmm(f.desde) }));
@@ -5598,15 +5609,22 @@
       for (let d = 0; d < 7; d++) horTurnos[d] = [];
       (rHor.data || []).forEach(f => {
         const dia = Number(f.dia_semana);
-        if (horTurnos[dia]) horTurnos[dia].push({ desde: hhmm(f.desde), hasta: hhmm(f.hasta) });
+        if (horTurnos[dia]) horTurnos[dia].push({
+          desde: hhmm(f.desde),
+          hasta: hhmm(f.hasta),
+          acepta_retiro: f.acepta_retiro !== false,
+          acepta_delivery: f.acepta_delivery !== false
+        });
       });
       horModo = rModo.data && MODOS_HORARIO[rModo.data.modo] ? rModo.data.modo : 'automatico';
       horCierres = rCierres ? (rCierres.data || []) : [];
+      horExcepciones = rExc.data || [];
       horCargado = true;
       horSucio = false;
       renderModoHorarios();
       renderDiasHorarios();
       renderCierres();
+      renderExcepciones();
       mostrarEstado(horEl('hor-estado'), '');
       cargarEstadoActualHorarios();
     } catch (error) {
@@ -5652,6 +5670,8 @@
         caja.dataset.abierto = 'no';
       }
       if (/cierre/i.test(String(estado.motivo || ''))) texto += ' (cierre especial)';
+      if (estado.modalidades_hoy === 'solo_delivery') texto += ' · Hoy solo delivery';
+      else if (estado.modalidades_hoy === 'solo_retiro') texto += ' · Hoy solo retiro';
       caja.textContent = texto;
     } catch (error) {
       caja.dataset.abierto = '';
@@ -5709,8 +5729,22 @@
       <span aria-hidden="true">a</span>
       <input type="time" value="${hasta}" data-hor-campo="hasta" aria-label="Hasta, ${nombre}">
       <button type="button" class="btn-icono" data-hor-accion="quitar" aria-label="Quitar turno">✕</button>
+      <label class="hor-switch"><input type="checkbox" data-hor-campo="acepta_retiro"${turno.acepta_retiro !== false ? ' checked' : ''} aria-label="Retiro, ${nombre}"><span>Retiro</span></label>
+      <label class="hor-switch"><input type="checkbox" data-hor-campo="acepta_delivery"${turno.acepta_delivery !== false ? ' checked' : ''} aria-label="Delivery, ${nombre}"><span>Delivery</span></label>
       ${turnoCruzaMedianoche(turno) ? '<small class="hor-cruza">Termina al día siguiente</small>' : ''}
     </div>`;
+  }
+
+  // Resumen de modalidades del día: Ambas / Solo delivery / Solo retiro / Mixto.
+  function resumenModalidadesDia(turnos) {
+    if (!turnos.length) return '';
+    const todos = campo => turnos.every(t => t[campo] !== false);
+    if (todos('acepta_retiro') && todos('acepta_delivery')) return 'Ambas';
+    const algunRet = turnos.some(t => t.acepta_retiro !== false);
+    const algunDel = turnos.some(t => t.acepta_delivery !== false);
+    if (algunRet && !algunDel) return 'Solo retiro';
+    if (algunDel && !algunRet) return 'Solo delivery';
+    return 'Mixto';
   }
 
   function renderDiasHorarios() {
@@ -5722,7 +5756,7 @@
         ? turnos.map((t, i) => filaTurnoHtml(dia, i, t)).join('')
         : '<p class="hor-cerrado-dia">Cerrado</p>';
       return `<div class="hor-dia" data-dia="${dia}">
-        <div class="hor-dia-nombre"><strong>${PM.escaparHtml(DIAS_SEMANA[dia])}</strong></div>
+        <div class="hor-dia-nombre"><strong>${PM.escaparHtml(DIAS_SEMANA[dia])}</strong>${resumenModalidadesDia(turnos) ? ` <span class="hor-badge">${PM.escaparHtml(resumenModalidadesDia(turnos))}</span>` : ''}</div>
         <div class="hor-dia-turnos">${filas}</div>
         <div class="hor-dia-acciones">
           <button type="button" class="btn-secundario" data-hor-accion="agregar" data-dia="${dia}">+ Turno</button>
@@ -5739,13 +5773,13 @@
     if (accion === 'agregar') {
       const dia = Number(boton.dataset.dia);
       const lista = horTurnos[dia] || (horTurnos[dia] = []);
-      lista.push(lista.length ? { desde: '', hasta: '' } : { desde: '19:00', hasta: '23:30' });
+      lista.push(lista.length ? { desde: '', hasta: '', acepta_retiro: true, acepta_delivery: true } : { desde: '19:00', hasta: '23:30', acepta_retiro: true, acepta_delivery: true });
     } else if (accion === 'quitar') {
       const fila = boton.closest('.hor-turno');
       horTurnos[Number(fila.dataset.dia)].splice(Number(fila.dataset.indice), 1);
     } else if (accion === 'copiar') {
       const dia = Number(boton.dataset.dia);
-      if (!window.confirm(`¿Copiar los turnos de ${DIAS_SEMANA[dia]} a todos los días? Reemplaza lo que hay en los otros.`)) return;
+      if (!window.confirm(`¿Copiar los turnos y modalidades de ${DIAS_SEMANA[dia]} a todos los días? Reemplaza lo que hay en los otros.`)) return;
       const origen = (horTurnos[dia] || []).map(t => ({ ...t }));
       for (let d = 0; d < 7; d++) horTurnos[d] = origen.map(t => ({ ...t }));
     } else {
@@ -5761,7 +5795,17 @@
     const fila = campo.closest('.hor-turno');
     const turno = horTurnos[Number(fila.dataset.dia)][Number(fila.dataset.indice)];
     if (!turno) return;
-    turno[campo.dataset.horCampo] = campo.value;
+    const nombreCampo = campo.dataset.horCampo;
+    if (campo.type === 'checkbox') {
+      turno[nombreCampo] = campo.checked;
+      horSucio = true;
+      // Refresca el badge resumen del dia sin redibujar (no pierde el foco).
+      const diaEl = campo.closest('.hor-dia');
+      const badge = diaEl && diaEl.querySelector('.hor-badge');
+      if (badge) badge.textContent = resumenModalidadesDia(horTurnos[Number(fila.dataset.dia)]);
+      return;
+    }
+    turno[nombreCampo] = campo.value;
     horSucio = true;
     let nota = fila.querySelector('.hor-cruza');
     if (turnoCruzaMedianoche(turno) && !nota) {
@@ -5783,6 +5827,7 @@
         const ini = minutosDeHora(t.desde);
         const fin = minutosDeHora(t.hasta);
         if (ini === null || fin === null) return `${nombre}: completá "desde" y "hasta" con una hora válida (HH:MM).`;
+        if (t.acepta_retiro === false && t.acepta_delivery === false) return `${nombre}: cada turno tiene que aceptar retiro o delivery (al menos uno).`;
         rangos.push({ ini, fin: fin <= ini ? fin + 1440 : fin });
       }
       rangos.sort((a, b) => a.ini - b.ini);
@@ -5802,7 +5847,14 @@
     const filas = [];
     for (let dia = 0; dia < 7; dia++) {
       (horTurnos[dia] || []).forEach(t => {
-        filas.push({ sucursal_id: horSucursal, dia_semana: dia, desde: t.desde, hasta: t.hasta });
+        filas.push({
+          sucursal_id: horSucursal,
+          dia_semana: dia,
+          desde: t.desde,
+          hasta: t.hasta,
+          acepta_retiro: t.acepta_retiro !== false,
+          acepta_delivery: t.acepta_delivery !== false
+        });
       });
     }
     if (!filas.length && !window.confirm('La sucursal no tiene ningún turno cargado y quedará siempre abierta. ¿Guardar igual?')) return;
@@ -5946,6 +5998,127 @@
     }
   }
 
+  /* --- Excepciones por fecha --- */
+
+  function renderExcepciones() {
+    const caja = horEl('hor-excepciones');
+    if (!caja) return;
+    if (!horExcepciones.length) {
+      caja.innerHTML = '<p class="admin-ayuda">No hay excepciones próximas.</p>';
+      return;
+    }
+    caja.innerHTML = horExcepciones.map(e => {
+      const horario = e.desde && e.hasta ? `${hhmm(e.desde)} a ${hhmm(e.hasta)}` : (e.modo === 'cerrado' ? '' : 'Horario del día');
+      return `<button type="button" class="hor-cierre" data-exc-id="${PM.escaparHtml(e.id)}">
+        <strong>${PM.escaparHtml(formatearFechaCierre(e.fecha))} · ${PM.escaparHtml(MODOS_EXCEPCION[e.modo] || e.modo)}</strong>
+        ${horario ? `<span>${PM.escaparHtml(horario)}</span>` : ''}
+        <small>${PM.escaparHtml(e.motivo || 'Sin motivo')}</small>
+      </button>`;
+    }).join('');
+  }
+
+  function sincronizarModoExcepcion() {
+    const cerrado = horEl('exc-modo').value === 'cerrado';
+    ['exc-desde', 'exc-hasta'].forEach(id => {
+      const campo = horEl(id);
+      campo.disabled = cerrado;
+      if (cerrado) campo.value = '';
+    });
+  }
+
+  function abrirFormExcepcion(exc) {
+    const modal = horEl('modal-excepcion');
+    if (!modal || !puedeVerHorarios()) return;
+    horBotonOrigen = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const editando = !!exc;
+    horEl('exc-id').value = editando ? exc.id : '';
+    const select = horEl('exc-sucursal');
+    select.innerHTML = (esDuenoHorarios() ? idsSucursalesHorario() : [horSucursal])
+      .map(id => `<option value="${PM.escaparHtml(id)}">${PM.escaparHtml(SUCURSALES_NOMBRES[id] || id)}</option>`).join('');
+    select.value = editando ? exc.sucursal_id : horSucursal;
+    select.disabled = editando || !esDuenoHorarios();
+    horEl('exc-fecha').value = editando ? String(exc.fecha).slice(0, 10) : '';
+    horEl('exc-modo').value = editando && MODOS_EXCEPCION[exc.modo] ? exc.modo : 'abierto';
+    horEl('exc-desde').value = editando && exc.desde ? hhmm(exc.desde) : '';
+    horEl('exc-hasta').value = editando && exc.hasta ? hhmm(exc.hasta) : '';
+    horEl('exc-motivo').value = editando ? (exc.motivo || '') : '';
+    horEl('exc-titulo').textContent = editando ? 'Editar excepción' : 'Nueva excepción';
+    horEl('btn-borrar-exc').hidden = !editando;
+    sincronizarModoExcepcion();
+    mostrarEstado(horEl('exc-estado'), '');
+    modal.hidden = false;
+    document.body.classList.add('admin-modal-abierto');
+    horEl('exc-fecha').focus({ preventScroll: true });
+  }
+
+  function cerrarFormExcepcion() {
+    const modal = horEl('modal-excepcion');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    document.body.classList.remove('admin-modal-abierto');
+    const origen = horBotonOrigen;
+    horBotonOrigen = null;
+    if (origen && origen.isConnected) origen.focus({ preventScroll: true });
+  }
+
+  async function guardarExcepcion(evento) {
+    evento.preventDefault();
+    if (!cliente || !puedeVerHorarios()) return;
+    const estado = horEl('exc-estado');
+    const fallo = mensaje => mostrarEstado(estado, mensaje, 'error');
+    const id = horEl('exc-id').value;
+    const fecha = horEl('exc-fecha').value;
+    const modo = horEl('exc-modo').value;
+    const desde = horEl('exc-desde').value;
+    const hasta = horEl('exc-hasta').value;
+    const motivo = horEl('exc-motivo').value.trim();
+    const sucursal = esDuenoHorarios() ? horEl('exc-sucursal').value : adminSucursalId;
+    if (!sucursal) return fallo('Elegí la sucursal.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return fallo('Elegí la fecha.');
+    if (!MODOS_EXCEPCION[modo]) return fallo('Elegí el modo.');
+    if (modo === 'cerrado' && (desde || hasta)) return fallo('"Cerrado" no lleva horario.');
+    if ((desde && !hasta) || (!desde && hasta)) return fallo('Completá "desde" y "hasta", o dejá los dos vacíos.');
+    if (desde && (minutosDeHora(desde) === null || minutosDeHora(hasta) === null)) return fallo('Horario inválido (HH:MM).');
+    if (motivo.length > 200) return fallo('El motivo no puede tener más de 200 caracteres.');
+    const datos = { sucursal_id: sucursal, fecha, modo, desde: desde || null, hasta: hasta || null, motivo: motivo || null };
+    const boton = horEl('btn-guardar-exc');
+    boton.disabled = true;
+    mostrarEstado(estado, 'Guardando...');
+    try {
+      const { error } = await (id
+        ? cliente.from('excepciones_dia').update(datos).eq('id', id)
+        : cliente.from('excepciones_dia').insert(datos));
+      if (error) {
+        if (String(error.code) === '23505') return fallo('Ya hay una excepción para esa sucursal y fecha. Editala desde la lista.');
+        throw error;
+      }
+      cerrarFormExcepcion();
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Excepción guardada.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo guardar la excepción:', error);
+      fallo(mensajeErrorHorarios(error));
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  async function borrarExcepcion() {
+    const id = horEl('exc-id').value;
+    if (!id || !cliente || !puedeVerHorarios()) return;
+    if (!window.confirm('¿Borrar esta excepción?')) return;
+    try {
+      const { error } = await cliente.from('excepciones_dia').delete().eq('id', id);
+      if (error) throw error;
+      cerrarFormExcepcion();
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Excepción borrada.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo borrar la excepción:', error);
+      mostrarEstado(horEl('exc-estado'), mensajeErrorHorarios(error), 'error');
+    }
+  }
+
   function conectarEventosHorarios() {
     const dias = horEl('hor-dias');
     if (dias) {
@@ -5988,6 +6161,32 @@
         if (c) abrirFormCierre(c);
       });
     }
+    const nuevaExc = horEl('btn-nueva-exc');
+    if (nuevaExc) nuevaExc.addEventListener('click', () => abrirFormExcepcion(null));
+    const listaExc = horEl('hor-excepciones');
+    if (listaExc) {
+      listaExc.addEventListener('click', ev => {
+        const b = ev.target.closest('[data-exc-id]');
+        if (!b) return;
+        const e = horExcepciones.find(x => String(x.id) === b.dataset.excId);
+        if (e) abrirFormExcepcion(e);
+      });
+    }
+    const formExc = horEl('form-excepcion');
+    if (formExc) formExc.addEventListener('submit', guardarExcepcion);
+    const modoExc = horEl('exc-modo');
+    if (modoExc) modoExc.addEventListener('change', sincronizarModoExcepcion);
+    const borrarExc = horEl('btn-borrar-exc');
+    if (borrarExc) borrarExc.addEventListener('click', borrarExcepcion);
+    ['btn-cerrar-exc', 'btn-cancelar-exc'].forEach(id => {
+      const b = horEl(id);
+      if (b) b.addEventListener('click', cerrarFormExcepcion);
+    });
+    const overlayExc = horEl('modal-excepcion');
+    if (overlayExc) overlayExc.addEventListener('mousedown', ev => { if (ev.target === overlayExc) cerrarFormExcepcion(); });
+    document.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape' && overlayExc && !overlayExc.hidden) cerrarFormExcepcion();
+    });
     const form = horEl('form-cierre');
     if (form) form.addEventListener('submit', guardarCierre);
     const borrar = horEl('btn-borrar-cierre');

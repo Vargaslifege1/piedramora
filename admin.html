@@ -650,6 +650,15 @@
             <div id="hor-cierres" class="hor-cierres"></div>
           </section>
 
+          <section class="admin-card hor-card hor-card-excepciones">
+            <div class="hor-card-head">
+              <h3>Excepciones por fecha</h3>
+              <button type="button" id="btn-nueva-exc" class="btn-primario">+ Nueva excepción</button>
+            </div>
+            <p class="admin-ayuda">Reemplazan el horario semanal de esa fecha. No anulan cierres especiales ni "Forzar cerrado". "Cerrado" solo suprime los turnos que empiezan ese día.</p>
+            <div id="hor-excepciones" class="hor-cierres"></div>
+          </section>
+
           <section class="admin-card hor-card hor-card-dias">
             <div class="hor-card-head">
               <h3>Horarios por día</h3>
@@ -662,6 +671,56 @@
       </section>
     </section>
   </main>
+
+  <div id="modal-excepcion" class="admin-modal-overlay admin-cupon-overlay" hidden>
+    <form id="form-excepcion" class="admin-modal admin-cupon-modal hor-modal" role="dialog" aria-modal="true" aria-labelledby="exc-titulo" novalidate>
+      <input type="hidden" id="exc-id">
+      <div class="admin-cupon-modal-head">
+        <h2 id="exc-titulo">Nueva excepción</h2>
+        <button type="button" id="btn-cerrar-exc" class="btn-icono" aria-label="Cerrar formulario">✕</button>
+      </div>
+      <div class="admin-cupon-modal-cuerpo">
+        <label class="admin-campo" id="exc-sucursal-wrap">
+          <span>Sucursal</span>
+          <select id="exc-sucursal"></select>
+        </label>
+        <label class="admin-campo">
+          <span>Fecha</span>
+          <input id="exc-fecha" type="date" required>
+        </label>
+        <label class="admin-campo">
+          <span>Modo</span>
+          <select id="exc-modo">
+            <option value="abierto">Abierto</option>
+            <option value="solo_delivery">Solo delivery</option>
+            <option value="solo_retiro">Solo retiro</option>
+            <option value="cerrado">Cerrado</option>
+          </select>
+        </label>
+        <label class="admin-campo">
+          <span>Desde (opcional)</span>
+          <input id="exc-desde" type="time">
+        </label>
+        <label class="admin-campo">
+          <span>Hasta (opcional)</span>
+          <input id="exc-hasta" type="time">
+        </label>
+        <p class="admin-ayuda hor-campo-ancho">Sin horario: se usa el turno semanal del día o 20:30 a 00:30.</p>
+        <label class="admin-campo hor-campo-ancho">
+          <span>Motivo (opcional)</span>
+          <input id="exc-motivo" type="text" maxlength="200" autocomplete="off" placeholder="Feriado, evento...">
+        </label>
+      </div>
+      <div class="admin-cupon-modal-pie">
+        <p id="exc-estado" class="admin-estado" aria-live="polite"></p>
+        <div class="admin-cupon-modal-botones">
+          <button type="button" id="btn-borrar-exc" class="btn-peligro" hidden>Borrar</button>
+          <button type="button" id="btn-cancelar-exc" class="btn-secundario">Cancelar</button>
+          <button type="submit" id="btn-guardar-exc" class="btn-primario">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
 
   <div id="modal-cierre" class="admin-modal-overlay admin-cupon-overlay" hidden>
     <form id="form-cierre" class="admin-modal admin-cupon-modal hor-modal" role="dialog" aria-modal="true" aria-labelledby="cierre-titulo" novalidate>

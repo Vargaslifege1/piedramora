@@ -3213,10 +3213,11 @@ p {
 }
 
 /* ===== Horarios, estado manual y cierres especiales ===== */
-.hor-vista .hor-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); margin-bottom: 12px; grid-template-areas: "estado" "dias" "cierres"; }
+.hor-vista .hor-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); margin-bottom: 12px; grid-template-areas: "estado" "dias" "excepciones" "cierres"; }
 .hor-card-estado { grid-area: estado; }
 .hor-card-dias { grid-area: dias; }
 .hor-card-cierres { grid-area: cierres; }
+.hor-card-excepciones { grid-area: excepciones; }
 .hor-vista .hor-card { margin-bottom: 0; min-width: 0; padding: 12px; }
 .hor-vista .hor-card h3 { margin: 0 0 8px; font-size: 1.05rem; }
 .hor-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -3250,10 +3251,13 @@ p {
 .hor-cierre:hover { border-color: var(--admin-dorado); }
 .hor-cierre span, .hor-cierre small { color: var(--admin-texto-suave); }
 .hor-cierre.pasado { opacity: 0.55; }
+.hor-switch { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; font-size: 0.82rem; color: var(--admin-texto-suave); cursor: pointer; }
+.hor-switch input { width: 18px; height: 18px; accent-color: var(--admin-rojo); margin: 0; }
+.hor-badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: var(--admin-dorado); border: 1px solid var(--admin-borde-fuerte); vertical-align: middle; }
 .hor-modal .hor-campo-ancho { grid-column: 1 / -1; }
 .admin-pedido-programado { display: inline-block; align-self: flex-start; margin: 2px 0; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; color: var(--admin-ambar); border: 1px solid rgba(255, 183, 3, 0.5); background: rgba(255, 183, 3, 0.1); }
 @media (min-width: 1024px) {
-  .hor-vista .hor-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-rows: auto 1fr; grid-template-areas: "estado dias" "cierres dias"; align-items: start; }
+  .hor-vista .hor-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-rows: auto 1fr; grid-template-areas: "estado dias" "excepciones dias" "cierres dias"; align-items: start; }
 }
 @media (min-width: 640px) {
   .hor-dia { grid-template-columns: 84px minmax(0, 1fr) auto; }
