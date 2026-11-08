@@ -4022,7 +4022,16 @@ function itemsPedidoDesdeRespuesta(pedido) {
 // Emojis del mensaje de WhatsApp: solo escapes unicode (nunca literales en el archivo).
 const EMOJI_WA = Object.freeze({
   saludo: '\u{1F44B}',
-  pedido: '\u{1F924}'
+  pedido: '\u{1F924}',
+  nombre: '\u{1F464}',
+  telefono: '\u{1F4DE}',
+  programado: '\u{23F0}',
+  retiro: '\u{1F3C3}',
+  delivery: '\u{1F6F5}',
+  direccion: '\u{1F4CD}',
+  referencia: '\u{1F4DD}',
+  ubicacion: '\u{1F5FA}\u{FE0F}',
+  gracias: '\u{1F64F}'
 });
 
 // Dato del cliente a una línea y sin los caracteres que rompen el formato de WhatsApp (* _ ~ `).
@@ -4072,40 +4081,51 @@ function construirMensajePedido({
   if (sinRegistrar) bloques.push('*PEDIDO SIN REGISTRAR*');
   bloques.push(`_\u{A1}Hola ${nombreNegocio}! ${E.saludo} Te paso el resumen de mi pedido_`);
 
-  // Datos del pedido (sin emoji)
+  // Datos del pedido: etiquetas en negrita sin emoji
   const pf = partesAR(fechaPedido instanceof Date && !Number.isNaN(fechaPedido.getTime()) ? fechaPedido : new Date());
   const datos = [];
   if (numeroOrden) datos.push(`*Pedido:* ${textoWhatsapp(numeroOrden)}`);
   datos.push(`*Sucursal:* ${textoWhatsapp(sucursal.nombre)}`);
   datos.push(`*Fecha:* ${pf.d}/${pf.m}/${String(pf.y).slice(-2)} - ${pf.hh}:${pf.mm} hs`);
-  datos.push(`*Nombre:* ${textoWhatsapp(nombre)}`);
-  datos.push(`*Tel\u{E9}fono:* ${PM.formatearTelefonoAR(telefono)}`);
   bloques.push(datos.join('\n'));
 
-  // Pago y entrega: juntos, uno abajo del otro
-  const entrega = [];
-  entrega.push(`*Forma de pago:* ${textoWhatsapp(pago.nombre)}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}`);
-  if (cuponAplicadoEnPedido) entrega.push(`*Cup\u{F3}n:* ${textoWhatsapp(cuponAplicadoEnPedido)}`);
-  else if (premioAplicadoEnPedido) entrega.push(`*Premio de fidelidad:* ${textoWhatsapp(premioAplicadoEnPedido)}`);
+  // Cliente (con emoji)
+  const cliente = [
+    `${E.nombre} ${textoWhatsapp(nombre)}`,
+    `${E.telefono} ${PM.formatearTelefonoAR(telefono)}`
+  ];
+  if (programadoPara) {
+    cliente.push(`${E.programado} *PEDIDO PROGRAMADO* para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}`);
+  }
+  bloques.push(cliente.join('\n'));
+
+  // Pago
+  const pagoTxt = [];
+  pagoTxt.push(`*Forma de pago:* ${textoWhatsapp(pago.nombre)}${porcentaje > 0 ? ` (${porcentaje}% de descuento)` : ''}`);
+  if (cuponAplicadoEnPedido) pagoTxt.push(`*Cup\u{F3}n:* ${textoWhatsapp(cuponAplicadoEnPedido)}`);
+  else if (premioAplicadoEnPedido) pagoTxt.push(`*Premio de fidelidad:* ${textoWhatsapp(premioAplicadoEnPedido)}`);
   const cfgPago = (CONFIG_APP.pagos && pago.tipo && CONFIG_APP.pagos[pago.tipo]) || {};
   if (pago.tipo === 'transferencia') {
-    if (cfgPago.alias) entrega.push(`*Alias:* ${textoWhatsapp(cfgPago.alias)}`);
-    if (cfgPago.cbu) entrega.push(`*CBU:* ${textoWhatsapp(cfgPago.cbu)}`);
-    if (cfgPago.titular) entrega.push(`*Titular:* ${textoWhatsapp(cfgPago.titular)}`);
+    if (cfgPago.alias) pagoTxt.push(`*Alias:* ${textoWhatsapp(cfgPago.alias)}`);
+    if (cfgPago.cbu) pagoTxt.push(`*CBU:* ${textoWhatsapp(cfgPago.cbu)}`);
+    if (cfgPago.titular) pagoTxt.push(`*Titular:* ${textoWhatsapp(cfgPago.titular)}`);
   }
-  if (programadoPara) {
-    entrega.push(`*PEDIDO PROGRAMADO para el ${diaMesAR(programadoPara)} a las ${horaAR(programadoPara)}.* Lo confirmamos cuando abramos.`);
-  }
+  bloques.push(pagoTxt.join('\n'));
+
+  // Entrega: una sola línea de modalidad (misma fuente que p_modalidad)
+  const entrega = [];
   if (esDelivery) {
-    entrega.push(`*Entrega:* Delivery`);
-    if (direccion) entrega.push(`*Direcci\u{F3}n:* ${textoWhatsapp(direccion)}`);
-    if (notas) entrega.push(`*Referencia:* ${textoWhatsapp(notas)}`);
-    if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) && lat !== null && lng !== null) {
-      entrega.push(`*Ubicaci\u{F3}n:* https://www.google.com/maps?q=${Number(lat)},${Number(lng)}`);
+    entrega.push(`${E.delivery} Delivery`);
+    if (direccion) entrega.push(`${E.direccion} ${textoWhatsapp(direccion)}`);
+    if (notas) entrega.push(`${E.referencia} ${textoWhatsapp(notas)}`);
+    const latN = lat === null || lat === undefined || lat === '' ? NaN : Number(lat);
+    const lngN = lng === null || lng === undefined || lng === '' ? NaN : Number(lng);
+    if (Number.isFinite(latN) && Number.isFinite(lngN)) {
+      entrega.push(`${E.ubicacion} https://www.google.com/maps?q=${latN},${lngN}`);
     }
   } else {
-    entrega.push(`*Entrega:* Retira personalmente (${textoWhatsapp(sucursal.nombre)})`);
-    if (notas) entrega.push(`*Notas:* ${textoWhatsapp(notas)}`);
+    entrega.push(`${E.retiro} Retira personalmente (${textoWhatsapp(sucursal.nombre)})`);
+    if (notas) entrega.push(`${E.referencia} ${textoWhatsapp(notas)}`);
   }
   bloques.push(entrega.join('\n'));
 
@@ -4125,7 +4145,7 @@ function construirMensajePedido({
     }
     (Array.isArray(item.adicionales) ? item.adicionales : []).forEach((adicional) => {
       if (adicional && adicional.nombre) {
-        lineas.push(`    - ${Number(adicional.cantidad) || 1}x ${textoWhatsapp(adicional.nombre)}`);
+        lineas.push(`    \u{2022} ${Number(adicional.cantidad) || 1}x ${textoWhatsapp(adicional.nombre)}`);
       }
     });
   });
@@ -4135,21 +4155,21 @@ function construirMensajePedido({
   });
 
   // Totales: solo el descuento que aplica
-  const totalesTxt = [`*Subtotal:* ${formatearPrecioAR(subtotal)}`];
+  const totalesTxt = [`Subtotal: ${formatearPrecioAR(subtotal)}`];
   if (descuento > 0) {
     const etiquetaDescuento = premioAplicadoEnPedido
       ? 'Descuento premio'
       : (cuponAplicadoEnPedido ? 'Descuento cup\u{F3}n' : 'Descuento medio de pago');
-    totalesTxt.push(`*${etiquetaDescuento}:* -${formatearPrecioAR(descuento)}`);
+    totalesTxt.push(`${etiquetaDescuento}: -${formatearPrecioAR(descuento)}`);
   }
-  if (envio > 0) totalesTxt.push(`*Costo de env\u{ED}o:* +${formatearPrecioAR(envio)}`);
-  totalesTxt.push(`*TOTAL:* ${formatearPrecioAR(total)}`);
+  if (envio > 0) totalesTxt.push(`Costo de env\u{ED}o: +${formatearPrecioAR(envio)}`);
+  totalesTxt.push(`*TOTAL:* *${formatearPrecioAR(total)}*`);
   bloques.push(totalesTxt.join('\n'));
 
   if (cuponNoAplicado) {
     bloques.push('_Cup\u{F3}n no aplicado: no se pudo validar sin registrar el pedido. Se envi\u{F3} sin ese descuento._');
   }
-  bloques.push(`_Espero tu respuesta para confirmar mi pedido_`);
+  bloques.push(`_Espero tu respuesta para confirmar mi pedido_ ${E.gracias}`);
   return bloques.join('\n\n');
 }
 
