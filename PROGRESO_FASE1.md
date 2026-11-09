@@ -36,6 +36,7 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 
 ## Últimos cambios
 
+- 2026-11-09: confirmaciones y avisos propios (solo UX): `confirmarAccion` en admin reemplaza todos los `window.confirm` (cupón con usos solo se pausa) y `alert` de main.js pasa a aviso propio. Sin cambios de SQL.
 - 2026-11-09: admin Horarios más claro y seguro (solo UX): título "Editando: <sucursal>", banner de modo forzado (ámbar/rojo) con "Volver a automático", turnos compactos con chips Retiro/Delivery, un único "Copiar <día> a todos los días" y barra sticky "Tenés cambios sin guardar" con aviso al cambiar de sucursal/pestaña/cerrar. Sin cambios de RPC, permisos ni reglas de guardado.
 - 2026-11-09: admin Clientes más claro (solo presentación): una barra con buscador + chips de segmento + "Solo acepta promos", iniciales, badge con punto, ticket promedio y WhatsApp siempre visible (deshabilitado si no aceptó promos). Sin cambios de RPC ni SQL.
 - 2026-11-09: limpieza (G): quitadas imágenes sin uso (`public/images/categorias/`, `assets/logo.png`, `assets/productos/PROMOS/2 cheese.jpg`) y backups del repo; PROGRESO reorganizado (historial en `docs/HISTORIAL.md`).

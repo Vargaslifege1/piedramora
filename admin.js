@@ -455,6 +455,93 @@
     el.aviso.textContent = texto;
   }
 
+  // Modal de confirmación propio (reemplaza window.confirm). Devuelve una promesa:
+  // true si confirma, false si cancela / Escape / click afuera.
+  // Si se pasa textoSecundario, devuelve 'secundario' al tocar ese botón.
+  let confirmacionAbierta = null;
+  function confirmarAccion({ titulo = 'Confirmar', mensaje = '', textoConfirmar = 'Aceptar', textoCancelar = 'Cancelar', peligro = false, soloAviso = false } = {}) {
+    if (confirmacionAbierta) confirmacionAbierta(false);
+    return new Promise(resolve => {
+      const origen = document.activeElement;
+      const fondo = document.createElement('div');
+      fondo.className = 'adm-confirm-fondo';
+      const tituloId = 'adm-confirm-titulo-' + Date.now();
+      const msgId = 'adm-confirm-msg-' + Date.now();
+      fondo.innerHTML = `
+        <div class="adm-confirm" role="dialog" aria-modal="true" aria-labelledby="${tituloId}" aria-describedby="${msgId}" tabindex="-1">
+          <h3 id="${tituloId}"></h3>
+          <p id="${msgId}"></p>
+          <div class="adm-confirm-acciones">
+            <button type="button" class="adm-confirm-btn" data-adm-cancelar></button>
+            <button type="button" class="adm-confirm-btn adm-confirm-btn--ok" data-adm-ok></button>
+          </div>
+        </div>`;
+      const dialogo = fondo.querySelector('.adm-confirm');
+      const btnCancelar = fondo.querySelector('[data-adm-cancelar]');
+      const btnOk = fondo.querySelector('[data-adm-ok]');
+      fondo.querySelector('h3').textContent = titulo;
+      fondo.querySelector('p').textContent = mensaje;
+      btnCancelar.textContent = textoCancelar;
+      btnOk.textContent = textoConfirmar;
+      if (peligro) btnOk.classList.add('adm-confirm-btn--peligro');
+      if (soloAviso) btnOk.hidden = true;
+
+      const cerrar = valor => {
+        if (!confirmacionAbierta) return;
+        confirmacionAbierta = null;
+        document.removeEventListener('keydown', teclas, true);
+        fondo.remove();
+        document.body.classList.remove('adm-confirm-abierto');
+        if (origen && origen.isConnected && typeof origen.focus === 'function') {
+          try { origen.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
+        }
+        resolve(valor);
+      };
+      const teclas = ev => {
+        if (ev.key === 'Escape') {
+          ev.preventDefault();
+          ev.stopPropagation();
+          cerrar(false);
+          return;
+        }
+        if (ev.key !== 'Tab') return;
+        const foco = [btnCancelar, btnOk].filter(b => !b.hidden);
+        const i = foco.indexOf(document.activeElement);
+        ev.preventDefault();
+        const sig = ev.shiftKey ? (i <= 0 ? foco.length - 1 : i - 1) : (i + 1) % foco.length;
+        foco[sig].focus();
+      };
+      confirmacionAbierta = cerrar;
+      btnCancelar.addEventListener('click', () => cerrar(false));
+      btnOk.addEventListener('click', () => cerrar(true));
+      fondo.addEventListener('mousedown', ev => { if (ev.target === fondo) cerrar(false); });
+      document.addEventListener('keydown', teclas, true);
+      document.body.classList.add('adm-confirm-abierto');
+      document.body.appendChild(fondo);
+      (soloAviso || peligro ? btnCancelar : btnOk).focus({ preventScroll: true });
+      if (!document.activeElement || !dialogo.contains(document.activeElement)) dialogo.focus();
+    });
+  }
+
+  // Aviso breve y no bloqueante (reemplaza alert).
+  function mostrarToast(texto, tipo = 'info') {
+    let cont = document.getElementById('adm-toasts');
+    if (!cont) {
+      cont = document.createElement('div');
+      cont.id = 'adm-toasts';
+      cont.className = 'adm-toasts';
+      cont.setAttribute('role', 'status');
+      cont.setAttribute('aria-live', 'polite');
+      document.body.appendChild(cont);
+    }
+    const t = document.createElement('div');
+    t.className = 'adm-toast';
+    t.dataset.tipo = tipo;
+    t.textContent = texto;
+    cont.appendChild(t);
+    setTimeout(() => t.remove(), 4500);
+  }
+
   function esAdminSucursal() {
     return adminRol === 'sucursal';
   }
@@ -1369,12 +1456,12 @@
     }
   }
 
-  function eliminarProducto(id) {
+  async function eliminarProducto(id) {
     const producto = buscarProducto(id);
     if (!producto) return;
 
     const nombre = producto.nombre || producto.id;
-    if (!window.confirm(`¿Eliminar "${nombre}" de la carta? El cambio se publica al guardar.`)) return;
+    if (!await confirmarAccion({ titulo: 'Eliminar producto', mensaje: `¿Eliminar "${nombre}" de la carta? El cambio se publica al guardar.`, textoConfirmar: 'Eliminar', peligro: true })) return;
 
     carta.productos = carta.productos.filter(prod => prod && prod.id !== id);
     productosExpandidos.delete(id);
@@ -2001,9 +2088,12 @@
     }
 
     if (publicacionLocalRiesgosa) {
-      const confirmado = window.confirm(
-        'No se pudo leer la carta desde Supabase. Si publicás ahora, podrías pisar cambios hechos en otro dispositivo. ¿Publicar igual la copia local?'
-      );
+      const confirmado = await confirmarAccion({
+        titulo: 'Publicar copia local',
+        mensaje: 'No se pudo leer la carta desde Supabase. Si publicás ahora, podrías pisar cambios hechos en otro dispositivo. ¿Publicar igual la copia local?',
+        textoConfirmar: 'Publicar igual',
+        peligro: true
+      });
       if (!confirmado) {
         mostrarEstado(el.estado, 'Publicación cancelada.', 'pendiente');
         return;
@@ -3031,7 +3121,7 @@
       return;
     }
     if (accion === 'cancelado') {
-      if (!window.confirm('¿Cancelar este pedido?')) return;
+      if (!await confirmarAccion({ titulo: 'Cancelar pedido', mensaje: '¿Cancelar este pedido?', textoConfirmar: 'Cancelar pedido', textoCancelar: 'Volver', peligro: true })) return;
       await actualizarEstadoPedido(id, 'cancelado', boton);
       return;
     }
@@ -4297,7 +4387,7 @@
       mostrarAvisoEnvios('No tenés permiso para hacer esto.', 'error');
       return;
     }
-    if (!window.confirm(`¿Borrar el tramo de ${tramo.desde_cuadras} a ${tramo.hasta_cuadras} cuadras de ${etiquetaSucursalEnvios(tramo.sucursal_id)}?`)) return;
+    if (!await confirmarAccion({ titulo: 'Borrar tramo', mensaje: `¿Borrar el tramo de ${tramo.desde_cuadras} a ${tramo.hasta_cuadras} cuadras de ${etiquetaSucursalEnvios(tramo.sucursal_id)}?`, textoConfirmar: 'Borrar', peligro: true })) return;
 
     try {
       const { error } = await cliente.from('tramos_envio').delete().eq('id', id);
@@ -4559,10 +4649,11 @@
       .join('');
   }
 
-  function cerrarFormCupon(forzar = false) {
+  async function cerrarFormCupon(forzar = false) {
     if (!el.formCupon || !el.modalCupon || el.modalCupon.hidden) return;
     if (forzar !== true && fotoFormCupon() !== cuponSnapshot
-        && !window.confirm('Hay cambios sin guardar. ¿Cerrar igual?')) return;
+        && !await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios sin guardar. ¿Cerrar igual?', textoConfirmar: 'Cerrar igual', textoCancelar: 'Seguir editando', peligro: true })) return;
+    if (el.modalCupon.hidden) return;
     el.modalCupon.hidden = true;
     document.body.classList.remove('admin-modal-abierto');
     mostrarEstado(el.cuponFormEstado, '');
@@ -4680,10 +4771,21 @@
     const cupon = cuponesLista.find(item => String(item.id) === String(id));
     if (!cupon || !cliente || !puedeVerCupones()) return;
     const usos = resumenUsosCupon(id).cantidad;
-    const aviso = usos > 0
-      ? `El cupón ${cupon.codigo} tiene ${usos} uso(s) registrado(s). Con historial no se puede borrar: mejor pausalo. ¿Intentar borrarlo igual?`
-      : `¿Borrar el cupón ${cupon.codigo}? No se puede deshacer.`;
-    if (!window.confirm(aviso)) return;
+    if (usos > 0) {
+      // Con historial no se ofrece borrar: solo pausar.
+      if (!cupon.activo) {
+        mostrarToast('Este cupón ya se usó: solo se puede pausar (ya está pausado).', 'info');
+        return;
+      }
+      const pausar = await confirmarAccion({
+        titulo: 'No se puede borrar',
+        mensaje: `Este cupón ya se usó: solo se puede pausar (${cupon.codigo}, ${usos} uso${usos === 1 ? '' : 's'}).`,
+        textoConfirmar: 'Pausar'
+      });
+      if (pausar) await alternarCupon(id);
+      return;
+    }
+    if (!await confirmarAccion({ titulo: 'Borrar cupón', mensaje: `¿Borrar el cupón ${cupon.codigo}? No se puede deshacer.`, textoConfirmar: 'Borrar', peligro: true })) return;
     try {
       const { error } = await cliente.from('cupones').delete().eq('id', id);
       if (error) throw error;
@@ -5008,7 +5110,7 @@
 
     const estabaActivo = !!(fidelidadConfigGuardada && fidelidadConfigGuardada.activo === true);
     if (estabaActivo && !config.activo
-      && !window.confirm('¿Desactivar el programa de fidelidad? Los clientes dejan de sumar y de ver premios nuevos mientras esté inactivo.')) {
+      && !await confirmarAccion({ titulo: 'Desactivar fidelidad', mensaje: '¿Desactivar el programa de fidelidad? Los clientes dejan de sumar y de ver premios nuevos mientras esté inactivo.', textoConfirmar: 'Desactivar', peligro: true })) {
       return;
     }
 
@@ -5919,7 +6021,7 @@
     if (!cliente || !puedeVerHorarios() || !horSucursal || !MODOS_HORARIO[modo]) return;
     if (modo === horModo) return;
     if (modo === 'forzar_cerrado'
-        && !window.confirm('¿Forzar cerrado? El local figurará cerrado y no recibirá pedidos hasta que vuelvas a automático.')) {
+        && !await confirmarAccion({ titulo: 'Forzar cerrado', mensaje: 'El local figurará cerrado y no recibirá pedidos hasta que vuelvas a automático.', textoConfirmar: 'Forzar cerrado', peligro: true })) {
       renderModoHorarios();
       return;
     }
@@ -6048,19 +6150,18 @@
   }
 
   // Copia los turnos y modalidades de un día a los 7 días (menú "⋯" de cada fila).
-  function copiarDiaATodos(dia) {
+  async function copiarDiaATodos(dia) {
     if (!(dia >= 0 && dia <= 6)) return;
-    if (!window.confirm(`Copiar ${DIAS_SEMANA[dia]} a todos los días.
-Esto reemplaza los horarios de los otros 6 días.`)) return;
+    if (!await confirmarAccion({ titulo: 'Copiar a todos los días', mensaje: `Copiar ${DIAS_SEMANA[dia]} a todos los días.\nEsto reemplaza los horarios de los otros 6 días.`, textoConfirmar: 'Copiar' })) return;
     const origen = (horTurnos[dia] || []).map(t => ({ ...t }));
     for (let d = 0; d < 7; d++) horTurnos[d] = origen.map(t => ({ ...t }));
     marcarHorSucio(true);
     renderDiasHorarios();
   }
 
-  function descartarCambiosHorarios() {
+  async function descartarCambiosHorarios() {
     if (!horSucio) return;
-    if (!window.confirm('¿Descartar los cambios de horarios sin guardar?')) return;
+    if (!await confirmarAccion({ titulo: 'Descartar cambios', mensaje: '¿Descartar los cambios de horarios sin guardar?', textoConfirmar: 'Descartar', textoCancelar: 'Seguir editando', peligro: true })) return;
     marcarHorSucio(false);
     cargarHorarios();
   }
@@ -6142,7 +6243,7 @@ Esto reemplaza los horarios de los otros 6 días.`)) return;
         });
       });
     }
-    if (!filas.length && !window.confirm('La sucursal no tiene ningún turno cargado y quedará siempre abierta. ¿Guardar igual?')) return;
+    if (!filas.length && !await confirmarAccion({ titulo: 'Sin turnos', mensaje: 'La sucursal no tiene ningún turno cargado y quedará siempre abierta. ¿Guardar igual?', textoConfirmar: 'Guardar igual' })) return;
 
     const boton = horEl('btn-hor-guardar');
     if (boton) boton.disabled = true;
@@ -6270,7 +6371,7 @@ Esto reemplaza los horarios de los otros 6 días.`)) return;
   async function borrarCierre() {
     const id = horEl('cierre-id').value;
     if (!id || !cliente || !esDuenoHorarios()) return;
-    if (!window.confirm('¿Borrar este cierre especial?')) return;
+    if (!await confirmarAccion({ titulo: 'Borrar cierre', mensaje: '¿Borrar este cierre especial?', textoConfirmar: 'Borrar', peligro: true })) return;
     try {
       const { error } = await cliente.from('cierres_especiales').delete().eq('id', id);
       if (error) throw error;
@@ -6391,7 +6492,7 @@ Esto reemplaza los horarios de los otros 6 días.`)) return;
   async function borrarExcepcion() {
     const id = horEl('exc-id').value;
     if (!id || !cliente || !puedeVerHorarios()) return;
-    if (!window.confirm('¿Borrar esta excepción?')) return;
+    if (!await confirmarAccion({ titulo: 'Borrar excepción', mensaje: '¿Borrar esta excepción?', textoConfirmar: 'Borrar', peligro: true })) return;
     try {
       const { error } = await cliente.from('excepciones_dia').delete().eq('id', id);
       if (error) throw error;
@@ -6423,8 +6524,8 @@ Esto reemplaza los horarios de los otros 6 días.`)) return;
     }
     const sel = horEl('hor-sucursal');
     if (sel) {
-      sel.addEventListener('change', () => {
-        if (horSucio && !window.confirm('Hay cambios de horarios sin guardar. ¿Cambiar de sucursal igual?')) {
+      sel.addEventListener('change', async () => {
+        if (horSucio && !await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios de horarios sin guardar. ¿Cambiar de sucursal igual?', textoConfirmar: 'Cambiar igual', textoCancelar: 'Quedarme', peligro: true })) {
           sel.value = horSucursal;
           return;
         }
@@ -6443,8 +6544,8 @@ Esto reemplaza los horarios de los otros 6 días.`)) return;
     if (descartar) descartar.addEventListener('click', descartarCambiosHorarios);
     const recargar = horEl('btn-hor-recargar');
     if (recargar) {
-      recargar.addEventListener('click', () => {
-        if (horSucio && !window.confirm('Hay cambios sin guardar. ¿Recargar igual?')) return;
+      recargar.addEventListener('click', async () => {
+        if (horSucio && !await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios sin guardar. ¿Recargar igual?', textoConfirmar: 'Recargar', textoCancelar: 'Seguir editando', peligro: true })) return;
         cargarHorarios();
       });
     }
@@ -6565,7 +6666,7 @@ Esto reemplaza los horarios de los otros 6 días.`)) return;
     if (el.btnExportar) el.btnExportar.addEventListener('click', exportarCarta);
     if (el.btnRecargar) {
       el.btnRecargar.addEventListener('click', async () => {
-        if (cambiosPendientes && !window.confirm('Hay cambios sin guardar. ¿Recargar de todos modos?')) return;
+        if (cambiosPendientes && !await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios sin guardar. ¿Recargar de todos modos?', textoConfirmar: 'Recargar', textoCancelar: 'Seguir editando', peligro: true })) return;
         await cargarCarta();
       });
     }
@@ -6573,10 +6674,10 @@ Esto reemplaza los horarios de los otros 6 días.`)) return;
     conectarEventosHorarios();
 
     el.tabsVista.forEach(tab => {
-      tab.addEventListener('click', () => {
+      tab.addEventListener('click', async () => {
         const destino = tab.dataset.adminVista;
         if (horSucio && destino !== 'horarios') {
-          if (!window.confirm('Hay cambios de horarios sin guardar. Si cambiás de pestaña se pierden. ¿Salir igual?')) return;
+          if (!await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios de horarios sin guardar. Si cambiás de pestaña se pierden. ¿Salir igual?', textoConfirmar: 'Salir igual', textoCancelar: 'Quedarme', peligro: true })) return;
           marcarHorSucio(false);
         }
         mostrarVistaAdmin(destino);

@@ -1818,6 +1818,24 @@ let confirmacionResolver = null;
 let confirmacionFocoAnterior = null;
 let confirmandoCierreCarta = false;
 
+// Aviso breve no bloqueante (reemplaza alert).
+function mostrarAvisoPM(texto) {
+  let cont = document.getElementById('pm-avisos');
+  if (!cont) {
+    cont = document.createElement('div');
+    cont.id = 'pm-avisos';
+    cont.className = 'pm-avisos';
+    cont.setAttribute('role', 'status');
+    cont.setAttribute('aria-live', 'polite');
+    document.body.appendChild(cont);
+  }
+  const t = document.createElement('div');
+  t.className = 'pm-aviso';
+  t.textContent = String(texto || '');
+  cont.appendChild(t);
+  setTimeout(() => t.remove(), 5000);
+}
+
 function confirmarAccion(opciones = {}) {
   const overlay = document.getElementById('confirmacion-overlay');
   const panel = document.getElementById('confirmacion-panel');
@@ -2100,7 +2118,7 @@ function modificarCantidadLinea(lineaId, cambio) {
   const index = CARRITO.findIndex(i => i.id === lineaId);
   if (index > -1) {
     if (cambio > 0 && CARRITO[index].noDisponible) {
-      alert('Este producto ya no está disponible.');
+      mostrarAvisoPM('Este producto ya no está disponible.');
       return;
     }
     CARRITO[index].cantidad += cambio;
@@ -2326,7 +2344,7 @@ function alHacerClicAgregar(productoId) {
   if (!prodObj) return;
 
   if (PM.productoEstaAgotado(prodObj)) {
-    alert('Este producto está agotado.');
+    mostrarAvisoPM('Este producto está agotado.');
     return;
   }
 
@@ -4303,18 +4321,18 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
   const sucursal = SUCURSALES[cartaActualSucursalId];
   if (!sucursal) return;
   if (!cartaPermitePedidos()) {
-    alert('Esta carta es solo para consulta. El pedido lo toma el personal del local.');
+    mostrarAvisoPM('Esta carta es solo para consulta. El pedido lo toma el personal del local.');
     return;
   }
   if (CARRITO.length === 0) {
-    alert('Tu pedido está vacío.');
+    mostrarAvisoPM('Tu pedido está vacío.');
     return;
   }
 
   recalcularPreciosCarrito();
   const itemsNoDisponibles = CARRITO.filter(item => item.noDisponible);
   if (itemsNoDisponibles.length > 0) {
-    alert('Hay productos o adicionales que ya no están disponibles. Revisá el pedido antes de continuar.');
+    mostrarAvisoPM('Hay productos o adicionales que ya no están disponibles. Revisá el pedido antes de continuar.');
     renderizarListaCheckout();
     return;
   }
@@ -4327,7 +4345,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
 
   const esMesa = cartaModalidadSeleccionada === 'mesa';
   if (esMesa) {
-    alert('Esta carta es solo para consulta. El pedido lo toma el personal del local.');
+    mostrarAvisoPM('Esta carta es solo para consulta. El pedido lo toma el personal del local.');
     return;
   }
 
@@ -4378,7 +4396,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
 
   const numeroWsp = String((sucursal.botones && sucursal.botones.whatsapp) || sucursal.whatsapp || '').replace(/\D/g, '');
   if (!numeroWsp) {
-    alert('La sucursal no tiene un número de WhatsApp configurado.');
+    mostrarAvisoPM('La sucursal no tiene un número de WhatsApp configurado.');
     return;
   }
 
@@ -4475,7 +4493,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           fidelidadProgramarConsultaPremios();
           borrarIdempotencyKeyPedido();
           cerrarVentanaPedido(ventanaWhatsapp);
-          alert(`${mensajePremio} Revisá tu pedido y volvé a enviarlo.`);
+          mostrarAvisoPM(`${mensajePremio} Revisá tu pedido y volvé a enviarlo.`);
           return;
         } else if (esRechazoPorModalidad(error)) {
           // Modalidad no aceptada: texto del servidor junto al selector, sin WhatsApp
@@ -4515,12 +4533,12 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
             : '';
 
           if (!productoAgotado) {
-            alert(`Un producto de tu pedido se agotó.${avisoRespaldo} Quitalo del carrito y volvé a intentar.`);
+            mostrarAvisoPM(`Un producto de tu pedido se agotó.${avisoRespaldo} Quitalo del carrito y volvé a intentar.`);
             cerrarVentanaPedido(ventanaWhatsapp);
             return;
           }
 
-          const continuar = window.confirm(`"${productoAgotado}" está agotado.${avisoRespaldo}\n\n¿Querés quitarlo del carrito y reintentar sin perder el resto del pedido?`);
+          const continuar = await confirmarAccion({ titulo: 'Producto agotado', mensaje: `"${productoAgotado}" está agotado.${avisoRespaldo}\n\n¿Querés quitarlo del carrito y reintentar sin perder el resto del pedido?`, textoAceptar: 'Quitar y reintentar', textoCancelar: 'Volver' }) === 'aceptar';
           if (!continuar) {
             cerrarVentanaPedido(ventanaWhatsapp);
             return;
@@ -4536,14 +4554,14 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
               actualizarVistaCarrito();
               renderizarListaCheckout();
             }
-            alert(`Quitamos "${productoAgotado}" del carrito. Revisá el pedido y volvé a enviarlo.`);
+            mostrarAvisoPM(`Quitamos "${productoAgotado}" del carrito. Revisá el pedido y volvé a enviarlo.`);
           } else {
-            alert(`No pudimos quitar "${productoAgotado}" automáticamente. Quitalo manualmente del carrito y volvé a intentar.`);
+            mostrarAvisoPM(`No pudimos quitar "${productoAgotado}" automáticamente. Quitalo manualmente del carrito y volvé a intentar.`);
           }
           return;
         } else if (esRechazoPedido(error)) {
           const mensajeRechazo = String(error.message || 'El servidor rechazó el pedido.');
-          const continuar = window.confirm(`No pudimos registrar tu pedido: ${mensajeRechazo}. ¿Querés enviarlo igual por WhatsApp?`);
+          const continuar = await confirmarAccion({ titulo: 'No pudimos registrar el pedido', mensaje: `${mensajeRechazo}. ¿Querés enviarlo igual por WhatsApp?`, textoAceptar: 'Enviar igual', textoCancelar: 'Volver' }) === 'aceptar';
           if (!continuar) {
             cerrarVentanaPedido(ventanaWhatsapp);
             return;
@@ -4558,7 +4576,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       const totalServidor = Number(pedidoGuardado.total) || 0;
       if (totalServidor !== totalMostrado) {
         // El pedido ya está guardado: solo avisamos y seguimos con WhatsApp (nunca dejarlo huérfano).
-        window.alert(`El costo final es ${formatearPrecioAR(totalServidor)}.`);
+        mostrarAvisoPM(`El costo final es ${formatearPrecioAR(totalServidor)}.`);
       }
     }
 

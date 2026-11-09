@@ -3469,3 +3469,20 @@ input[type="datetime-local"] ::-webkit-datetime-edit-fields-wrapper :focus { bac
 @media (prefers-reduced-motion: reduce) {
   .hor-menu-lista, .hor-barra { transition: none !important; animation: none !important; }
 }
+
+/* Confirmaciones y avisos propios (reemplazan confirm/alert) */
+body.adm-confirm-abierto { overflow: hidden; }
+.adm-confirm-fondo { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.72); }
+.adm-confirm { width: min(440px, 100%); background: var(--admin-panel-2); color: var(--admin-texto); border: 1px solid var(--admin-borde-fuerte); border-radius: var(--admin-radio); box-shadow: var(--admin-sombra); padding: 22px; outline: none; }
+.adm-confirm h3 { margin: 0 0 8px; font-size: 1.1rem; }
+.adm-confirm p { margin: 0 0 18px; color: var(--admin-texto-suave); line-height: 1.45; white-space: pre-line; }
+.adm-confirm-acciones { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.adm-confirm-btn { min-height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--admin-borde-fuerte); background: var(--admin-panel-3); color: var(--admin-texto); font: inherit; cursor: pointer; }
+.adm-confirm-btn:hover { border-color: var(--admin-dorado); }
+.adm-confirm-btn:focus-visible { outline: 2px solid var(--admin-dorado); outline-offset: 2px; }
+.adm-confirm-btn--ok { background: var(--admin-dorado); border-color: var(--admin-dorado); color: #111; font-weight: 600; }
+.adm-confirm-btn--peligro { background: var(--admin-rojo); border-color: var(--admin-rojo); color: #fff; }
+.adm-toasts { position: fixed; right: 16px; bottom: 16px; z-index: 10001; display: grid; gap: 8px; max-width: min(360px, calc(100vw - 32px)); }
+.adm-toast { background: var(--admin-panel-3); color: var(--admin-texto); border: 1px solid var(--admin-borde-fuerte); border-left: 4px solid var(--admin-dorado); border-radius: 10px; padding: 10px 14px; box-shadow: var(--admin-sombra); }
+.adm-toast[data-tipo="error"] { border-left-color: var(--admin-rojo-claro); }
+.adm-toast[data-tipo="ok"] { border-left-color: var(--admin-verde); }
