@@ -1,4 +1,8 @@
+# TODO(dominio): si cambia la URL del sitio, actualizar la línea Sitemap.
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /admin.js
+Disallow: /admin.css
 
 Sitemap: https://piedramora.com.ar/sitemap.xml
