@@ -97,8 +97,12 @@
             <h2>Categorías</h2>
             <p class="admin-ayuda">Hacé clic en una categoría para ver y editar únicamente sus productos.</p>
           </div>
-          <button type="button" id="btn-nueva-categoria" class="btn-primario">+ Nueva categoría</button>
+          <div class="admin-detalle-acciones">
+            <button type="button" id="btn-ordenar-categorias" class="btn-secundario" aria-pressed="false">Ordenar</button>
+            <button type="button" id="btn-nueva-categoria" class="btn-primario">+ Nueva categoría</button>
+          </div>
         </div>
+        <p id="orden-ayuda-categorias" class="admin-ayuda admin-orden-ayuda" hidden>Arrastrá el asa o usá las flechas para ordenar las categorías. Después tocá «Guardar y publicar».</p>
         <div id="lista-categorias" class="admin-categorias-grid"></div>
       </section>
 
@@ -119,6 +123,7 @@
             </div>
           </div>
           <div class="admin-detalle-acciones">
+            <button type="button" id="btn-ordenar-productos" class="btn-secundario" aria-pressed="false">Ordenar productos</button>
             <button type="button" id="btn-editar-categoria" class="btn-secundario">Editar categoría</button>
             <button type="button" id="btn-nuevo-producto" class="btn-primario">+ Agregar producto</button>
           </div>
@@ -129,6 +134,7 @@
           <button type="button" id="btn-vacio-nuevo-producto" class="btn-primario">+ Agregar el primero</button>
         </div>
 
+        <p id="orden-ayuda-productos" class="admin-ayuda admin-orden-ayuda" hidden>Arrastrá el asa o usá las flechas para ordenar los productos de esta categoría. Después tocá «Guardar y publicar».</p>
         <div id="lista-productos" class="admin-lista-productos"></div>
       </section>
 

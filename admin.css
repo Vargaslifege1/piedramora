@@ -3278,3 +3278,93 @@ p {
 @media (prefers-reduced-motion: reduce) {
   .hor-vista * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ===== Orden de categorías y productos (solo dueño) ===== */
+.admin-orden-ayuda {
+  margin: 0 0 12px;
+}
+
+.admin-categorias-grid.admin-orden-lista,
+.admin-lista-productos.admin-orden-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.admin-orden-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-borde);
+  border-radius: var(--admin-radio-chico);
+  background: var(--admin-panel-2);
+}
+
+.admin-orden-fila.arrastrando {
+  border-color: var(--admin-dorado);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  opacity: 0.92;
+}
+
+.admin-orden-asa {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--admin-borde-fuerte);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--admin-dorado);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none; /* el arrastre táctil no debe hacer scroll */
+  user-select: none;
+}
+
+.admin-orden-asa:active {
+  cursor: grabbing;
+}
+
+.admin-orden-texto {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-orden-texto strong,
+.admin-orden-texto small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-orden-texto small {
+  color: var(--admin-texto-suave);
+}
+
+.admin-orden-botones {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.admin-orden-botones .btn-icono {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--admin-borde-fuerte);
+  color: var(--admin-dorado);
+}
+
+.admin-orden-botones .btn-icono:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-orden-fila {
+    transition: none;
+  }
+}

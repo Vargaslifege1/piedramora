@@ -31,6 +31,10 @@
     estado: document.getElementById('admin-estado'),
     aviso: document.getElementById('admin-aviso'),
     btnNuevaCategoria: document.getElementById('btn-nueva-categoria'),
+    btnOrdenarCategorias: document.getElementById('btn-ordenar-categorias'),
+    btnOrdenarProductos: document.getElementById('btn-ordenar-productos'),
+    ordenAyudaCategorias: document.getElementById('orden-ayuda-categorias'),
+    ordenAyudaProductos: document.getElementById('orden-ayuda-productos'),
     listaCategorias: document.getElementById('lista-categorias'),
     sinCategoria: document.getElementById('admin-sin-categoria'),
     detalle: document.getElementById('admin-categoria-detalle'),
@@ -193,6 +197,7 @@
   let cliente = null;
   let carta = null;
   let categoriaActivaId = null;
+  let modoOrden = ''; // '' | 'categorias' | 'productos' (solo dueño)
   let cambiosPendientes = false;
   let publicacionLocalRiesgosa = false;
   let guardando = false;
@@ -802,11 +807,171 @@
     actualizarBotonGuardarCategoria();
   }
 
+  /* ===== Orden de la carta (solo dueño): el orden es el de los arreglos categorias/productos ===== */
+
+  function puedeOrdenarCarta() {
+    return !esAdminSucursal();
+  }
+
+  function htmlFilaOrden(id, nombre, detalle, indice, total) {
+    const n = escaparHtml(nombre);
+    return `<div class="admin-orden-fila" data-orden-id="${escaparHtml(id)}">
+      <button type="button" class="admin-orden-asa" data-orden-asa aria-label="Arrastrar ${n}" title="Arrastrar para mover"><span aria-hidden="true">⠇</span></button>
+      <span class="admin-orden-texto"><strong>${n}</strong>${detalle ? `<small>${escaparHtml(detalle)}</small>` : ''}</span>
+      <span class="admin-orden-botones">
+        <button type="button" class="btn-icono" data-orden-mover="-1" aria-label="Subir ${n}"${indice === 0 ? ' disabled' : ''}>▲</button>
+        <button type="button" class="btn-icono" data-orden-mover="1" aria-label="Bajar ${n}"${indice === total - 1 ? ' disabled' : ''}>▼</button>
+      </span>
+    </div>`;
+  }
+
+  function htmlListaOrdenCategorias() {
+    const cats = carta.categorias.filter(cat => cat && cat.id);
+    return cats.map((cat, i) => htmlFilaOrden(
+      cat.id, cat.nombre || cat.id,
+      `${productosDeCategoria(cat.id).length} producto(s)`, i, cats.length
+    )).join('');
+  }
+
+  function htmlListaOrdenProductos(productos) {
+    return productos.map((prod, i) => htmlFilaOrden(
+      prod.id, prod.nombre || prod.id, '', i, productos.length
+    )).join('');
+  }
+
+  function actualizarControlesOrden() {
+    const cats = modoOrden === 'categorias';
+    const prods = modoOrden === 'productos';
+    if (el.btnOrdenarCategorias) {
+      el.btnOrdenarCategorias.hidden = !puedeOrdenarCarta();
+      el.btnOrdenarCategorias.setAttribute('aria-pressed', cats ? 'true' : 'false');
+      el.btnOrdenarCategorias.textContent = cats ? 'Listo' : 'Ordenar';
+    }
+    if (el.btnOrdenarProductos) {
+      el.btnOrdenarProductos.hidden = !puedeOrdenarCarta();
+      el.btnOrdenarProductos.setAttribute('aria-pressed', prods ? 'true' : 'false');
+      el.btnOrdenarProductos.textContent = prods ? 'Listo' : 'Ordenar productos';
+    }
+    if (el.ordenAyudaCategorias) el.ordenAyudaCategorias.hidden = !cats;
+    if (el.ordenAyudaProductos) el.ordenAyudaProductos.hidden = !prods;
+    if (el.listaCategorias) el.listaCategorias.classList.toggle('admin-orden-lista', cats);
+    if (el.listaProductos) el.listaProductos.classList.toggle('admin-orden-lista', prods);
+  }
+
+  function alternarModoOrden(modo) {
+    if (!puedeOrdenarCarta()) return;
+    modoOrden = modoOrden === modo ? '' : modo;
+    if (modoOrden === 'productos') productosExpandidos.clear();
+    renderizarTodo();
+  }
+
+  // Aplica un nuevo orden de ids. Categorías: reordena carta.categorias. Productos: los productos
+  // de la categoría ocupan, en el nuevo orden, las mismas posiciones que tenían en carta.productos.
+  function aplicarOrden(tipo, ids) {
+    if (!carta || !puedeOrdenarCarta()) return false;
+    if (tipo === 'categorias') {
+      const porId = new Map(carta.categorias.filter(c => c && c.id).map(c => [c.id, c]));
+      const nuevas = ids.map(id => porId.get(id)).filter(Boolean);
+      if (nuevas.length !== porId.size) return false;
+      const igual = nuevas.every((c, i) => c === carta.categorias.filter(x => x && x.id)[i]);
+      if (igual) return false;
+      carta.categorias = nuevas.concat(carta.categorias.filter(c => !c || !c.id));
+    } else {
+      const catId = categoriaActivaId;
+      const posiciones = [];
+      carta.productos.forEach((p, i) => { if (p && p.categoria === catId) posiciones.push(i); });
+      const porId = new Map(posiciones.map(i => [carta.productos[i].id, carta.productos[i]]));
+      const nuevos = ids.map(id => porId.get(id)).filter(Boolean);
+      if (nuevos.length !== posiciones.length) return false;
+      if (posiciones.every((pos, k) => carta.productos[pos] === nuevos[k])) return false;
+      posiciones.forEach((pos, k) => { carta.productos[pos] = nuevos[k]; });
+    }
+    marcarCambios();
+    return true;
+  }
+
+  function idsEnOrden(contenedor) {
+    return [...contenedor.querySelectorAll('[data-orden-id]')].map(fila => fila.dataset.ordenId);
+  }
+
+  function tipoOrdenDe(contenedor) {
+    return contenedor === el.listaCategorias ? 'categorias' : 'productos';
+  }
+
+  function manejarMoverOrden(evento, contenedor) {
+    const boton = evento.target.closest('[data-orden-mover]');
+    if (!boton || boton.disabled) return;
+    const fila = boton.closest('[data-orden-id]');
+    const ids = idsEnOrden(contenedor);
+    const i = ids.indexOf(fila.dataset.ordenId);
+    const j = i + Number(boton.dataset.ordenMover);
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    const idMovido = fila.dataset.ordenId;
+    const dir = boton.dataset.ordenMover;
+    if (aplicarOrden(tipoOrdenDe(contenedor), ids)) {
+      renderizarTodo();
+      // Devuelve el foco al mismo botón de la fila movida (o al opuesto si quedó deshabilitado).
+      const nueva = [...contenedor.querySelectorAll('[data-orden-id]')].find(f => f.dataset.ordenId === idMovido);
+      if (nueva) {
+        const objetivo = nueva.querySelector(`[data-orden-mover="${dir}"]`);
+        const alterno = nueva.querySelector(`[data-orden-mover="${-Number(dir)}"]`);
+        const aFocalizar = objetivo && !objetivo.disabled ? objetivo : alterno;
+        if (aFocalizar) aFocalizar.focus();
+      }
+    }
+  }
+
+  // Arrastre con pointer events (mouse y táctil): se mueve la fila en el DOM y al soltar se persiste.
+  function iniciarArrastreOrden(evento, contenedor) {
+    const asa = evento.target.closest('[data-orden-asa]');
+    if (!asa || (evento.pointerType === 'mouse' && evento.button !== 0)) return;
+    const fila = asa.closest('[data-orden-id]');
+    if (!fila) return;
+    evento.preventDefault();
+    const ordenInicial = idsEnOrden(contenedor).join('|');
+    fila.classList.add('arrastrando');
+    try { asa.setPointerCapture(evento.pointerId); } catch (e) { /* sin captura */ }
+
+    const mover = (ev) => {
+      const y = ev.clientY;
+      // Autoscroll cerca de los bordes de la ventana.
+      if (y < 70) window.scrollBy(0, -14);
+      else if (y > window.innerHeight - 70) window.scrollBy(0, 14);
+      const filas = [...contenedor.querySelectorAll('[data-orden-id]')].filter(f => f !== fila);
+      let antes = null;
+      for (const f of filas) {
+        const r = f.getBoundingClientRect();
+        if (y < r.top + r.height / 2) { antes = f; break; }
+      }
+      if (antes) { if (fila.nextElementSibling !== antes) contenedor.insertBefore(fila, antes); }
+      else if (contenedor.lastElementChild !== fila) contenedor.appendChild(fila);
+    };
+    const terminar = () => {
+      asa.removeEventListener('pointermove', mover);
+      asa.removeEventListener('pointerup', terminar);
+      asa.removeEventListener('pointercancel', terminar);
+      fila.classList.remove('arrastrando');
+      const ids = idsEnOrden(contenedor);
+      if (ids.join('|') !== ordenInicial) aplicarOrden(tipoOrdenDe(contenedor), ids);
+      renderizarTodo();
+    };
+    asa.addEventListener('pointermove', mover);
+    asa.addEventListener('pointerup', terminar);
+    asa.addEventListener('pointercancel', terminar);
+  }
+
   function renderizarCategorias() {
     if (!el.listaCategorias || !carta) return;
+    actualizarControlesOrden();
 
     if (!carta.categorias.length) {
       el.listaCategorias.innerHTML = '<p class="admin-vacio">Todavía no hay categorías. Creá la primera para empezar.</p>';
+      return;
+    }
+
+    if (modoOrden === 'categorias') {
+      el.listaCategorias.innerHTML = htmlListaOrdenCategorias();
       return;
     }
 
@@ -837,6 +1002,7 @@
     if (!categoriaValida(id)) return;
     if (categoriaActivaId !== id) {
       categoriaActivaId = id;
+      if (modoOrden === 'productos') modoOrden = '';
       productosExpandidos.clear();
       cerrarFormularioProducto();
     }
@@ -887,6 +1053,11 @@
     }
 
     if (el.categoriaVacia) el.categoriaVacia.hidden = true;
+
+    if (modoOrden === 'productos') {
+      el.listaProductos.innerHTML = htmlListaOrdenProductos(productos);
+      return;
+    }
 
     el.listaProductos.innerHTML = productos.map(producto => {
       const id = producto.id;
@@ -6475,6 +6646,12 @@
     }
 
     if (el.btnNuevaCategoria) el.btnNuevaCategoria.addEventListener('click', () => abrirModalCategoria('crear'));
+    if (el.btnOrdenarCategorias) el.btnOrdenarCategorias.addEventListener('click', () => alternarModoOrden('categorias'));
+    if (el.btnOrdenarProductos) el.btnOrdenarProductos.addEventListener('click', () => alternarModoOrden('productos'));
+    [el.listaCategorias, el.listaProductos].forEach(contenedor => {
+      if (!contenedor) return;
+      contenedor.addEventListener('pointerdown', (evento) => iniciarArrastreOrden(evento, contenedor));
+    });
     if (el.btnEditarCategoria) {
       el.btnEditarCategoria.addEventListener('click', () => {
         if (categoriaActivaId) abrirModalCategoria('editar', categoriaActivaId);
@@ -6527,6 +6704,10 @@
 
     if (el.listaCategorias) {
       el.listaCategorias.addEventListener('click', (evento) => {
+        if (modoOrden === 'categorias') {
+          manejarMoverOrden(evento, el.listaCategorias);
+          return;
+        }
         const boton = evento.target.closest('[data-accion]');
         if (!boton) return;
         const id = boton.dataset.id;
@@ -6564,6 +6745,10 @@
       });
 
       el.listaProductos.addEventListener('click', (evento) => {
+        if (modoOrden === 'productos') {
+          manejarMoverOrden(evento, el.listaProductos);
+          return;
+        }
         const sw = evento.target.closest('[data-agotado-carta]');
         if (sw) {
           if (!sw.disabled) {
