@@ -2956,7 +2956,7 @@ function actualizarAvisoPrivacidad() {
   if (!span) return;
   const numero = obtenerWhatsappSucursalActual();
   span.textContent = numero
-    ? `escribiéndonos por WhatsApp al ${numero}`
+    ? `escribiéndonos por WhatsApp al ${PM.formatearTelefonoAR(numero)}`
     : 'escribiéndonos por WhatsApp';
 }
 
