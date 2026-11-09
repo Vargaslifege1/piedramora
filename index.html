@@ -13,7 +13,13 @@
   <meta property="og:title" content="Piedra Mora | Pizzas, Lomitos y Hamburguesas en Catamarca">
   <meta property="og:description"
     content="Pedí pizzas, hamburguesas, lomitos y milanesas online en Piedra Mora. Elegí tu sucursal y hacé tu pedido en segundos.">
-  <meta property="og:image" content="assets/fachada-local.webp">
+  <!-- TODO(dominio): og:url, canonical, og:image, twitter:image, JSON-LD, robots.txt y sitemap.xml usan https://piedramora.com.ar/.
+       Si el dominio final es otro (o GitHub Pages en /piedramora/), reemplazar ese prefijo en esos 6 lugares.
+       TODO(imagen): no hay una imagen 1200x630; se usa la fachada (1086x1448). Ideal: crear assets/og-1200x630.jpg y apuntar acá. -->
+  <meta property="og:image" content="https://piedramora.com.ar/assets/fachada-local.webp">
+  <meta property="og:image:width" content="1086">
+  <meta property="og:image:height" content="1448">
+  <meta property="og:image:alt" content="Fachada del local Piedra Mora">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Piedra Mora" data-marca-meta="">
   <meta property="og:locale" content="es_AR">
@@ -30,15 +36,13 @@
   <meta name="keywords"
     content="Piedra Mora, pizzas, hamburguesas, lomitos, milanesas, comida, Catamarca, delivery, PedidosYa, Pedix">
 
-  <meta name="theme-color" content="#0a0a0a">
-
   <link rel="canonical" href="https://piedramora.com.ar/">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Piedra Mora">
   <meta name="twitter:description" content="Comida con identidad en Catamarca. Pedí online en segundos.">
-  <meta name="twitter:image" content="assets/fachada-local.webp">
+  <meta name="twitter:image" content="https://piedramora.com.ar/assets/fachada-local.webp">
 
   <!-- Robots -->
   <meta name="robots" content="index, follow">
@@ -228,7 +232,7 @@
   </section>
 
   <footer class="footer">
-    <img src="assets/logo.webp" alt="Piedra Mora" class="footer-logo" data-marca-alt="">
+    <img src="assets/logo.webp" alt="Piedra Mora" class="footer-logo" data-marca-alt="" loading="lazy" decoding="async">
 
     <div class="footer-redes">
       <a href="https://www.instagram.com/piedramora.cta/" target="_blank" rel="noopener noreferrer"
@@ -246,7 +250,7 @@
     <div class="carta-panel-inner">
       <header class="carta-header">
         <div class="carta-header-brand">
-          <img src="assets/logo.webp" alt="Piedra Mora" class="carta-header-logo" data-marca-alt="">
+          <img src="assets/logo.webp" alt="Piedra Mora" class="carta-header-logo" data-marca-alt="" loading="lazy" decoding="async">
           <div class="carta-header-text">
             <div id="carta-titulo-marca" class="carta-titulo-marca" data-marca data-marca-mayusculas>PIEDRA MORA</div>
             <div id="carta-titulo-sucursal" class="carta-titulo-sucursal-nombre"></div>

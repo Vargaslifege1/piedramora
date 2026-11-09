@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
+<!-- TODO(dominio): reemplazar https://piedramora.com.ar/ por la URL final (ej. https://usuario.github.io/piedramora/). -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
 <url>
 <loc>https://piedramora.com.ar/</loc>
