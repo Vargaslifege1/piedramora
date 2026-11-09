@@ -1,0 +1,21 @@
+# Cabeceras para Netlify / Cloudflare Pages (GitHub Pages las ignora).
+# Sin CSP a propósito: el sitio usa scripts inline (GA/JSON-LD), Leaflet (unpkg),
+# GTM, Google Fonts, Supabase y Nominatim; una CSP mal armada rompería checkout o mapas.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Permissions-Policy: camera=(), microphone=(), payment=()
+
+# Imágenes versionadas por nombre: caché largo.
+/assets/*
+  Cache-Control: public, max-age=2592000
+
+# Datos: siempre revalidar. HTML/JS/CSS quedan con el caché por defecto del hosting
+# (Netlify/Cloudflare ya revalidan); estos archivos no llevan hash en el nombre.
+/data/*
+  Cache-Control: no-cache
+
+/admin.html
+  X-Robots-Tag: noindex, nofollow

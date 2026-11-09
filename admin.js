@@ -6,6 +6,9 @@
   const BUCKET_IMAGENES = 'carta-imagenes';
   const TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024;
   const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
+  const CLAVE_PREF_SONIDO = 'piedraMoraAdminSonido';
+  const CLAVE_PREF_VOLUMEN = 'piedraMoraAdminVolumen';
+  const INTERVALO_ALERTA_PEDIDOS = 8000;
   let SUCURSALES_POR_DEFECTO = ['maestro-quiroga', 'intendente-lascano'];
   let SUCURSALES_NOMBRES = {};
 
@@ -28,6 +31,10 @@
     estado: document.getElementById('admin-estado'),
     aviso: document.getElementById('admin-aviso'),
     btnNuevaCategoria: document.getElementById('btn-nueva-categoria'),
+    btnOrdenarCategorias: document.getElementById('btn-ordenar-categorias'),
+    btnOrdenarProductos: document.getElementById('btn-ordenar-productos'),
+    ordenAyudaCategorias: document.getElementById('orden-ayuda-categorias'),
+    ordenAyudaProductos: document.getElementById('orden-ayuda-productos'),
     listaCategorias: document.getElementById('lista-categorias'),
     sinCategoria: document.getElementById('admin-sin-categoria'),
     detalle: document.getElementById('admin-categoria-detalle'),
@@ -79,6 +86,50 @@
     vistaCarta: document.getElementById('admin-vista-carta'),
     vistaPedidos: document.getElementById('admin-vista-pedidos'),
     vistaEnvios: document.getElementById('admin-vista-envios'),
+    vistaFidelidad: document.getElementById('admin-vista-fidelidad'),
+    btnFidelidadRecargar: document.getElementById('btn-fidelidad-recargar'),
+    fidelidadEstado: document.getElementById('fidelidad-estado'),
+    fidelidadAviso: document.getElementById('fidelidad-aviso'),
+    formFidelidad: document.getElementById('form-fidelidad'),
+    fidelidadActivo: document.getElementById('fidelidad-activo'),
+    fidelidadPedidoMinimo: document.getElementById('fidelidad-pedido-minimo'),
+    fidelidadCiclo: document.getElementById('fidelidad-ciclo'),
+    fidelidadNiveles: document.getElementById('fidelidad-niveles'),
+    btnFidelidadAgregarNivel: document.getElementById('btn-fidelidad-agregar-nivel'),
+    fidelidadFormEstado: document.getElementById('fidelidad-form-estado'),
+    btnGuardarFidelidad: document.getElementById('btn-guardar-fidelidad'),
+    btnGuardarFidelidadTop: document.getElementById('btn-guardar-fidelidad-top'),
+    fidelidadStats: document.getElementById('fidelidad-stats'),
+    fidelidadStatsEstado: document.getElementById('fidelidad-stats-estado'),
+    vistaCupones: document.getElementById('admin-vista-cupones'),
+    btnNuevoCupon: document.getElementById('btn-nuevo-cupon'),
+    btnCuponesRecargar: document.getElementById('btn-cupones-recargar'),
+    cuponesEstado: document.getElementById('cupones-estado'),
+    cuponesAviso: document.getElementById('cupones-aviso'),
+    cuponesLista: document.getElementById('cupones-lista'),
+    modalCupon: document.getElementById('modal-cupon'),
+    formCupon: document.getElementById('form-cupon'),
+    cuponId: document.getElementById('cupon-id'),
+    cuponCodigo: document.getElementById('cupon-codigo'),
+    cuponTipo: document.getElementById('cupon-tipo'),
+    cuponValor: document.getElementById('cupon-valor'),
+    cuponValorEtiqueta: document.getElementById('cupon-valor-etiqueta'),
+    cuponCompraMinima: document.getElementById('cupon-compra-minima'),
+    cuponFechaInicio: document.getElementById('cupon-fecha-inicio'),
+    cuponFechaVencimiento: document.getElementById('cupon-fecha-vencimiento'),
+    cuponUsosTotal: document.getElementById('cupon-usos-total'),
+    cuponUsosCliente: document.getElementById('cupon-usos-cliente'),
+    cuponSucursales: document.getElementById('cupon-sucursales'),
+    cuponModalidades: document.getElementById('cupon-modalidades'),
+    cuponActivo: document.getElementById('cupon-activo'),
+    cuponPrimeraCompra: document.getElementById('cupon-primera-compra'),
+    cuponAcumulable: document.getElementById('cupon-acumulable'),
+    cuponNotaUsos: document.getElementById('cupon-nota-usos'),
+    cuponFormEstado: document.getElementById('cupon-form-estado'),
+    btnGuardarCupon: document.getElementById('btn-guardar-cupon'),
+    btnCancelarCupon: document.getElementById('btn-cancelar-cupon'),
+    btnCerrarCupon: document.getElementById('btn-cerrar-cupon'),
+    cuponFormTitulo: document.getElementById('cupon-form-titulo'),
     enviosAyuda: document.getElementById('envios-ayuda'),
     btnEnviosRecargar: document.getElementById('btn-envios-recargar'),
     enviosEstado: document.getElementById('envios-estado'),
@@ -104,15 +155,40 @@
     btnCancelarTramo: document.getElementById('btn-cancelar-tramo'),
     tramosEstado: document.getElementById('tramos-estado'),
     tramosLista: document.getElementById('tramos-lista'),
+    tramosMetrosReferencia: document.getElementById('tramos-metros-referencia'),
     pedidosBadge: document.getElementById('pedidos-badge'),
     btnPedidosActivarSonido: document.getElementById('btn-pedidos-activar-sonido'),
+    pedidosVolumen: document.getElementById('pedidos-volumen'),
+    pedidosSonidoEstado: document.getElementById('pedidos-sonido-estado'),
     btnPedidosActualizar: document.getElementById('btn-pedidos-actualizar'),
     pedidosEstado: document.getElementById('pedidos-estado'),
     pedidosAviso: document.getElementById('pedidos-aviso'),
-    pedidosFiltroEstado: document.getElementById('pedidos-filtro-estado'),
+    agotadosEditando: document.getElementById('agotados-editando-nombre'),
+    vistaDisponibilidad: document.getElementById('admin-vista-disponibilidad'),
+    agotadosSucursalCampo: document.getElementById('agotados-sucursal-campo'),
+    agotadosSucursal: document.getElementById('agotados-sucursal'),
+    agotadosEstado: document.getElementById('agotados-estado'),
+    agotadosAviso: document.getElementById('agotados-aviso'),
+    agotadosLista: document.getElementById('agotados-lista'),
+    agotadosResumen: document.getElementById('agotados-resumen'),
+    agotadosFiltroEstado: document.getElementById('agotados-filtro-estado'),
+    agotadosBuscar: document.getElementById('agotados-buscar'),
+    agotadosCategoria: document.getElementById('agotados-categoria'),
+    pedidosFiltroPeriodo: document.getElementById('pedidos-filtro-periodo'),
+    pedidosPeriodoEtiqueta: document.getElementById('pedidos-periodo-etiqueta'),
+    btnPedidosAnterior: document.getElementById('btn-pedidos-anterior'),
+    btnPedidosSiguiente: document.getElementById('btn-pedidos-siguiente'),
+    pedidosRango: document.getElementById('pedidos-rango'),
+    pedidosFiltroDesde: document.getElementById('pedidos-filtro-desde'),
+    pedidosFiltroHasta: document.getElementById('pedidos-filtro-hasta'),
     pedidosFiltroSucursal: document.getElementById('pedidos-filtro-sucursal'),
-    pedidosFiltroFecha: document.getElementById('pedidos-filtro-fecha'),
+    pedidosVistaBtns: document.querySelectorAll('[data-pedidos-vista]'),
+    pedidosModalidadBtns: document.querySelectorAll('[data-pedidos-modalidad]'),
+    btnPedidosExportar: document.getElementById('btn-pedidos-exportar'),
+    pedidosContenedor: document.getElementById('pedidos-contenedor'),
+    pedidosTablero: document.getElementById('pedidos-tablero'),
     pedidosLista: document.getElementById('pedidos-lista'),
+    pedidoTicket: document.getElementById('pedido-ticket'),
     modalPedido: document.getElementById('modal-pedido'),
     modalPedidoTitulo: document.getElementById('modal-pedido-titulo'),
     btnCerrarModalPedido: document.getElementById('btn-cerrar-modal-pedido'),
@@ -123,6 +199,7 @@
   let cliente = null;
   let carta = null;
   let categoriaActivaId = null;
+  let modoOrden = ''; // '' | 'categorias' | 'productos' (solo dueño)
   let cambiosPendientes = false;
   let publicacionLocalRiesgosa = false;
   let guardando = false;
@@ -131,16 +208,52 @@
   const previewsTemporales = new Set();
   const tokensUploadProducto = new Map();
 
+  let adminRol = 'dueno';
+  let adminSucursalId = null;
+  let adminRolError = false;
+
   let pedidos = [];
   let pedidosCargados = false;
   let pedidosCargando = false;
   let pedidoAbiertoId = null;
   let pedidosCanal = null;
   let pedidosTimer = null;
-  let pedidosSonidoActivo = false;
+  let pedidosSonidoActivo = true;
+  const VENTANA_PROGRAMADOS_MS = 3 * 60 * 60 * 1000;
+  let pedidosVolumen = 0.7;
+  let pedidosAlertaTimer = null;
+  let pedidosTituloTimer = null;
+  let pedidosTituloAlternado = false;
+  let pedidosTituloOriginal = document.title;
   let audioContexto = null;
+  let audioDesbloqueado = false;
+  let pedidosVista = 'tablero';
+  let pedidosModalidad = '';
+  let pedidosPeriodo = 'dia';
+  let pedidosFechaDia = '';
+  let pedidosSoportaPagos = true;
+
+  let agotadosCargados = false;
+  let agotadosCargando = false;
+  // Fuente única en memoria: sucursal_id -> Set(producto_id). La usan Pedidos y la carta.
+  let agotadosPorSucursal = new Map();
+  let agotadosFiltroEstado = 'no-disponibles';
+  const agotadosSaliendo = new Set();
+  let agotadosAvisoTimer = null;
+  const agotadosGuardando = new Set();
+  let agotadosCanal = null;
+  let agotadosRealtimeTimer = null;
 
   let enviosCargados = false;
+  let cuponesLista = [];
+  let cuponesUsos = [];
+  let cuponesCargados = false;
+  let cuponesCargando = false;
+  let cuponBotonOrigen = null;
+  let cuponSnapshot = '';
+  let fidelidadCargada = false;
+  let fidelidadCargando = false;
+  let fidelidadConfigGuardada = null;
   let enviosCargando = false;
   let tramosEnvios = [];
   let zonasNormales = [];
@@ -344,6 +457,128 @@
     el.aviso.textContent = texto;
   }
 
+  // Modal de confirmación propio (reemplaza window.confirm). Devuelve una promesa:
+  // true si confirma, false si cancela / Escape / click afuera.
+  // Si se pasa textoSecundario, devuelve 'secundario' al tocar ese botón.
+  let confirmacionAbierta = null;
+  function confirmarAccion({ titulo = 'Confirmar', mensaje = '', textoConfirmar = 'Aceptar', textoCancelar = 'Cancelar', peligro = false, soloAviso = false } = {}) {
+    if (confirmacionAbierta) confirmacionAbierta(false);
+    return new Promise(resolve => {
+      const origen = document.activeElement;
+      const fondo = document.createElement('div');
+      fondo.className = 'adm-confirm-fondo';
+      const tituloId = 'adm-confirm-titulo-' + Date.now();
+      const msgId = 'adm-confirm-msg-' + Date.now();
+      fondo.innerHTML = `
+        <div class="adm-confirm" role="dialog" aria-modal="true" aria-labelledby="${tituloId}" aria-describedby="${msgId}" tabindex="-1">
+          <h3 id="${tituloId}"></h3>
+          <p id="${msgId}"></p>
+          <div class="adm-confirm-acciones">
+            <button type="button" class="adm-confirm-btn" data-adm-cancelar></button>
+            <button type="button" class="adm-confirm-btn adm-confirm-btn--ok" data-adm-ok></button>
+          </div>
+        </div>`;
+      const dialogo = fondo.querySelector('.adm-confirm');
+      const btnCancelar = fondo.querySelector('[data-adm-cancelar]');
+      const btnOk = fondo.querySelector('[data-adm-ok]');
+      fondo.querySelector('h3').textContent = titulo;
+      fondo.querySelector('p').textContent = mensaje;
+      btnCancelar.textContent = textoCancelar;
+      btnOk.textContent = textoConfirmar;
+      if (peligro) btnOk.classList.add('adm-confirm-btn--peligro');
+      if (soloAviso) btnOk.hidden = true;
+
+      const cerrar = valor => {
+        if (!confirmacionAbierta) return;
+        confirmacionAbierta = null;
+        document.removeEventListener('keydown', teclas, true);
+        fondo.remove();
+        document.body.classList.remove('adm-confirm-abierto');
+        if (origen && origen.isConnected && typeof origen.focus === 'function') {
+          try { origen.focus({ preventScroll: true }); } catch (e) { /* sin foco */ }
+        }
+        resolve(valor);
+      };
+      const teclas = ev => {
+        if (ev.key === 'Escape') {
+          ev.preventDefault();
+          ev.stopPropagation();
+          cerrar(false);
+          return;
+        }
+        if (ev.key !== 'Tab') return;
+        const foco = [btnCancelar, btnOk].filter(b => !b.hidden);
+        const i = foco.indexOf(document.activeElement);
+        ev.preventDefault();
+        const sig = ev.shiftKey ? (i <= 0 ? foco.length - 1 : i - 1) : (i + 1) % foco.length;
+        foco[sig].focus();
+      };
+      confirmacionAbierta = cerrar;
+      btnCancelar.addEventListener('click', () => cerrar(false));
+      btnOk.addEventListener('click', () => cerrar(true));
+      fondo.addEventListener('mousedown', ev => { if (ev.target === fondo) cerrar(false); });
+      document.addEventListener('keydown', teclas, true);
+      document.body.classList.add('adm-confirm-abierto');
+      document.body.appendChild(fondo);
+      (soloAviso || peligro ? btnCancelar : btnOk).focus({ preventScroll: true });
+      if (!document.activeElement || !dialogo.contains(document.activeElement)) dialogo.focus();
+    });
+  }
+
+  // Aviso breve y no bloqueante (reemplaza alert).
+  function mostrarToast(texto, tipo = 'info') {
+    let cont = document.getElementById('adm-toasts');
+    if (!cont) {
+      cont = document.createElement('div');
+      cont.id = 'adm-toasts';
+      cont.className = 'adm-toasts';
+      cont.setAttribute('role', 'status');
+      cont.setAttribute('aria-live', 'polite');
+      document.body.appendChild(cont);
+    }
+    const t = document.createElement('div');
+    t.className = 'adm-toast';
+    t.dataset.tipo = tipo;
+    t.textContent = texto;
+    cont.appendChild(t);
+    setTimeout(() => t.remove(), 4500);
+  }
+
+  function esAdminSucursal() {
+    return adminRol === 'sucursal';
+  }
+
+  function puedeEditarFilaSucursal(sucursalId) {
+    if (adminRol === 'dueno') return true;
+    return !!adminSucursalId && String(sucursalId || '') === String(adminSucursalId);
+  }
+
+  function pedidoVisiblePorRol(pedido) {
+    if (!esAdminSucursal()) return true;
+    return !!adminSucursalId && String(pedido && pedido.sucursal_id) === String(adminSucursalId);
+  }
+
+  function sucursalVisibleParaRol(sucursalId) {
+    if (adminRol === 'dueno') return true;
+    if (!adminSucursalId) return false;
+    return !sucursalId || String(sucursalId) === String(adminSucursalId);
+  }
+
+  function aplicarAvisoRol() {
+    if (!adminRolError) return;
+    const texto = 'No se pudo verificar tu rol, recargá la página.';
+    if (el.pedidosAviso) {
+      el.pedidosAviso.hidden = false;
+      el.pedidosAviso.dataset.tipo = 'error';
+      el.pedidosAviso.textContent = texto;
+    }
+    if (el.enviosAviso) {
+      el.enviosAviso.hidden = false;
+      el.enviosAviso.dataset.tipo = 'error';
+      el.enviosAviso.textContent = texto;
+    }
+  }
+
   function crearPreviewTemporal(archivo) {
     if (!archivo || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return '';
     try {
@@ -441,6 +676,7 @@
     });
     poblarFiltroSucursalesPedidos();
     poblarSelectSucursalesEnvios();
+    poblarSelectAgotados();
   }
 
   function inicializarCliente() {
@@ -459,15 +695,23 @@
   }
 
   function mostrarLogin() {
+    adminRol = 'dueno';
+    adminSucursalId = null;
+    adminRolError = false;
     if (el.login) el.login.hidden = false;
     if (el.panel) el.panel.hidden = true;
     if (el.sesion) el.sesion.hidden = true;
     if (el.passwordInput) el.passwordInput.value = '';
     cerrarModalCategoria();
+    cerrarFormCupon(true);
     cerrarModalPedido();
     cerrarFormTramo();
     detenerRealtimePedidos();
+    detenerRealtimeAgotados();
+    detenerAlertaPedidos();
     enviosCargados = false;
+    agotadosCargados = false;
+    agotadosPorSucursal = new Map();
     actualizarBotonGuardar();
   }
 
@@ -491,6 +735,23 @@
       return;
     }
 
+    adminRol = 'sucursal';
+    adminSucursalId = null;
+    adminRolError = false;
+    try {
+      const { data, error } = await cliente.rpc('mi_rol');
+      if (error) throw error;
+      if (!data || !data.rol) throw new Error('Rol vacío');
+      adminRol = data.rol === 'dueno' ? 'dueno' : 'sucursal';
+      adminSucursalId = data.sucursal_id ? String(data.sucursal_id) : null;
+      adminRolError = false;
+    } catch (error) {
+      adminRol = 'sucursal';
+      adminSucursalId = null;
+      adminRolError = true;
+      console.warn('No se pudo verificar el rol del administrador:', error.message || error);
+    }
+
     const yaVisible = el.panel && !el.panel.hidden;
 
     if (el.login) el.login.hidden = true;
@@ -500,10 +761,72 @@
 
     if (!yaVisible) {
       await cargarCarta();
+      cargarAgotados({ silencioso: true });
       await cargarPedidos({ silencioso: true });
       iniciarRealtimePedidos();
+      iniciarRealtimeAgotados();
       iniciarRefrescoPedidos();
     }
+
+    aplicarPermisosRol();
+  }
+
+  function aplicarPermisosRol() {
+    const restringido = esAdminSucursal();
+
+    el.tabsVista.forEach(tab => {
+      if (tab.dataset.adminVista === 'carta') tab.hidden = restringido;
+      if (tab.dataset.adminVista === 'cupones') tab.hidden = !puedeVerCupones();
+      if (tab.dataset.adminVista === 'fidelidad') tab.hidden = !puedeVerFidelidad();
+      if (tab.dataset.adminVista === 'estadisticas') tab.hidden = !puedeVerCupones();
+      if (tab.dataset.adminVista === 'clientes') tab.hidden = !puedeVerCupones();
+      if (tab.dataset.adminVista === 'horarios') tab.hidden = !puedeVerHorarios();
+      if (tab.dataset.adminVista === 'disponibilidad') tab.hidden = !puedeVerHorarios();
+    });
+
+    poblarFiltroSucursalesPedidos();
+    poblarSelectSucursalesEnvios();
+    poblarSelectAgotados();
+
+    if (el.formConfigEnvios) el.formConfigEnvios.hidden = restringido;
+    const seccionConfig = el.formConfigEnvios ? el.formConfigEnvios.closest('.admin-card') : null;
+    if (seccionConfig) seccionConfig.hidden = restringido;
+
+    if (el.btnNuevoTramo) el.btnNuevoTramo.hidden = restringido && !adminSucursalId;
+    if (restringido && !adminSucursalId) cerrarFormTramo();
+
+    if (restringido && el.vistaCarta && !el.vistaCarta.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    if (!puedeVerCupones() && el.vistaCupones && !el.vistaCupones.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    if (!puedeVerFidelidad() && el.vistaFidelidad && !el.vistaFidelidad.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    const vistaStatsPerm = document.getElementById('admin-vista-estadisticas');
+    if (!puedeVerCupones() && vistaStatsPerm && !vistaStatsPerm.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    const vistaHorPerm = document.getElementById('admin-vista-horarios');
+    if (!puedeVerHorarios() && vistaHorPerm && !vistaHorPerm.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    if (!puedeVerHorarios() && el.vistaDisponibilidad && !el.vistaDisponibilidad.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    const vistaCrmPerm = document.getElementById('admin-vista-clientes');
+    if (!puedeVerCupones() && vistaCrmPerm && !vistaCrmPerm.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+
+    if (enviosCargados) {
+      renderConfigEnvios();
+      renderZonasNormales();
+      renderTramosEnvios();
+    }
+
+    if (adminRolError) aplicarAvisoRol();
   }
 
   async function cargarCarta() {
@@ -577,11 +900,171 @@
     actualizarBotonGuardarCategoria();
   }
 
+  /* ===== Orden de la carta (solo dueño): el orden es el de los arreglos categorias/productos ===== */
+
+  function puedeOrdenarCarta() {
+    return !esAdminSucursal();
+  }
+
+  function htmlFilaOrden(id, nombre, detalle, indice, total) {
+    const n = escaparHtml(nombre);
+    return `<div class="admin-orden-fila" data-orden-id="${escaparHtml(id)}">
+      <button type="button" class="admin-orden-asa" data-orden-asa aria-label="Arrastrar ${n}" title="Arrastrar para mover"><span aria-hidden="true">⠇</span></button>
+      <span class="admin-orden-texto"><strong>${n}</strong>${detalle ? `<small>${escaparHtml(detalle)}</small>` : ''}</span>
+      <span class="admin-orden-botones">
+        <button type="button" class="btn-icono" data-orden-mover="-1" aria-label="Subir ${n}"${indice === 0 ? ' disabled' : ''}>▲</button>
+        <button type="button" class="btn-icono" data-orden-mover="1" aria-label="Bajar ${n}"${indice === total - 1 ? ' disabled' : ''}>▼</button>
+      </span>
+    </div>`;
+  }
+
+  function htmlListaOrdenCategorias() {
+    const cats = carta.categorias.filter(cat => cat && cat.id);
+    return cats.map((cat, i) => htmlFilaOrden(
+      cat.id, cat.nombre || cat.id,
+      `${productosDeCategoria(cat.id).length} producto(s)`, i, cats.length
+    )).join('');
+  }
+
+  function htmlListaOrdenProductos(productos) {
+    return productos.map((prod, i) => htmlFilaOrden(
+      prod.id, prod.nombre || prod.id, '', i, productos.length
+    )).join('');
+  }
+
+  function actualizarControlesOrden() {
+    const cats = modoOrden === 'categorias';
+    const prods = modoOrden === 'productos';
+    if (el.btnOrdenarCategorias) {
+      el.btnOrdenarCategorias.hidden = !puedeOrdenarCarta();
+      el.btnOrdenarCategorias.setAttribute('aria-pressed', cats ? 'true' : 'false');
+      el.btnOrdenarCategorias.textContent = cats ? 'Listo' : 'Ordenar';
+    }
+    if (el.btnOrdenarProductos) {
+      el.btnOrdenarProductos.hidden = !puedeOrdenarCarta();
+      el.btnOrdenarProductos.setAttribute('aria-pressed', prods ? 'true' : 'false');
+      el.btnOrdenarProductos.textContent = prods ? 'Listo' : 'Ordenar productos';
+    }
+    if (el.ordenAyudaCategorias) el.ordenAyudaCategorias.hidden = !cats;
+    if (el.ordenAyudaProductos) el.ordenAyudaProductos.hidden = !prods;
+    if (el.listaCategorias) el.listaCategorias.classList.toggle('admin-orden-lista', cats);
+    if (el.listaProductos) el.listaProductos.classList.toggle('admin-orden-lista', prods);
+  }
+
+  function alternarModoOrden(modo) {
+    if (!puedeOrdenarCarta()) return;
+    modoOrden = modoOrden === modo ? '' : modo;
+    if (modoOrden === 'productos') productosExpandidos.clear();
+    renderizarTodo();
+  }
+
+  // Aplica un nuevo orden de ids. Categorías: reordena carta.categorias. Productos: los productos
+  // de la categoría ocupan, en el nuevo orden, las mismas posiciones que tenían en carta.productos.
+  function aplicarOrden(tipo, ids) {
+    if (!carta || !puedeOrdenarCarta()) return false;
+    if (tipo === 'categorias') {
+      const porId = new Map(carta.categorias.filter(c => c && c.id).map(c => [c.id, c]));
+      const nuevas = ids.map(id => porId.get(id)).filter(Boolean);
+      if (nuevas.length !== porId.size) return false;
+      const igual = nuevas.every((c, i) => c === carta.categorias.filter(x => x && x.id)[i]);
+      if (igual) return false;
+      carta.categorias = nuevas.concat(carta.categorias.filter(c => !c || !c.id));
+    } else {
+      const catId = categoriaActivaId;
+      const posiciones = [];
+      carta.productos.forEach((p, i) => { if (p && p.categoria === catId) posiciones.push(i); });
+      const porId = new Map(posiciones.map(i => [carta.productos[i].id, carta.productos[i]]));
+      const nuevos = ids.map(id => porId.get(id)).filter(Boolean);
+      if (nuevos.length !== posiciones.length) return false;
+      if (posiciones.every((pos, k) => carta.productos[pos] === nuevos[k])) return false;
+      posiciones.forEach((pos, k) => { carta.productos[pos] = nuevos[k]; });
+    }
+    marcarCambios();
+    return true;
+  }
+
+  function idsEnOrden(contenedor) {
+    return [...contenedor.querySelectorAll('[data-orden-id]')].map(fila => fila.dataset.ordenId);
+  }
+
+  function tipoOrdenDe(contenedor) {
+    return contenedor === el.listaCategorias ? 'categorias' : 'productos';
+  }
+
+  function manejarMoverOrden(evento, contenedor) {
+    const boton = evento.target.closest('[data-orden-mover]');
+    if (!boton || boton.disabled) return;
+    const fila = boton.closest('[data-orden-id]');
+    const ids = idsEnOrden(contenedor);
+    const i = ids.indexOf(fila.dataset.ordenId);
+    const j = i + Number(boton.dataset.ordenMover);
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    const idMovido = fila.dataset.ordenId;
+    const dir = boton.dataset.ordenMover;
+    if (aplicarOrden(tipoOrdenDe(contenedor), ids)) {
+      renderizarTodo();
+      // Devuelve el foco al mismo botón de la fila movida (o al opuesto si quedó deshabilitado).
+      const nueva = [...contenedor.querySelectorAll('[data-orden-id]')].find(f => f.dataset.ordenId === idMovido);
+      if (nueva) {
+        const objetivo = nueva.querySelector(`[data-orden-mover="${dir}"]`);
+        const alterno = nueva.querySelector(`[data-orden-mover="${-Number(dir)}"]`);
+        const aFocalizar = objetivo && !objetivo.disabled ? objetivo : alterno;
+        if (aFocalizar) aFocalizar.focus();
+      }
+    }
+  }
+
+  // Arrastre con pointer events (mouse y táctil): se mueve la fila en el DOM y al soltar se persiste.
+  function iniciarArrastreOrden(evento, contenedor) {
+    const asa = evento.target.closest('[data-orden-asa]');
+    if (!asa || (evento.pointerType === 'mouse' && evento.button !== 0)) return;
+    const fila = asa.closest('[data-orden-id]');
+    if (!fila) return;
+    evento.preventDefault();
+    const ordenInicial = idsEnOrden(contenedor).join('|');
+    fila.classList.add('arrastrando');
+    try { asa.setPointerCapture(evento.pointerId); } catch (e) { /* sin captura */ }
+
+    const mover = (ev) => {
+      const y = ev.clientY;
+      // Autoscroll cerca de los bordes de la ventana.
+      if (y < 70) window.scrollBy(0, -14);
+      else if (y > window.innerHeight - 70) window.scrollBy(0, 14);
+      const filas = [...contenedor.querySelectorAll('[data-orden-id]')].filter(f => f !== fila);
+      let antes = null;
+      for (const f of filas) {
+        const r = f.getBoundingClientRect();
+        if (y < r.top + r.height / 2) { antes = f; break; }
+      }
+      if (antes) { if (fila.nextElementSibling !== antes) contenedor.insertBefore(fila, antes); }
+      else if (contenedor.lastElementChild !== fila) contenedor.appendChild(fila);
+    };
+    const terminar = () => {
+      asa.removeEventListener('pointermove', mover);
+      asa.removeEventListener('pointerup', terminar);
+      asa.removeEventListener('pointercancel', terminar);
+      fila.classList.remove('arrastrando');
+      const ids = idsEnOrden(contenedor);
+      if (ids.join('|') !== ordenInicial) aplicarOrden(tipoOrdenDe(contenedor), ids);
+      renderizarTodo();
+    };
+    asa.addEventListener('pointermove', mover);
+    asa.addEventListener('pointerup', terminar);
+    asa.addEventListener('pointercancel', terminar);
+  }
+
   function renderizarCategorias() {
     if (!el.listaCategorias || !carta) return;
+    actualizarControlesOrden();
 
     if (!carta.categorias.length) {
       el.listaCategorias.innerHTML = '<p class="admin-vacio">Todavía no hay categorías. Creá la primera para empezar.</p>';
+      return;
+    }
+
+    if (modoOrden === 'categorias') {
+      el.listaCategorias.innerHTML = htmlListaOrdenCategorias();
       return;
     }
 
@@ -612,6 +1095,7 @@
     if (!categoriaValida(id)) return;
     if (categoriaActivaId !== id) {
       categoriaActivaId = id;
+      if (modoOrden === 'productos') modoOrden = '';
       productosExpandidos.clear();
       cerrarFormularioProducto();
     }
@@ -663,6 +1147,11 @@
 
     if (el.categoriaVacia) el.categoriaVacia.hidden = true;
 
+    if (modoOrden === 'productos') {
+      el.listaProductos.innerHTML = htmlListaOrdenProductos(productos);
+      return;
+    }
+
     el.listaProductos.innerHTML = productos.map(producto => {
       const id = producto.id;
       const abierto = productosExpandidos.has(id);
@@ -702,6 +1191,8 @@
               <button type="button" class="btn-peligro" data-accion="eliminar-producto" data-id="${escaparHtml(id)}">Eliminar</button>
             </div>
           </div>
+
+          <div class="admin-prod-disponibilidad" data-disponibilidad="${escaparHtml(id)}">${htmlDisponibilidadProducto(producto)}</div>
 
           <div class="admin-prod-editor" ${abierto ? '' : 'hidden'}>
             <div class="admin-grid-campos">
@@ -971,12 +1462,12 @@
     }
   }
 
-  function eliminarProducto(id) {
+  async function eliminarProducto(id) {
     const producto = buscarProducto(id);
     if (!producto) return;
 
     const nombre = producto.nombre || producto.id;
-    if (!window.confirm(`¿Eliminar "${nombre}" de la carta? El cambio se publica al guardar.`)) return;
+    if (!await confirmarAccion({ titulo: 'Eliminar producto', mensaje: `¿Eliminar "${nombre}" de la carta? El cambio se publica al guardar.`, textoConfirmar: 'Eliminar', peligro: true })) return;
 
     carta.productos = carta.productos.filter(prod => prod && prod.id !== id);
     productosExpandidos.delete(id);
@@ -1077,7 +1568,7 @@
         if (preview && previewAnterior) aplicarPreviewImagen(preview, previewAnterior);
         mostrarEstado(estado, `Error: ${error.message}`, 'error');
       }
-      mostrarAviso('No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
+      mostrarAviso(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : 'No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
     } finally {
       if (previewTemporal) {
         if (token === tokensUploadProducto.get(id) && subidaOk && preview && preview.src === previewTemporal) {
@@ -1179,7 +1670,7 @@
         if (previewAnterior) aplicarPreviewImagen(el.productoFotoPreview, previewAnterior);
         mostrarEstado(el.productoFotoEstado, `Error: ${error.message}`, 'error');
       }
-      mostrarAviso('No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
+      mostrarAviso(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : 'No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
     } finally {
       if (previewTemporal) {
         if (token === tokenUploadNuevo && !subidaOk && previewAnterior) {
@@ -1400,7 +1891,7 @@
         if (previewAnterior) aplicarPreviewImagen(el.categoriaFotoPreview, previewAnterior);
         mostrarEstado(el.categoriaFotoEstado, `Error: ${error.message}`, 'error');
       }
-      mostrarAviso('No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
+      mostrarAviso(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : 'No se pudo subir la imagen. Verificá que el bucket carta-imagenes y sus permisos existan.', 'error');
     } finally {
       if (previewTemporal) {
         if (token === tokenUploadCategoria && !subidaOk && previewAnterior) {
@@ -1603,9 +2094,12 @@
     }
 
     if (publicacionLocalRiesgosa) {
-      const confirmado = window.confirm(
-        'No se pudo leer la carta desde Supabase. Si publicás ahora, podrías pisar cambios hechos en otro dispositivo. ¿Publicar igual la copia local?'
-      );
+      const confirmado = await confirmarAccion({
+        titulo: 'Publicar copia local',
+        mensaje: 'No se pudo leer la carta desde Supabase. Si publicás ahora, podrías pisar cambios hechos en otro dispositivo. ¿Publicar igual la copia local?',
+        textoConfirmar: 'Publicar igual',
+        peligro: true
+      });
       if (!confirmado) {
         mostrarEstado(el.estado, 'Publicación cancelada.', 'pendiente');
         return;
@@ -1634,8 +2128,13 @@
       mostrarAviso('');
     } catch (error) {
       const mensaje = error && error.message ? error.message : 'Error desconocido';
-      mostrarEstado(el.estado, `No se pudo guardar: ${mensaje}`, 'error');
-      mostrarAviso('Verificá que hayas ejecutado las migraciones 001 y 002, que el email esté en la tabla admins y que la sesión siga activa.', 'error');
+      if (esErrorPermiso(error)) {
+        mostrarEstado(el.estado, 'No tenés permiso para hacer esto.', 'error');
+        mostrarAviso('No tenés permiso para hacer esto.', 'error');
+      } else {
+        mostrarEstado(el.estado, `No se pudo guardar: ${mensaje}`, 'error');
+        mostrarAviso('Verificá que hayas ejecutado las migraciones 001 y 002, que el email esté en la tabla admins y que la sesión siga activa.', 'error');
+      }
     } finally {
       guardando = false;
       actualizarBotonGuardar();
@@ -1718,11 +2217,77 @@
   }
 
   const ESTADOS_PEDIDO = {
-    pendiente: 'Pendiente',
-    confirmado: 'Confirmado',
-    entregado: 'Entregado',
+    pendiente: 'Nuevo',
+    confirmado: 'En preparación',
+    listo: 'Listo para entregar',
+    en_camino: 'En camino',
+    entregado: 'Completado',
     cancelado: 'Cancelado'
   };
+
+  const CLAVE_CANCELADOS_ABIERTO = 'pm_cancelados_abierto';
+
+  function canceladosAbierto() {
+    try { return sessionStorage.getItem(CLAVE_CANCELADOS_ABIERTO) === '1'; } catch (e) { return false; }
+  }
+
+  function guardarCanceladosAbierto(abierto) {
+    try { sessionStorage.setItem(CLAVE_CANCELADOS_ABIERTO, abierto ? '1' : '0'); } catch (e) { /* sin storage */ }
+  }
+
+  function aplicarEstadoColumnaCancelados(columna, colapsada) {
+    columna.classList.toggle('colapsada', colapsada);
+    const boton = columna.querySelector('[data-columna-toggle]');
+    if (!boton) return;
+    boton.setAttribute('aria-expanded', colapsada ? 'false' : 'true');
+    boton.setAttribute('aria-label', `${colapsada ? 'Expandir' : 'Cerrar'} columna Cancelados`);
+    boton.textContent = colapsada ? '‹' : '✕';
+  }
+
+  const COLUMNAS_PEDIDO = [
+    { clave: 'pendiente', titulo: 'Nuevos' },
+    { clave: 'confirmado', titulo: 'En preparación' },
+    { clave: 'listo', titulo: 'Listos para entregar' },
+    { clave: 'en_camino', titulo: 'En camino', soloDelivery: true },
+    { clave: 'entregado', titulo: 'Completados' },
+    { clave: 'cancelado', titulo: 'Cancelados', colapsable: true }
+  ];
+
+  function iconoModalidadPedido(modalidad) {
+    const valor = String(modalidad || '').toLowerCase();
+    if (valor === 'delivery') {
+      return '<svg class="admin-pedido-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+    }
+    return '<svg class="admin-pedido-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Zm3 0V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+  }
+
+  function siguienteEstadoPedido(pedido) {
+    if (!pedido) return '';
+    if (pedido.estado === 'pendiente') return 'confirmado';
+    if (pedido.estado === 'confirmado') return 'listo';
+    if (pedido.estado === 'listo') return pedido.modalidad === 'delivery' ? 'en_camino' : 'entregado';
+    if (pedido.estado === 'en_camino') return 'entregado';
+    return '';
+  }
+
+  function etiquetaBotonAvance(pedido) {
+    if (!pedido) return '';
+    if (pedido.estado === 'pendiente') return 'Iniciar preparación';
+    if (pedido.estado === 'confirmado') return 'Marcar listo';
+    if (pedido.estado === 'listo') return pedido.modalidad === 'delivery' ? 'En camino' : 'Completar';
+    if (pedido.estado === 'en_camino') return 'Completar';
+    return '';
+  }
+
+  function pedidoEsEfectivo(pedido) {
+    return String(pedido && pedido.metodo_pago || '').toLowerCase().includes('efectivo');
+  }
+
+  function mostrarBotonPagado(pedido) {
+    if (!pedidosSoportaPagos || !pedido || pedido.pagado === true) return false;
+    if (!pedidoEsEfectivo(pedido)) return true;
+    return ['listo', 'en_camino', 'entregado'].includes(pedido.estado);
+  }
 
   function mostrarEstadoPedidos(texto, tipo = '') {
     mostrarEstado(el.pedidosEstado, texto, tipo);
@@ -1742,6 +2307,19 @@
 
   function poblarFiltroSucursalesPedidos() {
     if (!el.pedidosFiltroSucursal) return;
+    if (esAdminSucursal()) {
+      el.pedidosFiltroSucursal.disabled = true;
+      if (!adminSucursalId) {
+        el.pedidosFiltroSucursal.innerHTML = '<option value="">Sin sucursal asignada</option>';
+        el.pedidosFiltroSucursal.value = '';
+        return;
+      }
+      const nombre = SUCURSALES_NOMBRES[adminSucursalId] || adminSucursalId;
+      el.pedidosFiltroSucursal.innerHTML = `<option value="${escaparHtml(adminSucursalId)}">${escaparHtml(nombre)}</option>`;
+      el.pedidosFiltroSucursal.value = adminSucursalId;
+      return;
+    }
+    el.pedidosFiltroSucursal.disabled = false;
     const actual = el.pedidosFiltroSucursal.value;
     const opciones = Object.keys(SUCURSALES_NOMBRES)
       .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
@@ -1762,7 +2340,7 @@
   function etiquetaModalidadPedido(modalidad) {
     const valor = String(modalidad || '').toLowerCase();
     if (valor === 'delivery') return 'Delivery';
-    if (valor === 'retiro') return 'Retiro / Takeaway';
+    if (valor === 'retiro') return 'Para llevar';
     return modalidad || '-';
   }
 
@@ -1786,84 +2364,536 @@
     }
   }
 
-  function esPedidoDeHoy(iso) {
+  function horaPedido(iso) {
     const fecha = new Date(iso);
-    if (!Number.isFinite(fecha.getTime())) return false;
+    if (!Number.isFinite(fecha.getTime())) return '';
     try {
-      const diaPedido = fecha.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-      const diaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-      return diaPedido === diaHoy;
+      return fecha.toLocaleTimeString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     } catch (error) {
-      return fecha.toDateString() === new Date().toDateString();
+      return '';
     }
   }
 
-  function pedidosFiltrados() {
-    const estado = (el.pedidosFiltroEstado && el.pedidosFiltroEstado.value) || 'activos';
-    const sucursal = (el.pedidosFiltroSucursal && el.pedidosFiltroSucursal.value) || '';
-    const fecha = (el.pedidosFiltroFecha && el.pedidosFiltroFecha.value) || 'hoy';
-    const limite7Dias = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  function fechaArgentinaHoy() {
+    try {
+      return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+    } catch (error) {
+      return new Date().toISOString().slice(0, 10);
+    }
+  }
 
-    return pedidos.filter(pedido => {
-      if (!pedido) return false;
-      if (estado === 'activos') {
-        if (pedido.estado !== 'pendiente' && pedido.estado !== 'confirmado') return false;
-      } else if (estado !== 'todos' && pedido.estado !== estado) {
-        return false;
-      }
-      if (sucursal && pedido.sucursal_id !== sucursal) return false;
-      if (fecha === 'hoy' && !esPedidoDeHoy(pedido.created_at)) return false;
-      if (fecha === '7') {
-        const creado = new Date(pedido.created_at).getTime();
-        if (!Number.isFinite(creado) || creado < limite7Dias) return false;
-      }
-      return true;
+  function fechaPedidoArgentina(iso) {
+    const fecha = new Date(iso);
+    if (!Number.isFinite(fecha.getTime())) return '';
+    try {
+      return fecha.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+    } catch (error) {
+      return fecha.toISOString().slice(0, 10);
+    }
+  }
+
+  function fechaUTCDesdeISO(fechaISO) {
+    const partes = String(fechaISO || '').split('-').map(Number);
+    if (partes.length !== 3 || !partes.every(Number.isFinite)) return null;
+    const fecha = new Date(Date.UTC(partes[0], partes[1] - 1, partes[2], 12));
+    if (!Number.isFinite(fecha.getTime())) return null;
+    return fecha;
+  }
+
+  function sumarDiasFecha(fechaISO, dias) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    fecha.setUTCDate(fecha.getUTCDate() + dias);
+    return fecha.toISOString().slice(0, 10);
+  }
+
+  function sumarMesesFecha(fechaISO, meses) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    fecha.setUTCDate(1);
+    fecha.setUTCMonth(fecha.getUTCMonth() + meses, 1);
+    return fecha.toISOString().slice(0, 10);
+  }
+
+  function inicioSemanaFecha(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    const dia = fecha.getUTCDay();
+    const desplazamiento = (dia + 6) % 7;
+    return sumarDiasFecha(fecha.toISOString().slice(0, 10), -desplazamiento);
+  }
+
+  function inicioMesFecha(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    return new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), 1, 12)).toISOString().slice(0, 10);
+  }
+
+  function finMesFecha(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO) || fechaUTCDesdeISO(fechaArgentinaHoy());
+    return new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth() + 1, 0, 12)).toISOString().slice(0, 10);
+  }
+
+  function formatearFechaDiaPedidos(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO);
+    if (!fecha) return '';
+    try {
+      const texto = new Intl.DateTimeFormat('es-AR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC'
+      }).format(fecha).replace(',', '');
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    } catch (error) {
+      return fechaISO;
+    }
+  }
+
+  function formatearFechaCortaPedidos(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO);
+    if (!fecha) return '';
+    try {
+      return new Intl.DateTimeFormat('es-AR', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC'
+      }).format(fecha).replace(/\./g, '');
+    } catch (error) {
+      return fechaISO;
+    }
+  }
+
+  function formatearMesPedidos(fechaISO) {
+    const fecha = fechaUTCDesdeISO(fechaISO);
+    if (!fecha) return '';
+    try {
+      const texto = new Intl.DateTimeFormat('es-AR', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC'
+      }).format(fecha).replace(/\s+de\s+/i, ' ');
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    } catch (error) {
+      return fechaISO.slice(0, 7);
+    }
+  }
+
+  function rangoPedidosActual() {
+    const hoy = fechaArgentinaHoy();
+    const referencia = pedidosFechaDia || hoy;
+    if (pedidosPeriodo === 'semana') {
+      const desde = inicioSemanaFecha(referencia);
+      return { desde, hasta: sumarDiasFecha(desde, 6) };
+    }
+    if (pedidosPeriodo === 'mes') {
+      return { desde: inicioMesFecha(referencia), hasta: finMesFecha(referencia) };
+    }
+    if (pedidosPeriodo === 'personalizado') {
+      let desde = (el.pedidosFiltroDesde && el.pedidosFiltroDesde.value) || hoy;
+      let hasta = (el.pedidosFiltroHasta && el.pedidosFiltroHasta.value) || desde;
+      if (desde > hasta) [desde, hasta] = [hasta, desde];
+      return { desde, hasta };
+    }
+    return { desde: referencia, hasta: referencia };
+  }
+
+  function etiquetaPeriodoPedidos(rango) {
+    const hoy = fechaArgentinaHoy();
+    if (pedidosPeriodo === 'dia') {
+      if (rango.desde === hoy) return 'Hoy';
+      if (rango.desde === sumarDiasFecha(hoy, -1)) return 'Ayer';
+      return formatearFechaDiaPedidos(rango.desde);
+    }
+    if (pedidosPeriodo === 'semana') {
+      if (rango.desde === inicioSemanaFecha(hoy)) return 'Esta semana';
+      return `${formatearFechaCortaPedidos(rango.desde)} – ${formatearFechaCortaPedidos(rango.hasta)}`;
+    }
+    if (pedidosPeriodo === 'mes') {
+      return formatearMesPedidos(rango.desde);
+    }
+    if (rango.desde === rango.hasta) return formatearFechaDiaPedidos(rango.desde);
+    return `${formatearFechaCortaPedidos(rango.desde)} – ${formatearFechaCortaPedidos(rango.hasta)}`;
+  }
+
+  function rangoPeriodoSiguiente() {
+    const rango = rangoPedidosActual();
+    if (pedidosPeriodo === 'semana') {
+      const desde = sumarDiasFecha(rango.desde, 7);
+      return { desde, hasta: sumarDiasFecha(desde, 6) };
+    }
+    if (pedidosPeriodo === 'mes') {
+      const desde = sumarMesesFecha(inicioMesFecha(rango.desde), 1);
+      return { desde, hasta: finMesFecha(desde) };
+    }
+    if (pedidosPeriodo === 'personalizado') {
+      return { desde: sumarDiasFecha(rango.desde, 1), hasta: sumarDiasFecha(rango.hasta, 1) };
+    }
+    const fecha = sumarDiasFecha(rango.desde, 1);
+    return { desde: fecha, hasta: fecha };
+  }
+
+  function puedeAvanzarPeriodoPedidos() {
+    const siguiente = rangoPeriodoSiguiente();
+    const hoy = fechaArgentinaHoy();
+    if (pedidosPeriodo === 'personalizado') return siguiente.hasta <= hoy;
+    return siguiente.desde <= hoy;
+  }
+
+  function pedidoCoincideFiltros(pedido) {
+    if (!pedidoCuentaComoVenta(pedido)) return false;
+    const sucursal = (el.pedidosFiltroSucursal && el.pedidosFiltroSucursal.value) || '';
+    if (sucursal && pedido.sucursal_id !== sucursal) return false;
+    if (pedidosModalidad && pedido.modalidad !== pedidosModalidad) return false;
+    const fecha = fechaPedidoArgentina(pedido.created_at);
+    if (!fecha) return false;
+    const rango = rangoPedidosActual();
+    return fecha >= rango.desde && fecha <= rango.hasta;
+  }
+
+  function pedidosFiltrados() {
+    return pedidos.filter(pedidoCoincideFiltros);
+  }
+
+  function inicializarFiltrosPedidos() {
+    pedidosFechaDia = fechaArgentinaHoy();
+    pedidosPeriodo = 'dia';
+    if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = pedidosFechaDia;
+    if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = pedidosFechaDia;
+    actualizarControlesPedidos();
+  }
+
+  function actualizarControlesPedidos() {
+    const esPersonalizado = pedidosPeriodo === 'personalizado';
+    const rango = rangoPedidosActual();
+    const hoy = fechaArgentinaHoy();
+
+    if (el.pedidosFiltroPeriodo && el.pedidosFiltroPeriodo.value !== pedidosPeriodo) {
+      el.pedidosFiltroPeriodo.value = pedidosPeriodo;
+    }
+    if (el.pedidosRango) el.pedidosRango.hidden = !esPersonalizado;
+    if (el.pedidosPeriodoEtiqueta) el.pedidosPeriodoEtiqueta.textContent = etiquetaPeriodoPedidos(rango);
+    if (el.pedidosFiltroDesde) {
+      el.pedidosFiltroDesde.max = hoy;
+      if (esPersonalizado && el.pedidosFiltroDesde.value !== rango.desde) el.pedidosFiltroDesde.value = rango.desde;
+    }
+    if (el.pedidosFiltroHasta) {
+      el.pedidosFiltroHasta.max = hoy;
+      if (esPersonalizado && el.pedidosFiltroHasta.value !== rango.hasta) el.pedidosFiltroHasta.value = rango.hasta;
+    }
+    if (el.btnPedidosSiguiente) {
+      const puedeAvanzar = puedeAvanzarPeriodoPedidos();
+      el.btnPedidosSiguiente.disabled = !puedeAvanzar;
+      el.btnPedidosSiguiente.setAttribute('aria-disabled', puedeAvanzar ? 'false' : 'true');
+    }
+    el.pedidosVistaBtns.forEach(boton => {
+      const activo = boton.dataset.pedidosVista === pedidosVista;
+      boton.classList.toggle('activa', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
     });
+    el.pedidosModalidadBtns.forEach(boton => {
+      const activo = (boton.dataset.pedidosModalidad || '') === pedidosModalidad;
+      boton.classList.toggle('activa', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
+  }
+
+  function moverPeriodoPedidos(direccion) {
+    if (direccion > 0 && !puedeAvanzarPeriodoPedidos()) return;
+    const rango = rangoPedidosActual();
+    if (pedidosPeriodo === 'personalizado') {
+      if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = sumarDiasFecha(rango.desde, direccion);
+      if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = sumarDiasFecha(rango.hasta, direccion);
+      pedidosFechaDia = sumarDiasFecha(rango.desde, direccion);
+    } else if (pedidosPeriodo === 'semana') {
+      pedidosFechaDia = sumarDiasFecha(rango.desde, direccion * 7);
+    } else if (pedidosPeriodo === 'mes') {
+      pedidosFechaDia = sumarMesesFecha(inicioMesFecha(rango.desde), direccion);
+    } else {
+      pedidosFechaDia = sumarDiasFecha(rango.desde, direccion);
+    }
+    actualizarControlesPedidos();
+    renderPedidos();
+  }
+
+  function cambiarPeriodoPedidos(valor) {
+    const permitidos = ['dia', 'semana', 'mes', 'personalizado'];
+    const nuevo = permitidos.includes(valor) ? valor : 'dia';
+    const rangoAnterior = rangoPedidosActual();
+    if (nuevo === 'personalizado') {
+      if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = rangoAnterior.desde;
+      if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = rangoAnterior.hasta;
+      pedidosFechaDia = rangoAnterior.desde;
+    } else if (nuevo === 'mes') {
+      pedidosFechaDia = inicioMesFecha(rangoAnterior.desde);
+    } else {
+      pedidosFechaDia = rangoAnterior.desde;
+    }
+    pedidosPeriodo = nuevo;
+    actualizarControlesPedidos();
+    renderPedidos();
+  }
+
+  function volverAHoyPedidos() {
+    pedidosPeriodo = 'dia';
+    pedidosFechaDia = fechaArgentinaHoy();
+    if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = pedidosFechaDia;
+    if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = pedidosFechaDia;
+    actualizarControlesPedidos();
+    renderPedidos();
+  }
+
+  function aplicarCambioRangoPedidos(origen) {
+    const hoy = fechaArgentinaHoy();
+    let desde = (el.pedidosFiltroDesde && el.pedidosFiltroDesde.value) || hoy;
+    let hasta = (el.pedidosFiltroHasta && el.pedidosFiltroHasta.value) || desde;
+    if (desde > hoy) desde = hoy;
+    if (hasta > hoy) hasta = hoy;
+    if (desde > hasta) {
+      if (origen === 'desde') hasta = desde;
+      else desde = hasta;
+    }
+    if (el.pedidosFiltroDesde) el.pedidosFiltroDesde.value = desde;
+    if (el.pedidosFiltroHasta) el.pedidosFiltroHasta.value = hasta;
+    pedidosFechaDia = desde;
+    actualizarControlesPedidos();
+    renderPedidos();
+  }
+
+  function pedidoCuentaComoVenta(pedido) {
+    return !!pedido && pedido.sincronizado !== false;
+  }
+
+  // Un programado pendiente solo cuenta (badge y sonido) si faltan 3 h o menos, o ya venció.
+  function pedidoRequiereAtencion(pedido) {
+    if (!pedido.programado_para) return true;
+    const cuando = new Date(pedido.programado_para).getTime();
+    if (!Number.isFinite(cuando)) return true;
+    return cuando - Date.now() <= VENTANA_PROGRAMADOS_MS;
+  }
+
+  function contarPedidosNuevos() {
+    return pedidos.filter(pedido =>
+      pedidoCuentaComoVenta(pedido)
+      && pedido.estado === 'pendiente'
+      && pedidoVisiblePorRol(pedido)
+      && pedidoRequiereAtencion(pedido)
+    ).length;
+  }
+
+  function etiquetaProgramadoPedido(iso) {
+    const texto = fechaHoraPedido(iso).replace(',', '');
+    return texto ? `Programado ${texto}` : '';
   }
 
   function actualizarBadgePedidos() {
     if (!el.pedidosBadge) return;
-    const pendientes = pedidos.filter(pedido => pedido && pedido.estado === 'pendiente').length;
+    const pendientes = contarPedidosNuevos();
     el.pedidosBadge.textContent = String(pendientes);
     el.pedidosBadge.hidden = pendientes === 0;
+  }
+
+  function columnaPedido(pedido) {
+    if (!pedido) return '';
+    if (pedido.estado === 'en_camino' && pedido.modalidad !== 'delivery') return 'listo';
+    return COLUMNAS_PEDIDO.some(columna => columna.clave === pedido.estado) ? pedido.estado : '';
+  }
+
+  function resumenItemsPedido(pedido) {
+    const items = Array.isArray(pedido && pedido.items_snapshot) ? pedido.items_snapshot : [];
+    if (!items.length) return '';
+    const filas = items.map(item => {
+      const cantidad = Number(item && item.cantidad) || 0;
+      const nombre = PM.escaparHtml(item && item.nombre ? item.nombre : 'Producto');
+      return `<li><strong>${cantidad}×</strong> ${nombre}</li>`;
+    }).join('');
+    return `<details class="admin-pedido-resumen">
+      <summary>Ítems (${items.length})</summary>
+      <ul>${filas}</ul>
+    </details>`;
+  }
+
+  function botonesPedido(pedido) {
+    const botones = [];
+    const avance = siguienteEstadoPedido(pedido);
+    if (avance) {
+      botones.push(`<button type="button" class="btn-primario" data-pedido-accion="avanzar">${PM.escaparHtml(etiquetaBotonAvance(pedido))}</button>`);
+    }
+    botones.push('<button type="button" class="btn-secundario" data-pedido-accion="imprimir">Imprimir</button>');
+    if (mostrarBotonPagado(pedido)) {
+      botones.push('<button type="button" class="btn-secundario" data-pedido-accion="pagado">Marcar pagado</button>');
+    }
+    if (pedido.estado !== 'cancelado' && pedido.estado !== 'entregado') {
+      botones.push('<button type="button" class="btn-peligro" data-pedido-accion="cancelado">Cancelar</button>');
+    }
+    return botones.join('');
+  }
+
+  function crearTarjetaPedidoHtml(pedido) {
+    const estado = ESTADOS_PEDIDO[pedido.estado] ? pedido.estado : 'desconocido';
+    const id = PM.escaparHtml(pedido.id);
+    const numero = PM.escaparHtml(pedido.numero_orden || 'Sin número');
+    const cliente = PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre');
+    const sucursal = PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id));
+    const modalidad = PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad));
+    const pago = PM.escaparHtml(pedido.metodo_pago || '-');
+    const hora = PM.escaparHtml(horaPedido(pedido.created_at));
+    const pagado = pedido.pagado === true;
+    const pagoClase = pagado ? 'pagado' : 'pendiente';
+    const programado = pedido.programado_para ? etiquetaProgramadoPedido(pedido.programado_para) : '';
+    const programadoHtml = programado
+      ? `<div class="admin-pedido-programado">${PM.escaparHtml(programado)}</div>`
+      : '';
+
+    return `<article class="admin-pedido-tarjeta estado-${estado}" data-pedido-id="${id}" data-estado="${estado}" data-created-at="${PM.escaparHtml(pedido.created_at || '')}">
+      <div class="admin-pedido-tarjeta-top">
+        <strong class="admin-pedido-numero">${numero}</strong>
+        <span class="admin-pedido-hora">${hora}</span>
+      </div>
+      <div class="admin-pedido-tarjeta-cliente">
+        <span class="admin-pedido-cliente">${cliente}</span>
+        <span class="admin-pedido-modalidad">${iconoModalidadPedido(pedido.modalidad)}${modalidad}</span>
+      </div>
+      <div class="admin-pedido-tarjeta-meta">
+        <span>${sucursal}</span>
+        <span>${pago}</span>
+        <span class="admin-pedido-pago ${pagoClase}">${pagado ? 'Pagado' : 'Pago pendiente'}</span>
+        <strong>${formatearPrecio(pedido.total)}</strong>
+      </div>
+      ${programadoHtml}
+      ${resumenItemsPedido(pedido)}
+      <div class="admin-pedido-tarjeta-acciones">${botonesPedido(pedido)}</div>
+    </article>`;
+  }
+
+  function crearTarjetaPedido(pedido) {
+    const contenedor = document.createElement('div');
+    contenedor.innerHTML = crearTarjetaPedidoHtml(pedido);
+    return contenedor.firstElementChild;
+  }
+
+  function insertarTarjetaOrdenada(contenedor, tarjeta) {
+    if (!contenedor || !tarjeta) return;
+    const fecha = tarjeta.dataset.createdAt || '';
+    const existentes = Array.from(contenedor.querySelectorAll('[data-pedido-id]'));
+    const referencia = existentes.find(item => (item.dataset.createdAt || '') < fecha);
+    if (referencia) contenedor.insertBefore(tarjeta, referencia);
+    else contenedor.appendChild(tarjeta);
+  }
+
+  function buscarTarjetaPedido(contenedor, id) {
+    if (!contenedor) return null;
+    return Array.from(contenedor.querySelectorAll('[data-pedido-id]'))
+      .find(tarjeta => tarjeta.dataset.pedidoId === String(id)) || null;
+  }
+
+  function renderPedidos() {
+    if (!el.pedidosTablero || !el.pedidosLista) return;
+    const esLista = pedidosVista === 'lista';
+    el.pedidosTablero.hidden = esLista;
+    el.pedidosLista.hidden = !esLista;
+    if (esLista) renderPedidosLista();
+    else renderPedidosTablero();
+  }
+
+  function renderPedidosTablero() {
+    if (!el.pedidosTablero) return;
+    const lista = pedidosFiltrados();
+    const cuerpoPrevio = el.pedidosTablero.querySelector('[data-columna="cancelado"] .admin-pedidos-columna-cuerpo');
+    const scrollCancelados = cuerpoPrevio ? cuerpoPrevio.scrollTop : 0;
+    const scrollTablero = el.pedidosTablero.scrollLeft;
+    el.pedidosTablero.innerHTML = COLUMNAS_PEDIDO.map(columna => {
+      const pedidosColumna = lista.filter(pedido => columnaPedido(pedido) === columna.clave
+        && (!columna.soloDelivery || pedido.modalidad === 'delivery'));
+      const tarjetas = pedidosColumna.map(crearTarjetaPedidoHtml).join('');
+      const vacio = pedidosColumna.length ? '' : '<p class="admin-pedidos-vacio-columna">Sin pedidos.</p>';
+      const colapsada = !!columna.colapsable && !canceladosAbierto();
+      return `<section class="admin-pedidos-columna columna-${columna.clave} ${colapsada ? 'colapsada' : ''}" data-columna="${columna.clave}">
+        <header class="admin-pedidos-columna-head">
+          <div class="admin-pedidos-columna-titulo">
+            <h3>${PM.escaparHtml(columna.titulo)}</h3>
+            <span class="admin-pedidos-contador" data-contador="${columna.clave}">${pedidosColumna.length}</span>
+          </div>
+          ${columna.colapsable ? `<button type="button" class="btn-icono admin-pedidos-colapsar" data-columna-toggle aria-expanded="${colapsada ? 'false' : 'true'}" aria-label="${colapsada ? 'Expandir' : 'Cerrar'} columna Cancelados">${colapsada ? '‹' : '✕'}</button>` : ''}
+        </header>
+        <div class="admin-pedidos-columna-cuerpo">${tarjetas}${vacio}</div>
+      </section>`;
+    }).join('');
+    el.pedidosTablero.scrollLeft = scrollTablero;
+    const cuerpoNuevo = el.pedidosTablero.querySelector('[data-columna="cancelado"] .admin-pedidos-columna-cuerpo');
+    if (cuerpoNuevo) cuerpoNuevo.scrollTop = scrollCancelados;
   }
 
   function renderPedidosLista() {
     if (!el.pedidosLista) return;
     const lista = pedidosFiltrados();
-
     if (!lista.length) {
       el.pedidosLista.innerHTML = '<p class="admin-vacio">No hay pedidos para estos filtros.</p>';
       return;
     }
+    el.pedidosLista.innerHTML = lista.map(crearTarjetaPedidoHtml).join('');
+  }
 
-    el.pedidosLista.innerHTML = lista.map(pedido => {
-      const estado = ESTADOS_PEDIDO[pedido.estado] ? pedido.estado : 'desconocido';
-      const numero = PM.escaparHtml(pedido.numero_orden || 'Sin número');
-      const cliente = PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre');
-      const sucursal = PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id));
-      const modalidad = PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad));
-      const pago = PM.escaparHtml(pedido.metodo_pago || '-');
-      const hora = PM.escaparHtml(fechaHoraPedido(pedido.created_at));
-      const id = PM.escaparHtml(pedido.id);
+  function actualizarContadoresColumnas() {
+    if (!el.pedidosTablero) return;
+    COLUMNAS_PEDIDO.forEach(columna => {
+      const contenedor = el.pedidosTablero.querySelector(`[data-columna="${columna.clave}"] .admin-pedidos-columna-cuerpo`);
+      if (!contenedor) return;
+      const tarjetas = contenedor.querySelectorAll('[data-pedido-id]');
+      const contador = el.pedidosTablero.querySelector(`[data-contador="${columna.clave}"]`);
+      if (contador) contador.textContent = String(tarjetas.length);
+      const vacio = contenedor.querySelector('.admin-pedidos-vacio-columna');
+      if (tarjetas.length && vacio) vacio.remove();
+      if (!tarjetas.length && !vacio) {
+        const parrafo = document.createElement('p');
+        parrafo.className = 'admin-pedidos-vacio-columna';
+        parrafo.textContent = 'Sin pedidos.';
+        contenedor.appendChild(parrafo);
+      }
+    });
+  }
 
-      return `<button type="button" class="admin-pedido-card" data-pedido-id="${id}">
-        <div class="admin-pedido-card-top">
-          <span class="admin-pedido-numero">#${numero}</span>
-          <span class="admin-pedido-estado estado-${estado}">${PM.escaparHtml(nombreEstadoPedido(pedido.estado))}</span>
-        </div>
-        <div class="admin-pedido-card-datos">
-          <span>${hora}</span>
-          <span>${cliente}</span>
-          <span>${modalidad}</span>
-        </div>
-        <div class="admin-pedido-card-bottom">
-          <span>${sucursal}</span>
-          <span>${pago}</span>
-          <strong>${formatearPrecio(pedido.total)}</strong>
-        </div>
-      </button>`;
-    }).join('');
+  function actualizarTarjetaEnVista(pedido) {
+    if (!pedidosCargados || !pedido) return;
+    if (pedidosVista === 'tablero') {
+      if (!el.pedidosTablero) return;
+      const existente = buscarTarjetaPedido(el.pedidosTablero, pedido.id);
+      if (!pedidoCoincideFiltros(pedido)) {
+        if (existente) existente.remove();
+        actualizarContadoresColumnas();
+        return;
+      }
+      const columna = columnaPedido(pedido);
+      const destino = columna
+        ? el.pedidosTablero.querySelector(`[data-columna="${columna}"] .admin-pedidos-columna-cuerpo`)
+        : null;
+      if (!destino) {
+        renderPedidosTablero();
+        return;
+      }
+      const nueva = crearTarjetaPedido(pedido);
+      if (existente) existente.remove();
+      insertarTarjetaOrdenada(destino, nueva);
+      actualizarContadoresColumnas();
+      return;
+    }
+
+    if (!el.pedidosLista) return;
+    const existente = buscarTarjetaPedido(el.pedidosLista, pedido.id);
+    if (!pedidoCoincideFiltros(pedido)) {
+      if (existente) existente.remove();
+    } else {
+      const nueva = crearTarjetaPedido(pedido);
+      if (existente) existente.replaceWith(nueva);
+      else insertarTarjetaOrdenada(el.pedidosLista, nueva);
+    }
+    const vacio = el.pedidosLista.querySelector('.admin-vacio');
+    const hayTarjetas = !!el.pedidosLista.querySelector('[data-pedido-id]');
+    if (!hayTarjetas && !vacio) {
+      el.pedidosLista.innerHTML = '<p class="admin-vacio">No hay pedidos para estos filtros.</p>';
+    } else if (hayTarjetas && vacio) {
+      vacio.remove();
+    }
   }
 
   function renderPedidoDetalle(pedido) {
@@ -1874,7 +2904,7 @@
       return;
     }
 
-    const telefono = telefonoSoloDigitos(pedido.cliente_telefono);
+    const urlWsp = PM.urlWhatsappCliente(pedido.cliente_telefono);
     const items = Array.isArray(pedido.items_snapshot) ? pedido.items_snapshot : [];
     const itemsHtml = items.map(item => {
       const cantidad = Number(item && item.cantidad) || 0;
@@ -1908,21 +2938,15 @@
     const direccionHtml = pedido.direccion
       ? `<p class="admin-pedido-dato"><span>Dirección</span>${PM.escaparHtml(pedido.direccion)}</p>${enlaceMapa}`
       : '<p class="admin-pedido-dato"><span>Dirección</span>Retiro en sucursal</p>';
-    const whatsappHtml = telefono
-      ? `<a class="btn-secundario admin-pedido-whatsapp" href="https://wa.me/${telefono}" target="_blank" rel="noopener">Abrir WhatsApp</a>`
+    const whatsappHtml = urlWsp
+      ? `<a class="btn-secundario admin-pedido-whatsapp" href="${PM.escaparHtml(urlWsp)}" target="_blank" rel="noopener">Abrir WhatsApp</a>`
       : '';
     const notasHtml = pedido.notas
       ? `<div class="admin-pedido-notas"><span>Notas</span><p>${PM.escaparHtml(pedido.notas)}</p></div>`
       : '';
 
-    const acciones = [];
-    if (pedido.estado === 'pendiente') {
-      acciones.push('<button type="button" class="btn-primario" data-pedido-accion="confirmado">Confirmar</button>');
-      acciones.push('<button type="button" class="btn-peligro" data-pedido-accion="cancelado">Cancelar</button>');
-    } else if (pedido.estado === 'confirmado') {
-      acciones.push('<button type="button" class="btn-primario" data-pedido-accion="entregado">Marcar entregado</button>');
-      acciones.push('<button type="button" class="btn-peligro" data-pedido-accion="cancelado">Cancelar</button>');
-    }
+    const pagoEstado = pedido.pagado === true ? 'Pagado' : 'Pago pendiente';
+    const acciones = botonesPedido(pedido);
 
     const estado = ESTADOS_PEDIDO[pedido.estado] ? pedido.estado : 'desconocido';
 
@@ -1933,10 +2957,10 @@
       </div>
       <div class="admin-pedido-detalle-grid">
         <p class="admin-pedido-dato"><span>Cliente</span>${PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre')}</p>
-        <p class="admin-pedido-dato"><span>Teléfono</span>${PM.escaparHtml(pedido.cliente_telefono || '-')}</p>
+        <p class="admin-pedido-dato"><span>Teléfono</span>${PM.escaparHtml(pedido.cliente_telefono ? PM.formatearTelefonoAR(pedido.cliente_telefono) : '-')}</p>
         <p class="admin-pedido-dato"><span>Modalidad</span>${PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad))}</p>
         <p class="admin-pedido-dato"><span>Sucursal</span>${PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id))}</p>
-        <p class="admin-pedido-dato"><span>Pago</span>${PM.escaparHtml(pedido.metodo_pago || '-')}</p>
+        <p class="admin-pedido-dato"><span>Pago</span>${PM.escaparHtml(pedido.metodo_pago || '-')} · ${PM.escaparHtml(pagoEstado)}</p>
       </div>
       ${direccionHtml}
       <div class="admin-pedido-items"><span class="admin-pedido-bloque-titulo">Ítems</span>${itemsHtml || '<p class="admin-ayuda">Sin ítems.</p>'}</div>
@@ -1947,7 +2971,7 @@
         <div><span>Envío</span><span>${formatearPrecio(pedido.costo_envio)}</span></div>
         <div class="admin-pedido-total"><span>Total</span><span>${formatearPrecio(pedido.total)}</span></div>
       </div>
-      <div class="admin-pedido-acciones">${whatsappHtml}${acciones.join('')}</div>`;
+      <div class="admin-pedido-acciones">${whatsappHtml}${acciones}</div>`;
 
     if (el.modalPedidoTitulo) {
       el.modalPedidoTitulo.textContent = `Pedido #${pedido.numero_orden || ''}`;
@@ -1969,6 +2993,15 @@
     document.body.classList.remove('admin-modal-abierto');
   }
 
+  function esErrorPermiso(error) {
+    const mensaje = String((error && (error.message || error.error_description)) || '').toLowerCase();
+    const codigo = String((error && error.code) || '');
+    return codigo === '403' || codigo === '42501'
+      || mensaje.includes('permission denied')
+      || mensaje.includes('row-level security')
+      || mensaje.includes('not authorized');
+  }
+
   function errorEsDeSesion(error) {
     const mensaje = String((error && (error.message || error.error_description)) || '').toLowerCase();
     const codigo = String((error && error.code) || '');
@@ -1982,6 +3015,9 @@
     const detalle = (error && (error.message || error.error_description))
       ? String(error.message || error.error_description)
       : 'Error de conexión.';
+    if (esErrorPermiso(error)) {
+      return 'No tenés permiso para hacer esto.';
+    }
     if (errorEsDeSesion(error)) {
       return `Tu sesión venció o no tenés permisos para ver los pedidos. Volvé a iniciar sesión. (${detalle})`;
     }
@@ -1997,18 +3033,33 @@
     }
 
     try {
-      const { data, error } = await cliente
+      const camposBase = 'id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas,programado_para';
+      let respuesta = await cliente
         .from('pedidos')
-        .select('id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas')
+        .select(`${camposBase},pagado,pagado_en`)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(500);
 
+      if (respuesta.error) {
+        const detalle = String(respuesta.error.message || '').toLowerCase();
+        if (detalle.includes('pagado') && (detalle.includes('column') || detalle.includes('does not exist'))) {
+          pedidosSoportaPagos = false;
+          respuesta = await cliente
+            .from('pedidos')
+            .select(camposBase)
+            .order('created_at', { ascending: false })
+            .limit(500);
+        }
+      }
+
+      const { data, error } = respuesta;
       if (error) throw error;
 
       pedidos = Array.isArray(data) ? data : [];
       pedidosCargados = true;
-      renderPedidosLista();
+      renderPedidos();
       actualizarBadgePedidos();
+      actualizarAlertaPedidos();
 
       if (pedidoAbiertoId) {
         const actual = pedidos.find(item => String(item.id) === String(pedidoAbiertoId));
@@ -2016,6 +3067,7 @@
         else cerrarModalPedido();
       }
 
+      if (adminRolError) aplicarAvisoRol();
       if (!opciones.silencioso) mostrarEstadoPedidos('Pedidos actualizados.', 'ok');
     } catch (error) {
       console.warn('No se pudieron cargar los pedidos:', error);
@@ -2049,9 +3101,10 @@
       const indice = pedidos.findIndex(item => String(item.id) === String(id));
       if (indice >= 0) {
         pedidos[indice] = { ...pedidos[indice], estado: (data && data.estado) || nuevoEstado };
+        actualizarTarjetaEnVista(pedidos[indice]);
       }
-      renderPedidosLista();
       actualizarBadgePedidos();
+      actualizarAlertaPedidos();
       const actual = pedidos.find(item => String(item.id) === String(id));
       if (actual && String(pedidoAbiertoId) === String(id)) renderPedidoDetalle(actual);
       mostrarEstadoPedidos('Pedido actualizado.', 'ok');
@@ -2064,42 +3117,325 @@
     }
   }
 
-  function reproducirSonidoPedido() {
-    if (!pedidosSonidoActivo || !audioContexto) return;
+  async function ejecutarAccionPedido(id, accion, boton) {
+    if (!id || !accion) return;
+    const pedido = pedidos.find(item => String(item.id) === String(id));
+    if (!pedido) return;
+    if (accion === 'avanzar') {
+      const siguiente = siguienteEstadoPedido(pedido);
+      if (siguiente) await actualizarEstadoPedido(id, siguiente, boton);
+      return;
+    }
+    if (accion === 'cancelado') {
+      if (!await confirmarAccion({ titulo: 'Cancelar pedido', mensaje: '¿Cancelar este pedido?', textoConfirmar: 'Cancelar pedido', textoCancelar: 'Volver', peligro: true })) return;
+      await actualizarEstadoPedido(id, 'cancelado', boton);
+      return;
+    }
+    if (accion === 'pagado') {
+      await marcarPedidoPagado(id, boton);
+      return;
+    }
+    if (accion === 'imprimir') {
+      imprimirPedido(id);
+    }
+  }
+
+  async function marcarPedidoPagado(id, boton) {
+    if (!cliente) {
+      mostrarAvisoPedidos('Supabase no está disponible.', 'error');
+      return;
+    }
+    if (!pedidosSoportaPagos) {
+      mostrarAvisoPedidos('Aplicá la migración 016 para registrar pagos y nuevos estados.', 'error');
+      return;
+    }
+    const pedido = pedidos.find(item => String(item.id) === String(id));
+    if (!pedido || pedido.pagado === true) return;
+
+    if (boton) boton.disabled = true;
+    const pagadoEn = new Date().toISOString();
     try {
-      const ahora = audioContexto.currentTime;
-      const oscilador = audioContexto.createOscillator();
-      const ganancia = audioContexto.createGain();
-      oscilador.type = 'sine';
-      oscilador.frequency.setValueAtTime(880, ahora);
-      oscilador.frequency.exponentialRampToValueAtTime(1320, ahora + 0.12);
-      ganancia.gain.setValueAtTime(0.0001, ahora);
-      ganancia.gain.exponentialRampToValueAtTime(0.16, ahora + 0.02);
-      ganancia.gain.exponentialRampToValueAtTime(0.0001, ahora + 0.28);
-      oscilador.connect(ganancia);
-      ganancia.connect(audioContexto.destination);
-      oscilador.start(ahora);
-      oscilador.stop(ahora + 0.3);
+      const { data, error } = await cliente
+        .from('pedidos')
+        .update({ pagado: true, pagado_en: pagadoEn })
+        .eq('id', id)
+        .select('id,pagado,pagado_en')
+        .single();
+      if (error) throw error;
+
+      const indice = pedidos.findIndex(item => String(item.id) === String(id));
+      if (indice >= 0) {
+        pedidos[indice] = {
+          ...pedidos[indice],
+          pagado: true,
+          pagado_en: (data && data.pagado_en) || pagadoEn
+        };
+        actualizarTarjetaEnVista(pedidos[indice]);
+        if (String(pedidoAbiertoId) === String(id)) renderPedidoDetalle(pedidos[indice]);
+      }
+      mostrarEstadoPedidos('Pedido marcado como pagado.', 'ok');
+      mostrarAvisoPedidos('');
+    } catch (error) {
+      console.warn('No se pudo marcar el pedido como pagado:', error);
+      mostrarAvisoPedidos(mensajeErrorPedidos(error), 'error');
+    } finally {
+      if (boton) boton.disabled = false;
+    }
+  }
+
+  function imprimirPedido(id) {
+    const pedido = pedidos.find(item => String(item.id) === String(id));
+    if (!pedido || !el.pedidoTicket) return;
+    const items = Array.isArray(pedido.items_snapshot) ? pedido.items_snapshot : [];
+    const filas = items.map(item => {
+      const cantidad = Number(item && item.cantidad) || 0;
+      const nombre = PM.escaparHtml(item && item.nombre ? item.nombre : 'Producto');
+      return `<tr><td>${cantidad}</td><td>${nombre}</td><td>${formatearPrecio(item && item.subtotal)}</td></tr>`;
+    }).join('');
+    const pagoEstado = pedido.pagado === true ? 'Pagado' : 'Pago pendiente';
+
+    el.pedidoTicket.innerHTML = `
+      <h1>Piedra Mora</h1>
+      <p class="admin-ticket-numero">${PM.escaparHtml(pedido.numero_orden || 'Sin número')}</p>
+      <p>${PM.escaparHtml(fechaHoraPedido(pedido.created_at))} · ${PM.escaparHtml(nombreSucursalPedido(pedido.sucursal_id))}</p>
+      <p>${PM.escaparHtml(pedido.cliente_nombre || 'Sin nombre')} · ${PM.escaparHtml(pedido.cliente_telefono ? PM.formatearTelefonoAR(pedido.cliente_telefono) : '-')}</p>
+      <p>${PM.escaparHtml(etiquetaModalidadPedido(pedido.modalidad))} · ${PM.escaparHtml(pedido.metodo_pago || '-')} · ${PM.escaparHtml(pagoEstado)}</p>
+      ${pedido.direccion ? `<p>${PM.escaparHtml(pedido.direccion)}</p>` : ''}
+      <table class="admin-ticket-tabla">
+        <thead><tr><th>Cant.</th><th>Producto</th><th>Subtotal</th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="3">Sin ítems.</td></tr>'}</tbody>
+      </table>
+      <div class="admin-ticket-totales">
+        <p><span>Subtotal</span><span>${formatearPrecio(pedido.subtotal)}</span></p>
+        <p><span>Descuento</span><span>- ${formatearPrecio(pedido.descuento)}</span></p>
+        <p><span>Envío</span><span>${formatearPrecio(pedido.costo_envio)}</span></p>
+        <p class="admin-ticket-total"><span>Total</span><span>${formatearPrecio(pedido.total)}</span></p>
+      </div>
+      ${pedido.notas ? `<p class="admin-ticket-notas">Notas: ${PM.escaparHtml(pedido.notas)}</p>` : ''}`;
+
+    document.body.classList.add('admin-imprimiendo-pedido');
+    try {
+      window.print();
+    } finally {
+      document.body.classList.remove('admin-imprimiendo-pedido');
+    }
+  }
+
+  function campoCsv(valor) {
+    let texto = String(valor === undefined || valor === null ? '' : valor);
+    // Evita inyección de fórmulas al abrir en Excel/Sheets.
+    if (/^[=+\-@\t\r]/.test(texto)) texto = "'" + texto;
+    return `"${texto.replace(/"/g, '""')}"`;
+  }
+
+  function exportarPedidosCsv() {
+    const lista = pedidosFiltrados();
+    if (!lista.length) {
+      mostrarAvisoPedidos('No hay pedidos para exportar con estos filtros.', 'info');
+      return;
+    }
+    const encabezados = ['Numero', 'Fecha', 'Cliente', 'Telefono', 'Sucursal', 'Modalidad', 'Estado', 'Pago', 'Pagado', 'Subtotal', 'Descuento', 'Envio', 'Total', 'Items'];
+    const filas = lista.map(pedido => {
+      const items = Array.isArray(pedido.items_snapshot) ? pedido.items_snapshot : [];
+      const resumen = items.map(item => `${Number(item && item.cantidad) || 0}x ${item && item.nombre ? item.nombre : 'Producto'}`).join(' | ');
+      return [
+        pedido.numero_orden || '',
+        fechaHoraPedido(pedido.created_at),
+        pedido.cliente_nombre || '',
+        pedido.cliente_telefono || '',
+        nombreSucursalPedido(pedido.sucursal_id),
+        etiquetaModalidadPedido(pedido.modalidad),
+        nombreEstadoPedido(pedido.estado),
+        pedido.metodo_pago || '',
+        pedido.pagado === true ? 'SI' : 'NO',
+        pedido.subtotal,
+        pedido.descuento,
+        pedido.costo_envio,
+        pedido.total,
+        resumen
+      ].map(campoCsv).join(';');
+    });
+    const contenido = '\uFEFF' + [encabezados.map(campoCsv).join(';'), ...filas].join('\r\n');
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    const rangoExportado = rangoPedidosActual();
+    const nombreRango = rangoExportado.desde === rangoExportado.hasta
+      ? rangoExportado.desde
+      : `${rangoExportado.desde}-a-${rangoExportado.hasta}`;
+    enlace.download = `pedidos-${nombreRango}.csv`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    mostrarEstadoPedidos('Pedidos exportados en CSV.', 'ok');
+  }
+
+
+  function cargarPreferenciasSonido() {
+    try {
+      const sonido = localStorage.getItem(CLAVE_PREF_SONIDO);
+      if (sonido === 'off' || sonido === '0') pedidosSonidoActivo = false;
+      if (sonido === 'on' || sonido === '1') pedidosSonidoActivo = true;
+      const volumen = Number(localStorage.getItem(CLAVE_PREF_VOLUMEN));
+      if (Number.isFinite(volumen)) {
+        pedidosVolumen = Math.min(1, Math.max(0, volumen / 100));
+      }
+    } catch (error) {}
+    if (el.pedidosVolumen) el.pedidosVolumen.value = String(Math.round(pedidosVolumen * 100));
+  }
+
+  function guardarPreferenciaSonido() {
+    try {
+      localStorage.setItem(CLAVE_PREF_SONIDO, pedidosSonidoActivo ? 'on' : 'off');
+      localStorage.setItem(CLAVE_PREF_VOLUMEN, String(Math.round(pedidosVolumen * 100)));
+    } catch (error) {}
+  }
+
+  function obtenerAudioContexto() {
+    const ConstructorAudio = window.AudioContext || window.webkitAudioContext;
+    if (!ConstructorAudio) return null;
+    if (!audioContexto) audioContexto = new ConstructorAudio();
+    return audioContexto;
+  }
+
+  async function desbloquearAudioPedidos() {
+    const contexto = obtenerAudioContexto();
+    if (!contexto) return false;
+    try {
+      if (contexto.state === 'suspended') await contexto.resume();
+    } catch (error) {}
+    audioDesbloqueado = contexto.state === 'running';
+    actualizarEstadoSonido();
+    return audioDesbloqueado;
+  }
+
+  function actualizarEstadoSonido() {
+    const bloqueado = pedidosSonidoActivo && (!audioContexto || !audioDesbloqueado);
+    if (el.pedidosSonidoEstado) {
+      el.pedidosSonidoEstado.textContent = bloqueado
+        ? 'Activá el sonido con un clic'
+        : (pedidosSonidoActivo ? 'Sonido activo' : 'Sonido silenciado');
+      el.pedidosSonidoEstado.dataset.tipo = bloqueado ? 'pendiente' : '';
+    }
+    if (el.btnPedidosActivarSonido) {
+      el.btnPedidosActivarSonido.textContent = pedidosSonidoActivo ? 'Silenciar' : 'Activar sonido';
+      el.btnPedidosActivarSonido.setAttribute('aria-pressed', pedidosSonidoActivo ? 'true' : 'false');
+    }
+  }
+
+  function reproducirDingDong() {
+    if (!pedidosSonidoActivo) return;
+    const contexto = audioContexto;
+    if (!contexto || !audioDesbloqueado || contexto.state !== 'running') {
+      actualizarEstadoSonido();
+      return;
+    }
+    try {
+      const ahora = contexto.currentTime;
+      const master = contexto.createGain();
+      master.gain.setValueAtTime(Math.max(0.0001, pedidosVolumen), ahora);
+      master.connect(contexto.destination);
+
+      const notas = [
+        { frecuencia: 783.99, inicio: 0, duracion: 0.45 },
+        { frecuencia: 523.25, inicio: 0.32, duracion: 0.7 }
+      ];
+
+      notas.forEach(nota => {
+        const oscilador = contexto.createOscillator();
+        const ganancia = contexto.createGain();
+        const inicio = ahora + nota.inicio;
+        oscilador.type = 'sine';
+        oscilador.frequency.setValueAtTime(nota.frecuencia, inicio);
+        ganancia.gain.setValueAtTime(0.0001, inicio);
+        ganancia.gain.exponentialRampToValueAtTime(0.24, inicio + 0.04);
+        ganancia.gain.exponentialRampToValueAtTime(0.0001, inicio + nota.duracion);
+        oscilador.connect(ganancia);
+        ganancia.connect(master);
+        oscilador.start(inicio);
+        oscilador.stop(inicio + nota.duracion + 0.05);
+      });
     } catch (error) {
       console.warn('No se pudo reproducir el sonido del pedido.', error);
     }
   }
 
-  function activarSonidoPedidos() {
-    try {
-      const ConstructorAudio = window.AudioContext || window.webkitAudioContext;
-      if (!ConstructorAudio) throw new Error('Este navegador no soporta sonidos.');
-      if (!audioContexto) audioContexto = new ConstructorAudio();
-      if (audioContexto.state === 'suspended') audioContexto.resume();
-      pedidosSonidoActivo = true;
-      if (el.btnPedidosActivarSonido) {
-        el.btnPedidosActivarSonido.textContent = 'Sonido activado';
-        el.btnPedidosActivarSonido.disabled = true;
+  function actualizarTituloPedidos() {
+    const nuevos = contarPedidosNuevos();
+    if (nuevos > 0) {
+      if (!pedidosTituloTimer) {
+        pedidosTituloAlternado = false;
+        pedidosTituloTimer = setInterval(() => {
+          const cantidad = contarPedidosNuevos();
+          if (cantidad <= 0) {
+            actualizarTituloPedidos();
+            return;
+          }
+          pedidosTituloAlternado = !pedidosTituloAlternado;
+          document.title = pedidosTituloAlternado ? `(${cantidad}) Nuevo pedido` : pedidosTituloOriginal;
+        }, 1200);
       }
-      reproducirSonidoPedido();
-    } catch (error) {
-      mostrarAvisoPedidos(`No se pudo activar el sonido: ${error.message || error}`, 'error');
+      return;
     }
+    if (pedidosTituloTimer) {
+      clearInterval(pedidosTituloTimer);
+      pedidosTituloTimer = null;
+    }
+    pedidosTituloAlternado = false;
+    document.title = pedidosTituloOriginal;
+  }
+
+  function detenerAlertaPedidos() {
+    if (pedidosAlertaTimer) {
+      clearInterval(pedidosAlertaTimer);
+      pedidosAlertaTimer = null;
+    }
+    actualizarTituloPedidos();
+  }
+
+  function actualizarAlertaPedidos() {
+    const hayNuevos = contarPedidosNuevos() > 0;
+    if (hayNuevos && pedidosSonidoActivo) {
+      if (!pedidosAlertaTimer) {
+        pedidosAlertaTimer = setInterval(() => {
+          if (contarPedidosNuevos() > 0 && pedidosSonidoActivo) reproducirDingDong();
+          else actualizarAlertaPedidos();
+        }, INTERVALO_ALERTA_PEDIDOS);
+      }
+    } else if (pedidosAlertaTimer) {
+      clearInterval(pedidosAlertaTimer);
+      pedidosAlertaTimer = null;
+    }
+    actualizarTituloPedidos();
+    actualizarEstadoSonido();
+  }
+
+  function alertarPedidoNuevo() {
+    if (pedidosSonidoActivo) {
+      desbloquearAudioPedidos().then(desbloqueado => {
+        if (desbloqueado) reproducirDingDong();
+      }).catch(() => {});
+    }
+    actualizarAlertaPedidos();
+  }
+
+  async function alternarSonidoPedidos() {
+    pedidosSonidoActivo = !pedidosSonidoActivo;
+    guardarPreferenciaSonido();
+    if (pedidosSonidoActivo) {
+      const desbloqueado = await desbloquearAudioPedidos();
+      if (desbloqueado) reproducirDingDong();
+    }
+    actualizarAlertaPedidos();
+  }
+
+  function cambiarVolumenPedidos(evento) {
+    const valor = Number(evento && evento.target ? evento.target.value : 70);
+    pedidosVolumen = Number.isFinite(valor) ? Math.min(1, Math.max(0, valor / 100)) : 0.7;
+    guardarPreferenciaSonido();
+    if (pedidosSonidoActivo && audioDesbloqueado) reproducirDingDong();
   }
 
   function manejarPedidoInsertado(payload) {
@@ -2109,12 +3445,20 @@
     const existe = pedidos.some(item => String(item.id) === String(nuevo.id));
     if (!existe) {
       pedidos.unshift(nuevo);
-      if (pedidos.length > 100) pedidos.length = 100;
-      reproducirSonidoPedido();
-      mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
+      if (pedidos.length > 500) pedidos.length = 500;
+      if (pedidoVisiblePorRol(nuevo)) {
+        if (nuevo.programado_para) {
+          // Programado: sin ding-dong al crearse; el sonido repetido arranca si cae en la ventana de 3 h.
+          actualizarAlertaPedidos();
+          mostrarAvisoPedidos(`Nuevo pedido programado #${nuevo.numero_orden || ''} (${etiquetaProgramadoPedido(nuevo.programado_para).replace('Programado ', '')}).`, 'info');
+        } else {
+          alertarPedidoNuevo();
+          mostrarAvisoPedidos(`Nuevo pedido #${nuevo.numero_orden || ''}.`, 'info');
+        }
+      }
     }
 
-    renderPedidosLista();
+    actualizarTarjetaEnVista(nuevo);
     actualizarBadgePedidos();
   }
 
@@ -2126,8 +3470,9 @@
     if (indice >= 0) {
       const estadoAnterior = pedidos[indice].estado;
       pedidos[indice] = { ...pedidos[indice], ...actualizado };
-      renderPedidosLista();
+      actualizarTarjetaEnVista(pedidos[indice]);
       actualizarBadgePedidos();
+      actualizarAlertaPedidos();
       if (String(pedidoAbiertoId) === String(actualizado.id)) {
         renderPedidoDetalle(pedidos[indice]);
       }
@@ -2176,6 +3521,353 @@
     }, 60000);
   }
 
+  /* ===== Agotados por sucursal ===== */
+
+  function mostrarEstadoAgotados(texto, tipo = '') {
+    mostrarEstado(el.agotadosEstado, texto, tipo);
+  }
+
+  function mostrarAvisoAgotados(texto, tipo = 'info', accion = null) {
+    if (!el.agotadosAviso) return;
+    if (agotadosAvisoTimer) {
+      clearTimeout(agotadosAvisoTimer);
+      agotadosAvisoTimer = null;
+    }
+    if (!texto) {
+      el.agotadosAviso.hidden = true;
+      el.agotadosAviso.textContent = '';
+      return;
+    }
+    el.agotadosAviso.hidden = false;
+    el.agotadosAviso.dataset.tipo = tipo;
+    el.agotadosAviso.textContent = texto;
+    if (accion) {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'btn-secundario admin-agotados-deshacer';
+      boton.textContent = accion.texto;
+      boton.addEventListener('click', () => {
+        mostrarAvisoAgotados('');
+        accion.alClick();
+      });
+      el.agotadosAviso.append(' ', boton);
+      agotadosAvisoTimer = setTimeout(() => mostrarAvisoAgotados(''), 8000);
+    }
+  }
+
+  function agotadosDeSucursal(sucursalId) {
+    return agotadosPorSucursal.get(String(sucursalId)) || new Set();
+  }
+
+  function estaAgotadoEn(sucursalId, productoId) {
+    return agotadosDeSucursal(sucursalId).has(String(productoId));
+  }
+
+  function fijarAgotado(sucursalId, productoId, agotado) {
+    const sid = String(sucursalId);
+    if (!agotadosPorSucursal.has(sid)) agotadosPorSucursal.set(sid, new Set());
+    const set = agotadosPorSucursal.get(sid);
+    if (agotado) set.add(String(productoId));
+    else set.delete(String(productoId));
+  }
+
+  function renderAgotadosTodo() {
+    renderAgotados();
+    renderDisponibilidadCarta();
+  }
+
+  function poblarSelectAgotados() {
+    if (!el.agotadosSucursal) return;
+    if (el.agotadosSucursalCampo) el.agotadosSucursalCampo.hidden = esAdminSucursal();
+    if (esAdminSucursal()) {
+      el.agotadosSucursal.disabled = true;
+      if (!adminSucursalId) {
+        el.agotadosSucursal.innerHTML = '<option value="">Sin sucursal asignada</option>';
+        el.agotadosSucursal.value = '';
+        return;
+      }
+      const nombre = SUCURSALES_NOMBRES[adminSucursalId] || adminSucursalId;
+      el.agotadosSucursal.innerHTML = `<option value="${escaparHtml(adminSucursalId)}">${escaparHtml(nombre)}</option>`;
+      el.agotadosSucursal.value = adminSucursalId;
+      return;
+    }
+    el.agotadosSucursal.disabled = false;
+    const actual = el.agotadosSucursal.value;
+    const opciones = Object.keys(SUCURSALES_NOMBRES)
+      .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
+      .map(id => `<option value="${escaparHtml(id)}">${escaparHtml(SUCURSALES_NOMBRES[id])}</option>`)
+      .join('');
+    el.agotadosSucursal.innerHTML = opciones;
+    if (actual) el.agotadosSucursal.value = actual;
+  }
+
+  function sucursalAgotadosSeleccionada() {
+    if (esAdminSucursal()) return adminSucursalId || '';
+    return (el.agotadosSucursal && el.agotadosSucursal.value) || '';
+  }
+
+  function productosCartaDeSucursal(sucursalId) {
+    if (!carta || !Array.isArray(carta.productos) || !sucursalId) return [];
+    return carta.productos
+      .filter(producto => Array.isArray(producto.sucursales) && producto.sucursales.includes(sucursalId))
+      .sort((a, b) => {
+        const categoriaA = nombreCategoria(a.categoria);
+        const categoriaB = nombreCategoria(b.categoria);
+        if (categoriaA !== categoriaB) return categoriaA.localeCompare(categoriaB, 'es');
+        return String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es');
+      });
+  }
+
+  function normalizarBusquedaAgotados(texto) {
+    return String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  }
+
+  function poblarCategoriasAgotados(productos) {
+    if (!el.agotadosCategoria) return;
+    const actual = el.agotadosCategoria.value;
+    const ids = [...new Set(productos.map(p => p.categoria))];
+    ids.sort((x, y) => nombreCategoria(x).localeCompare(nombreCategoria(y), 'es'));
+    el.agotadosCategoria.innerHTML = '<option value="">Todas las categorías</option>'
+      + ids.map(id => `<option value="${escaparHtml(id)}">${escaparHtml(nombreCategoria(id))}</option>`).join('');
+    el.agotadosCategoria.value = ids.includes(actual) ? actual : '';
+  }
+
+  function renderAgotados() {
+    if (!el.agotadosLista) return;
+    const scrollPrevio = el.agotadosLista.scrollTop;
+    const sucursalId = sucursalAgotadosSeleccionada();
+    if (el.agotadosEditando) el.agotadosEditando.textContent = sucursalId ? (SUCURSALES_NOMBRES[sucursalId] || sucursalId) : '—';
+    if (!sucursalId) {
+      el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">Sin sucursal asignada. Recargá la página o pedile al dueño que asigne una sucursal.</p>';
+      return;
+    }
+
+    const productos = productosCartaDeSucursal(sucursalId);
+    if (!productos.length) {
+      el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">No hay productos cargados para esta sucursal.</p>';
+      return;
+    }
+
+    const agotados = agotadosDeSucursal(sucursalId);
+    poblarCategoriasAgotados(productos);
+    const cantidad = productos.filter(p => agotados.has(String(p.id))).length;
+    if (el.agotadosResumen) el.agotadosResumen.textContent = `${cantidad} ${cantidad === 1 ? 'agotado' : 'agotados'}`;
+    if (el.agotadosFiltroEstado) el.agotadosFiltroEstado.value = agotadosFiltroEstado;
+
+    const consulta = normalizarBusquedaAgotados(el.agotadosBuscar && el.agotadosBuscar.value);
+    const categoria = el.agotadosCategoria ? el.agotadosCategoria.value : '';
+    const filtrados = productos.filter(p => {
+      const id = String(p.id);
+      if (categoria && p.categoria !== categoria) return false;
+      if (consulta && !normalizarBusquedaAgotados(p.nombre || p.id).includes(consulta)) return false;
+      if (agotadosSaliendo.has(id)) return true;
+      if (agotadosFiltroEstado === 'no-disponibles') return agotados.has(id);
+      if (agotadosFiltroEstado === 'disponibles') return !agotados.has(id);
+      return true;
+    });
+    if (agotadosFiltroEstado === 'todos') {
+      // Agotados primero; el resto conserva el orden por categoría/nombre.
+      filtrados.sort((x, y) => Number(agotados.has(String(y.id))) - Number(agotados.has(String(x.id))));
+    }
+
+    if (!filtrados.length) {
+      if (agotadosFiltroEstado === 'no-disponibles' && cantidad === 0 && !consulta && !categoria) {
+        el.agotadosLista.innerHTML = '<div class="admin-envios-vacio admin-agotados-vacio"><p>No hay productos agotados</p><button type="button" class="btn-secundario" data-agotados-ver-todos>Ver todos para marcar</button></div>';
+      } else {
+        el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">No hay productos que coincidan.</p>';
+      }
+      return;
+    }
+
+    const sucursalNombre = SUCURSALES_NOMBRES[sucursalId] || sucursalId;
+    el.agotadosLista.innerHTML = filtrados.map(producto => {
+      const id = String(producto.id);
+      const agotado = agotados.has(id);
+      const guardando = agotadosGuardando.has(`${sucursalId}|${id}`);
+      const nombre = producto.nombre || id;
+      return `<div class="admin-agotado-fila${agotado ? ' es-agotado' : ''}${agotadosSaliendo.has(id) ? ' saliendo' : ''}">
+        <span class="admin-agotado-texto">
+          <strong>${escaparHtml(nombre)}</strong>
+          <small>${escaparHtml(nombreCategoria(producto.categoria))}</small>
+        </span>
+        <span class="admin-agotado-estado">${agotado ? 'Agotado' : 'Disponible'}</span>
+        <button type="button" class="admin-switch" role="switch" aria-checked="${agotado ? 'true' : 'false'}" aria-label="${escaparHtml(`${nombre} en ${sucursalNombre}`)}" data-agotado-id="${escaparHtml(id)}" data-agotado-sucursal="${escaparHtml(sucursalId)}"${guardando ? ' disabled' : ''}><span class="admin-switch-perilla"></span></button>
+      </div>`;
+    }).join('');
+    el.agotadosLista.scrollTop = scrollPrevio;
+  }
+
+  // Carga una sola vez las filas de todas las sucursales que el usuario puede ver (la RLS filtra).
+  async function cargarAgotados(opciones = {}) {
+    if (!cliente || agotadosCargando) return;
+    if (!carta) await cargarCarta();
+
+    agotadosCargando = true;
+    if (!opciones.silencioso) {
+      mostrarEstadoAgotados('Cargando agotados...');
+      mostrarAvisoAgotados('');
+    }
+
+    try {
+      const { data, error } = await cliente
+        .from('agotados_sucursal')
+        .select('producto_id,sucursal_id');
+      if (error) throw error;
+
+      const nuevo = new Map();
+      (Array.isArray(data) ? data : []).forEach(item => {
+        if (!item || !item.producto_id || !item.sucursal_id) return;
+        const sid = String(item.sucursal_id);
+        if (!nuevo.has(sid)) nuevo.set(sid, new Set());
+        nuevo.get(sid).add(String(item.producto_id));
+      });
+      agotadosPorSucursal = nuevo;
+      agotadosCargados = true;
+      renderAgotadosTodo();
+      mostrarEstadoAgotados('');
+    } catch (error) {
+      console.warn('No se pudieron cargar los agotados:', error);
+      mostrarEstadoAgotados('');
+      mostrarAvisoAgotados(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : `No se pudieron cargar los agotados: ${error.message || 'error de conexión'}`, 'error');
+    } finally {
+      agotadosCargando = false;
+    }
+  }
+
+  // Guardado instantáneo compartido por Pedidos y la carta del admin.
+  async function cambiarAgotado(productoId, sucursalId, marcar, opciones = {}) {
+    const id = String(productoId || '');
+    const sid = String(sucursalId || '');
+    const clave = `${sid}|${id}`;
+    if (!cliente || !id || !sid || agotadosGuardando.has(clave)) return;
+    agotadosGuardando.add(clave);
+    const conTransicion = !marcar && opciones.origen === 'pedidos' && agotadosFiltroEstado === 'no-disponibles';
+    if (conTransicion) agotadosSaliendo.add(id);
+    fijarAgotado(sid, id, marcar);
+    renderAgotadosTodo();
+    mostrarAvisoAgotados('');
+    if (conTransicion) {
+      setTimeout(() => {
+        agotadosSaliendo.delete(id);
+        renderAgotados();
+      }, 250);
+    }
+
+    try {
+      let error = null;
+      if (marcar) {
+        const respuesta = await cliente
+          .from('agotados_sucursal')
+          .upsert({ producto_id: id, sucursal_id: sid }, { onConflict: 'producto_id,sucursal_id' });
+        error = respuesta.error;
+      } else {
+        const respuesta = await cliente
+          .from('agotados_sucursal')
+          .delete()
+          .eq('producto_id', id)
+          .eq('sucursal_id', sid);
+        error = respuesta.error;
+      }
+      if (error) throw error;
+      if (!marcar && opciones.origen === 'pedidos') {
+        const producto = buscarProducto(id);
+        const nombre = (producto && producto.nombre) || id;
+        mostrarAvisoAgotados(`Reactivado: ${nombre}.`, 'info', {
+          texto: 'Deshacer',
+          alClick: () => cambiarAgotado(id, sid, true, { origen: 'pedidos' })
+        });
+      }
+    } catch (error) {
+      console.warn('No se pudo cambiar el agotado:', error);
+      // Revierte el switch.
+      fijarAgotado(sid, id, !marcar);
+      agotadosSaliendo.delete(id);
+      mostrarEstadoAgotados('');
+      mostrarAvisoAgotados(esErrorPermiso(error) ? 'No tenés permiso para hacer esto.' : `No se pudo guardar el agotado: ${error.message || 'error de conexión'}`, 'error');
+    } finally {
+      agotadosGuardando.delete(clave);
+      renderAgotadosTodo();
+    }
+  }
+
+  const SUCURSALES_CORTO = { 'intendente-lascano': 'Lascano', 'maestro-quiroga': 'Maestro Quiroga' };
+  const SUCURSALES_SWITCH = { 'intendente-lascano': 'Int. Lascano', 'maestro-quiroga': 'Maestro Quiroga' };
+
+  function htmlDisponibilidadProducto(producto) {
+    const id = String(producto.id);
+    const sucursales = (Array.isArray(producto.sucursales) ? producto.sucursales : [])
+      .map(String)
+      .filter(sid => SUCURSALES_NOMBRES[sid] || SUCURSALES_SWITCH[sid]);
+    if (!sucursales.length) return '';
+    sucursales.sort((a, b) => (SUCURSALES_SWITCH[a] || a).localeCompare(SUCURSALES_SWITCH[b] || b, 'es'));
+
+    const etiquetas = [];
+    if (PM.productoEstaAgotado(producto)) etiquetas.push('Agotado en todas');
+    sucursales.forEach(sid => {
+      if (estaAgotadoEn(sid, id)) etiquetas.push(`Agotado en ${SUCURSALES_CORTO[sid] || SUCURSALES_NOMBRES[sid] || sid}`);
+    });
+    const chips = etiquetas.map(t => `<span class="admin-badge admin-badge-agotado">${escaparHtml(t)}</span>`).join('');
+
+    const filas = sucursales.map(sid => {
+      const agotado = estaAgotadoEn(sid, id);
+      const guardando = agotadosGuardando.has(`${sid}|${id}`);
+      const sucNombre = SUCURSALES_SWITCH[sid] || SUCURSALES_NOMBRES[sid] || sid;
+      const prodNombre = producto.nombre || id;
+      return `<div class="admin-disp-fila${agotado ? ' es-agotado' : ''}">
+        <span class="admin-disp-nombre">${escaparHtml(sucNombre)}</span>
+        <span class="admin-agotado-estado">${agotado ? 'Agotado' : 'Disponible'}</span>
+        <button type="button" class="admin-switch" role="switch" aria-checked="${agotado ? 'true' : 'false'}" aria-label="${escaparHtml(`${prodNombre} en ${sucNombre}`)}" data-agotado-carta="${escaparHtml(id)}" data-agotado-sucursal="${escaparHtml(sid)}"${guardando ? ' disabled' : ''}><span class="admin-switch-perilla"></span></button>
+      </div>`;
+    }).join('');
+
+    return `<p class="admin-disp-titulo">Disponibilidad</p>${chips ? `<div class="admin-disp-chips">${chips}</div>` : ''}${filas}`;
+  }
+
+  // Actualiza solo los bloques de disponibilidad (no toca los editores abiertos).
+  function renderDisponibilidadCarta() {
+    if (!el.listaProductos) return;
+    el.listaProductos.querySelectorAll('[data-disponibilidad]').forEach(cont => {
+      const producto = buscarProducto(cont.dataset.disponibilidad);
+      if (producto) cont.innerHTML = htmlDisponibilidadProducto(producto);
+    });
+  }
+
+  function programarRecargaAgotados() {
+    if (agotadosRealtimeTimer) clearTimeout(agotadosRealtimeTimer);
+    agotadosRealtimeTimer = setTimeout(() => {
+      agotadosRealtimeTimer = null;
+      if (agotadosCargados) cargarAgotados({ silencioso: true });
+    }, 300);
+  }
+
+  function iniciarRealtimeAgotados() {
+    if (!cliente || agotadosCanal) return;
+    agotadosCanal = cliente
+      .channel('admin-agotados')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agotados_sucursal' }, programarRecargaAgotados)
+      .subscribe((estado) => {
+        if (estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT') {
+          console.warn('Realtime de agotados no disponible:', estado);
+        }
+      });
+  }
+
+  function detenerRealtimeAgotados() {
+    if (agotadosCanal && cliente) {
+      try {
+        if (typeof cliente.removeChannel === 'function') cliente.removeChannel(agotadosCanal);
+        else agotadosCanal.unsubscribe();
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+    agotadosCanal = null;
+    if (agotadosRealtimeTimer) {
+      clearTimeout(agotadosRealtimeTimer);
+      agotadosRealtimeTimer = null;
+    }
+  }
+
   /* ===== Fase 1: seccion Envios ===== */
 
   function mostrarEstadoEnvios(texto, tipo = '') {
@@ -2198,6 +3890,9 @@
     const detalle = (error && (error.message || error.error_description))
       ? String(error.message || error.error_description)
       : 'Error de conexión.';
+    if (esErrorPermiso(error)) {
+      return 'No tenés permiso para hacer esto.';
+    }
     if (errorEsDeSesion(error)) {
       return `Tu sesión venció o no tenés permisos para ${accion || 'editar'} envíos. Volvé a iniciar sesión. (${detalle})`;
     }
@@ -2211,6 +3906,19 @@
 
   function poblarSelectSucursalesEnvios() {
     if (!el.tramoSucursal) return;
+    if (esAdminSucursal()) {
+      el.tramoSucursal.disabled = true;
+      if (!adminSucursalId) {
+        el.tramoSucursal.innerHTML = '<option value="">Sin sucursal asignada</option>';
+        el.tramoSucursal.value = '';
+        return;
+      }
+      const nombre = SUCURSALES_NOMBRES[adminSucursalId] || adminSucursalId;
+      el.tramoSucursal.innerHTML = `<option value="${escaparHtml(adminSucursalId)}">${escaparHtml(nombre)}</option>`;
+      el.tramoSucursal.value = adminSucursalId;
+      return;
+    }
+    el.tramoSucursal.disabled = false;
     const actual = el.tramoSucursal.value;
     const opciones = Object.keys(SUCURSALES_NOMBRES)
       .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
@@ -2239,47 +3947,54 @@
       const metros = configEnvios.metrosPorCuadra || 100;
       el.enviosAyuda.textContent = `La distancia se mide en línea recta desde la sucursal. Una cuadra cuenta como ${metros} metros.`;
     }
+    if (el.tramosMetrosReferencia) {
+      const metros = configEnvios.metrosPorCuadra || 100;
+      el.tramosMetrosReferencia.textContent = `1 cuadra = ${metros} metros.`;
+    }
   }
 
   function renderZonasNormales() {
     if (!el.zonasNormalesLista) return;
-    if (!zonasNormales.length) {
+    const visibles = zonasNormales.filter(zona => sucursalVisibleParaRol(zona.sucursal_id));
+    if (!visibles.length) {
       el.zonasNormalesLista.innerHTML = '<p class="admin-envios-vacio">No hay filas de Zona normal. Revisá la configuración de zonas en la base.</p>';
       return;
     }
 
-    el.zonasNormalesLista.innerHTML = zonasNormales.map(zona => {
+    el.zonasNormalesLista.innerHTML = visibles.map(zona => {
       const id = escaparHtml(zona.id);
-      return `<div class="admin-envios-zona" data-zona-id="${id}">
-        <div class="admin-envios-zona-nombre">
+      const editable = puedeEditarFilaSucursal(zona.sucursal_id);
+      return `<div class="admin-zona-fila${editable ? '' : ' admin-solo-lectura'}" data-zona-id="${id}">
+        <div class="admin-zona-nombre">
           <strong>${escaparHtml(zona.nombre || 'Zona normal')}</strong>
           <small>${escaparHtml(etiquetaSucursalEnvios(zona.sucursal_id))}</small>
         </div>
         <label class="admin-campo">
           <span>Costo base</span>
-          <input type="number" min="0" step="1" inputmode="decimal" data-zona-costo value="${Number(zona.costo) || 0}">
+          <input type="number" min="0" step="1" inputmode="decimal" data-zona-costo value="${Number(zona.costo) || 0}"${editable ? '' : ' disabled'}>
         </label>
         <label class="admin-campo admin-campo-check">
-          <input type="checkbox" data-zona-tramos ${zona.aplica_tramos ? 'checked' : ''}>
+          <input type="checkbox" data-zona-tramos ${zona.aplica_tramos ? 'checked' : ''}${editable ? '' : ' disabled'}>
           <span>Usar tramos</span>
         </label>
         <label class="admin-campo admin-campo-check">
-          <input type="checkbox" data-zona-activa ${zona.activa ? 'checked' : ''}>
+          <input type="checkbox" data-zona-activa ${zona.activa ? 'checked' : ''}${editable ? '' : ' disabled'}>
           <span>Activa</span>
         </label>
-        <button type="button" class="btn-primario" data-zona-guardar>Guardar</button>
+        ${editable ? '<button type="button" class="btn-primario admin-zona-guardar" data-zona-guardar>Guardar</button>' : '<span class="admin-chip">Solo lectura</span>'}
       </div>`;
     }).join('');
   }
 
   function renderTramosEnvios() {
     if (!el.tramosLista) return;
-    if (!tramosEnvios.length) {
+    const visibles = tramosEnvios.filter(tramo => sucursalVisibleParaRol(tramo.sucursal_id));
+    if (!visibles.length) {
       el.tramosLista.innerHTML = '<p class="admin-envios-vacio">Todavía no hay tramos cargados.</p>';
       return;
     }
 
-    const ordenados = [...tramosEnvios].sort((a, b) => {
+    const ordenados = [...visibles].sort((a, b) => {
       const sa = a.sucursal_id || '';
       const sb = b.sucursal_id || '';
       if (sa !== sb) {
@@ -2290,32 +4005,23 @@
       return Number(a.desde_cuadras) - Number(b.desde_cuadras);
     });
 
-    el.tramosLista.innerHTML = ordenados.map(tramo => {
+    const cabecera = '<div class="admin-tramo-cab" aria-hidden="true"><span>Sucursal</span><span>Desde</span><span>Hasta</span><span>Costo</span><span>Estado</span><span></span></div>';
+    el.tramosLista.innerHTML = cabecera + ordenados.map(tramo => {
       const id = escaparHtml(tramo.id);
       const activa = !!tramo.activa;
-      return `<div class="admin-envios-tramo ${activa ? '' : 'inactivo'}" data-tramo-id="${id}">
-        <div class="admin-envios-tramo-dato">
-          <small>Sucursal</small>
-          <span>${escaparHtml(etiquetaSucursalEnvios(tramo.sucursal_id))}</span>
-        </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Desde</small>
-          <span>${Number(tramo.desde_cuadras) || 0} cuadras</span>
-        </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Hasta</small>
-          <span>${Number(tramo.hasta_cuadras) || 0} cuadras</span>
-        </div>
-        <div class="admin-envios-tramo-dato">
-          <small>Costo</small>
-          <span>${formatearPrecio(tramo.costo)}</span>
-        </div>
-        <div class="admin-envios-tramo-acciones">
-          <span class="admin-envios-tramo-badge ${activa ? 'activa' : 'inactiva'}">${activa ? 'Activo' : 'Inactivo'}</span>
-          <button type="button" class="btn-secundario" data-tramo-accion="editar">Editar</button>
+      const editable = puedeEditarFilaSucursal(tramo.sucursal_id);
+      const acciones = editable
+        ? `<button type="button" class="btn-secundario" data-tramo-accion="editar">Editar</button>
           <button type="button" class="btn-secundario" data-tramo-accion="toggle">${activa ? 'Desactivar' : 'Activar'}</button>
-          <button type="button" class="btn-peligro" data-tramo-accion="eliminar">Borrar</button>
-        </div>
+          <button type="button" class="btn-peligro" data-tramo-accion="eliminar">Borrar</button>`
+        : '<span class="admin-chip">Solo lectura</span>';
+      return `<div class="admin-tramo-fila${activa ? '' : ' inactivo'}${editable ? '' : ' admin-solo-lectura'}" data-tramo-id="${id}">
+        <span class="admin-tramo-suc">${escaparHtml(etiquetaSucursalEnvios(tramo.sucursal_id))}</span>
+        <span class="admin-tramo-num" data-et="Desde">${Number(tramo.desde_cuadras) || 0}</span>
+        <span class="admin-tramo-num" data-et="Hasta">${Number(tramo.hasta_cuadras) || 0}</span>
+        <span class="admin-tramo-num admin-tramo-costo" data-et="Costo">${formatearPrecio(tramo.costo)}</span>
+        <span class="admin-envios-tramo-badge ${activa ? 'activa' : 'inactiva'}">${activa ? 'Activo' : 'Inactivo'}</span>
+        <div class="admin-tramo-acc">${acciones}</div>
       </div>`;
     }).join('');
   }
@@ -2371,7 +4077,11 @@
       renderTramosEnvios();
       enviosCargados = true;
 
-      if (!opciones.silencioso) mostrarEstadoEnvios('Envíos actualizados.', 'ok');
+      if (adminRolError) aplicarAvisoRol();
+      if (!opciones.silencioso) {
+        mostrarEstadoEnvios('Envíos actualizados.', 'ok');
+        mostrarAvisoEnvios(avisoHuecoFinalTodas(), 'info');
+      }
     } catch (error) {
       console.warn('No se pudieron cargar los envíos:', error);
       mostrarEstadoEnvios('');
@@ -2385,6 +4095,10 @@
     if (evento) evento.preventDefault();
     if (!cliente) {
       mostrarAvisoEnvios('Supabase no está disponible.', 'error');
+      return;
+    }
+    if (esAdminSucursal()) {
+      mostrarAvisoEnvios('No tenés permiso para editar la configuración general.', 'error');
       return;
     }
 
@@ -2451,6 +4165,12 @@
       : null;
     if (!contenedor) return;
 
+    const zona = zonasNormales.find(item => String(item.id) === String(id));
+    if (!zona || !puedeEditarFilaSucursal(zona.sucursal_id)) {
+      if (el.zonasNormalesEstado) mostrarEstado(el.zonasNormalesEstado, 'No tenés permiso para hacer esto.', 'error');
+      return;
+    }
+
     const costoInput = contenedor.querySelector('[data-zona-costo]');
     const tramosInput = contenedor.querySelector('[data-zona-tramos]');
     const activaInput = contenedor.querySelector('[data-zona-activa]');
@@ -2488,7 +4208,10 @@
     if (!el.formTramo) return;
     el.formTramo.hidden = false;
     if (el.tramoId) el.tramoId.value = tramo && tramo.id ? tramo.id : '';
-    if (el.tramoSucursal) el.tramoSucursal.value = tramo && tramo.sucursal_id ? tramo.sucursal_id : '';
+    if (el.tramoSucursal) {
+      const sucursalTramo = tramo && tramo.sucursal_id ? tramo.sucursal_id : '';
+      el.tramoSucursal.value = esAdminSucursal() && adminSucursalId ? adminSucursalId : sucursalTramo;
+    }
     if (el.tramoDesde) el.tramoDesde.value = tramo ? String(tramo.desde_cuadras) : '';
     if (el.tramoHasta) el.tramoHasta.value = tramo ? String(tramo.hasta_cuadras) : '';
     if (el.tramoCosto) el.tramoCosto.value = tramo ? String(tramo.costo) : '';
@@ -2529,7 +4252,9 @@
     const otros = tramosEnvios.filter(tramo => {
       if (String(tramo.id) === String(idExcluir)) return false;
       if (!tramo.activa) return false;
-      return (tramo.sucursal_id || '') === clave;
+      const claveTramo = tramo.sucursal_id || '';
+      if (!clave) return true;
+      return !claveTramo || claveTramo === clave;
     });
 
     const choque = otros.find(tramo =>
@@ -2538,7 +4263,7 @@
     );
 
     if (choque) {
-      throw new Error(`El tramo se superpone con el tramo activo de ${choque.desde_cuadras} a ${choque.hasta_cuadras} cuadras.`);
+      throw new Error(`El tramo de ${datos.desde_cuadras} a ${datos.hasta_cuadras} cuadras se superpone con el tramo activo de ${choque.desde_cuadras} a ${choque.hasta_cuadras} cuadras de ${etiquetaSucursalEnvios(choque.sucursal_id)}.`);
     }
   }
 
@@ -2549,6 +4274,21 @@
     const maximo = Math.max(...activos.map(tramo => Number(tramo.hasta_cuadras) || 0));
     if (maximo >= 999) return '';
     return `Aviso: el último tramo activo llega hasta ${maximo} cuadras. Conviene que llegue a 999 para no dejar envíos sin precio.`;
+  }
+
+  function avisoHuecoFinalTodas() {
+    const conHueco = [];
+    Object.keys(SUCURSALES_NOMBRES).forEach(id => {
+      const activos = tramosEnvios.filter(tramo =>
+        tramo.activa && (!tramo.sucursal_id || tramo.sucursal_id === id));
+      if (!activos.length) return;
+      const maximo = Math.max(...activos.map(tramo => Number(tramo.hasta_cuadras) || 0));
+      if (maximo < 999) {
+        conHueco.push(`${SUCURSALES_NOMBRES[id]} (hasta ${maximo} cuadras)`);
+      }
+    });
+    if (!conHueco.length) return '';
+    return `Aviso: el último tramo activo no llega a 999 cuadras en ${conHueco.join(', ')}. Conviene que llegue a 999 para no dejar envíos sin precio.`;
   }
 
   async function guardarTramo(evento) {
@@ -2566,6 +4306,15 @@
       costo: Number(el.tramoCosto && el.tramoCosto.value),
       activa: !!(el.tramoActiva && el.tramoActiva.checked)
     };
+
+    if (esAdminSucursal()) {
+      const existente = id ? tramosEnvios.find(item => String(item.id) === String(id)) : null;
+      if (!adminSucursalId || (existente && !puedeEditarFilaSucursal(existente.sucursal_id))) {
+        if (el.tramoEstado) mostrarEstado(el.tramoEstado, 'No tenés permiso para hacer esto.', 'error');
+        return;
+      }
+      datos.sucursal_id = adminSucursalId;
+    }
 
     try {
       validarTramo(datos, id);
@@ -2600,6 +4349,10 @@
     if (!cliente) return;
     const tramo = tramosEnvios.find(item => String(item.id) === String(id));
     if (!tramo) return;
+    if (!puedeEditarFilaSucursal(tramo.sucursal_id)) {
+      mostrarAvisoEnvios('No tenés permiso para hacer esto.', 'error');
+      return;
+    }
 
     const actualizado = { ...tramo, activa: !tramo.activa };
     if (actualizado.activa) {
@@ -2637,7 +4390,11 @@
     if (!cliente) return;
     const tramo = tramosEnvios.find(item => String(item.id) === String(id));
     if (!tramo) return;
-    if (!window.confirm(`¿Borrar el tramo de ${tramo.desde_cuadras} a ${tramo.hasta_cuadras} cuadras de ${etiquetaSucursalEnvios(tramo.sucursal_id)}?`)) return;
+    if (!puedeEditarFilaSucursal(tramo.sucursal_id)) {
+      mostrarAvisoEnvios('No tenés permiso para hacer esto.', 'error');
+      return;
+    }
+    if (!await confirmarAccion({ titulo: 'Borrar tramo', mensaje: `¿Borrar el tramo de ${tramo.desde_cuadras} a ${tramo.hasta_cuadras} cuadras de ${etiquetaSucursalEnvios(tramo.sucursal_id)}?`, textoConfirmar: 'Borrar', peligro: true })) return;
 
     try {
       const { error } = await cliente.from('tramos_envio').delete().eq('id', id);
@@ -2651,20 +4408,2257 @@
     }
   }
 
+  // ---------------------------------------------------------------
+  // Cupones (solo dueño). El servidor valida todo: acá solo se muestra.
+  // ---------------------------------------------------------------
+  const ZONA_AR = 'America/Argentina/Buenos_Aires';
+
+  function puedeVerCupones() {
+    return adminRol === 'dueno' && !adminRolError;
+  }
+
+  function mostrarEstadoCupones(texto, tipo = '') {
+    mostrarEstado(el.cuponesEstado, texto, tipo);
+  }
+
+  function mostrarAvisoCupones(texto, tipo = 'info') {
+    if (!el.cuponesAviso) return;
+    if (!texto) {
+      el.cuponesAviso.hidden = true;
+      el.cuponesAviso.textContent = '';
+      return;
+    }
+    el.cuponesAviso.hidden = false;
+    el.cuponesAviso.dataset.tipo = tipo;
+    el.cuponesAviso.textContent = texto;
+  }
+
+  function formatearFechaCupon(iso) {
+    if (!iso) return '';
+    const fecha = new Date(iso);
+    if (Number.isNaN(fecha.getTime())) return '';
+    return new Intl.DateTimeFormat('es-AR', {
+      timeZone: ZONA_AR, day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).format(fecha);
+  }
+
+  // timestamptz -> valor de <input type="datetime-local"> en hora Argentina.
+  function isoAInputLocal(iso) {
+    if (!iso) return '';
+    const fecha = new Date(iso);
+    if (Number.isNaN(fecha.getTime())) return '';
+    const partes = {};
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: ZONA_AR, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(fecha).forEach(p => { partes[p.type] = p.value; });
+    return `${partes.year}-${partes.month}-${partes.day}T${partes.hour}:${partes.minute}`;
+  }
+
+  // Valor de datetime-local (hora Argentina) -> ISO con offset -03:00.
+  function inputLocalAIso(valor) {
+    const limpio = String(valor || '').trim();
+    if (!limpio) return null;
+    return `${limpio.length === 16 ? `${limpio}:00` : limpio}-03:00`;
+  }
+
+  function vigenciaCupon(cupon) {
+    const desde = formatearFechaCupon(cupon.fecha_inicio);
+    const hasta = formatearFechaCupon(cupon.fecha_vencimiento);
+    if (!desde && !hasta) return 'Sin límite';
+    if (desde && hasta) return `${desde} → ${hasta}`;
+    return desde ? `Desde ${desde}` : `Hasta ${hasta}`;
+  }
+
+  function valorCupon(cupon) {
+    const valor = Number(cupon.valor);
+    return cupon.tipo === 'porcentaje' ? `${valor}%` : formatearPrecio(valor);
+  }
+
+  // Prioridad: pausado > vencido > agotado > programado > activo.
+  // Se comparan instantes con la hora del navegador; el servidor decide la validez real.
+  function estadoCupon(cupon, usos) {
+    if (!cupon.activo) return 'pausado';
+    const ahora = new Date();
+    if (cupon.fecha_vencimiento && new Date(cupon.fecha_vencimiento) < ahora) return 'vencido';
+    if (cupon.usos_maximos_total !== null && cupon.usos_maximos_total !== undefined
+      && usos >= Number(cupon.usos_maximos_total)) return 'agotado';
+    if (cupon.fecha_inicio && new Date(cupon.fecha_inicio) > ahora) return 'programado';
+    return 'activo';
+  }
+
+  const ETIQUETA_ESTADO_CUPON = {
+    activo: 'Activo', pausado: 'Pausado', vencido: 'Vencido', agotado: 'Agotado', programado: 'Programado'
+  };
+
+  function resumenUsosCupon(cuponId) {
+    const id = String(cuponId);
+    let cantidad = 0;
+    let total = 0;
+    cuponesUsos.forEach(uso => {
+      if (String(uso.cupon_id) !== id) return;
+      const pedido = Array.isArray(uso.pedidos) ? uso.pedidos[0] : uso.pedidos;
+      if (pedido && pedido.estado === 'cancelado') return;
+      cantidad += 1;
+      total += Number(uso.monto_descontado) || 0;
+    });
+    return { cantidad, total };
+  }
+
+  function mensajeErrorCupones(error, accion) {
+    if (esErrorPermiso(error)) return 'No tenés permiso para hacer esto.';
+    const codigo = String((error && error.code) || '');
+    const detalle = String((error && (error.message || error.error_description)) || 'Error de conexión.');
+    if (codigo === '23505') return 'Ya existe un cupón con ese código.';
+    if (codigo === '23503') return 'Tiene usos registrados: pausalo en vez de borrarlo.';
+    if (codigo === '23514') {
+      if (detalle.includes('cupones_valor_porcentaje_chk')) return 'El porcentaje no puede superar 100.';
+      if (detalle.includes('cupones_valor_chk')) return 'El valor tiene que ser mayor a 0.';
+      if (detalle.includes('cupones_fechas_chk')) return 'El vencimiento no puede ser anterior al inicio.';
+      if (detalle.includes('cupones_usos_')) return 'Los usos máximos tienen que ser números enteros, 0 o más.';
+      if (detalle.includes('cupones_compra_minima_chk')) return 'La compra mínima no puede ser negativa.';
+      if (detalle.includes('cupones_codigo')) return 'El código tiene que tener entre 1 y 40 caracteres, en mayúsculas y sin espacios.';
+      return `Algún dato no cumple las reglas del cupón. (${detalle})`;
+    }
+    return `No se pudo ${accion || 'cargar'} el cupón: ${detalle}`;
+  }
+
+  function renderCupones() {
+    if (!el.cuponesLista) return;
+    if (!cuponesLista.length) {
+      el.cuponesLista.innerHTML = '<p class="admin-envios-vacio">Todavía no hay cupones cargados.</p>';
+      return;
+    }
+    el.cuponesLista.innerHTML = cuponesLista.map(cupon => {
+      const { cantidad, total } = resumenUsosCupon(cupon.id);
+      const estado = estadoCupon(cupon, cantidad);
+      const max = cupon.usos_maximos_total === null || cupon.usos_maximos_total === undefined
+        ? '∞' : String(Number(cupon.usos_maximos_total));
+      return `<div class="admin-cupon-fila ${escaparHtml(estado)}" data-cupon-id="${escaparHtml(cupon.id)}">
+        <div class="admin-cupon-fila-cab">
+          <strong class="admin-cupon-codigo">${escaparHtml(cupon.codigo)}</strong>
+          <span class="admin-cupon-badge ${escaparHtml(estado)}">${escaparHtml(ETIQUETA_ESTADO_CUPON[estado])}</span>
+        </div>
+        <div class="admin-cupon-fila-datos">
+          <div class="admin-envios-tramo-dato">
+            <small>Descuento</small>
+            <span>${escaparHtml(valorCupon(cupon))}</span>
+          </div>
+          <div class="admin-envios-tramo-dato">
+            <small>Vigencia</small>
+            <span>${escaparHtml(vigenciaCupon(cupon))}</span>
+          </div>
+          <div class="admin-envios-tramo-dato">
+            <small>Usos</small>
+            <span>${cantidad} / ${escaparHtml(max)}</span>
+          </div>
+          <div class="admin-envios-tramo-dato">
+            <small>Descontado</small>
+            <span>${escaparHtml(formatearPrecio(total))}</span>
+          </div>
+        </div>
+        <div class="admin-cupon-fila-acciones">
+          <button type="button" class="btn-secundario" data-cupon-accion="editar">Editar</button>
+          <button type="button" class="btn-secundario" data-cupon-accion="toggle">${cupon.activo ? 'Pausar' : 'Activar'}</button>
+          <button type="button" class="btn-peligro" data-cupon-accion="eliminar">Borrar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function cargarCupones(opciones = {}) {
+    if (!cliente || cuponesCargando || !puedeVerCupones()) return;
+    cuponesCargando = true;
+    if (!opciones.silencioso) {
+      mostrarEstadoCupones('Cargando cupones...');
+      mostrarAvisoCupones('');
+    }
+    try {
+      const cuponesResp = await cliente
+        .from('cupones')
+        .select('*')
+        .order('creado_en', { ascending: false });
+      if (cuponesResp.error) throw cuponesResp.error;
+
+      let usosResp = await cliente
+        .from('cupon_usos')
+        .select('cupon_id, monto_descontado, pedidos(estado)');
+      let sinEstado = false;
+      if (usosResp.error) {
+        console.warn('No se pudo traer el estado de los pedidos de los usos:', usosResp.error);
+        usosResp = await cliente.from('cupon_usos').select('cupon_id, monto_descontado');
+        sinEstado = true;
+      }
+      if (usosResp.error) throw usosResp.error;
+
+      cuponesLista = cuponesResp.data || [];
+      cuponesUsos = usosResp.data || [];
+      cuponesCargados = true;
+      renderCupones();
+      mostrarEstadoCupones('');
+      mostrarAvisoCupones(sinEstado
+        ? 'No se pudo leer el estado de los pedidos: los usos y el total descontado incluyen pedidos cancelados.'
+        : '', 'info');
+    } catch (error) {
+      console.warn('No se pudieron cargar los cupones:', error);
+      mostrarEstadoCupones('');
+      mostrarAvisoCupones(mensajeErrorCupones(error, 'cargar'), 'error');
+    } finally {
+      cuponesCargando = false;
+    }
+  }
+
+  function actualizarEtiquetaValorCupon() {
+    if (!el.cuponValorEtiqueta || !el.cuponTipo) return;
+    el.cuponValorEtiqueta.textContent = el.cuponTipo.value === 'porcentaje'
+      ? 'Valor (1 a 100)' : 'Valor en pesos (mayor a 0)';
+  }
+
+  function abrirFormCupon(cupon) {
+    if (!el.formCupon || !el.modalCupon) return;
+    cuponBotonOrigen = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const editando = !!cupon;
+    const nulo = valor => (valor === null || valor === undefined ? '' : Number(valor));
+    const unico = lista => (Array.isArray(lista) && lista.length === 1 ? lista[0] : '');
+    el.cuponId.value = editando ? cupon.id : '';
+    el.cuponCodigo.value = editando ? cupon.codigo : '';
+    el.cuponCodigo.disabled = editando;
+    el.cuponTipo.value = editando ? cupon.tipo : 'porcentaje';
+    el.cuponValor.value = editando ? Number(cupon.valor) : '';
+    el.cuponCompraMinima.value = editando && Number(cupon.compra_minima) ? Number(cupon.compra_minima) : '';
+    el.cuponFechaInicio.value = editando ? isoAInputLocal(cupon.fecha_inicio) : '';
+    el.cuponFechaVencimiento.value = editando ? isoAInputLocal(cupon.fecha_vencimiento) : '';
+    el.cuponUsosTotal.value = editando ? nulo(cupon.usos_maximos_total) : '';
+    el.cuponUsosCliente.value = editando ? nulo(cupon.usos_por_cliente) : '';
+    el.cuponSucursales.value = editando ? unico(cupon.sucursales_permitidas) : '';
+    el.cuponModalidades.value = editando ? unico(cupon.modalidades_permitidas) : '';
+    el.cuponActivo.checked = editando ? !!cupon.activo : true;
+    el.cuponPrimeraCompra.checked = editando ? !!cupon.primera_compra : false;
+    el.cuponAcumulable.checked = editando ? !!cupon.acumulable_con_pago : false;
+    if (el.cuponNotaUsos) {
+      el.cuponNotaUsos.hidden = !(editando && resumenUsosCupon(cupon.id).cantidad > 0);
+    }
+    mostrarEstado(el.cuponFormEstado, '');
+    if (el.cuponFormTitulo) el.cuponFormTitulo.textContent = editando ? 'Editar cupón' : 'Nuevo cupón';
+    actualizarEtiquetaValorCupon();
+    el.modalCupon.hidden = false;
+    document.body.classList.add('admin-modal-abierto');
+    const cuerpo = el.formCupon.querySelector('.admin-cupon-modal-cuerpo');
+    if (cuerpo) cuerpo.scrollTop = 0;
+    cuponSnapshot = fotoFormCupon();
+    (editando ? el.cuponValor : el.cuponCodigo).focus({ preventScroll: true });
+  }
+
+  function fotoFormCupon() {
+    return Array.from(el.formCupon.querySelectorAll('input:not([type=hidden]), select'))
+      .map(campo => (campo.type === 'checkbox' ? (campo.checked ? '1' : '0') : campo.value))
+      .join('');
+  }
+
+  async function cerrarFormCupon(forzar = false) {
+    if (!el.formCupon || !el.modalCupon || el.modalCupon.hidden) return;
+    if (forzar !== true && fotoFormCupon() !== cuponSnapshot
+        && !await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios sin guardar. ¿Cerrar igual?', textoConfirmar: 'Cerrar igual', textoCancelar: 'Seguir editando', peligro: true })) return;
+    if (el.modalCupon.hidden) return;
+    el.modalCupon.hidden = true;
+    document.body.classList.remove('admin-modal-abierto');
+    mostrarEstado(el.cuponFormEstado, '');
+    const origen = cuponBotonOrigen;
+    cuponBotonOrigen = null;
+    if (origen && origen.isConnected) origen.focus({ preventScroll: true });
+  }
+
+  function atraparFocoCupon(evento) {
+    if (evento.key !== 'Tab' || !el.modalCupon || el.modalCupon.hidden) return;
+    const focables = Array.from(el.formCupon.querySelectorAll(
+      'input:not([type=hidden]):not([disabled]), select:not([disabled]), button:not([disabled])'
+    )).filter(nodo => nodo.offsetParent !== null);
+    if (!focables.length) return;
+    const primero = focables[0];
+    const ultimo = focables[focables.length - 1];
+    const activo = document.activeElement;
+    if (evento.shiftKey && (activo === primero || !el.formCupon.contains(activo))) {
+      evento.preventDefault();
+      ultimo.focus();
+    } else if (!evento.shiftKey && (activo === ultimo || !el.formCupon.contains(activo))) {
+      evento.preventDefault();
+      primero.focus();
+    }
+  }
+
+  function enteroOpcional(valor) {
+    const texto = String(valor || '').trim();
+    if (texto === '') return { vacio: true };
+    const n = Number(texto);
+    return { vacio: false, n, ok: Number.isInteger(n) && n >= 0 };
+  }
+
+  async function guardarCupon(evento) {
+    evento.preventDefault();
+    if (!cliente || !puedeVerCupones()) return;
+    const fallo = mensaje => { mostrarEstado(el.cuponFormEstado, mensaje, 'error'); };
+
+    const id = el.cuponId.value;
+    const codigo = el.cuponCodigo.value.replace(/\s+/g, '').toUpperCase();
+    if (!id) {
+      if (!codigo) return fallo('Escribí un código.');
+      if (codigo.length > 40) return fallo('El código no puede tener más de 40 caracteres.');
+    }
+
+    const tipo = el.cuponTipo.value;
+    const valor = Number(el.cuponValor.value);
+    if (!Number.isFinite(valor) || valor <= 0) return fallo('El valor tiene que ser mayor a 0.');
+    if (tipo === 'porcentaje' && (valor < 1 || valor > 100)) return fallo('El porcentaje tiene que estar entre 1 y 100.');
+    if (tipo === 'monto_fijo' && !Number.isInteger(valor)) return fallo('El monto fijo tiene que ser en pesos enteros.');
+
+    const compra = String(el.cuponCompraMinima.value).trim() === '' ? 0 : Number(el.cuponCompraMinima.value);
+    if (!Number.isFinite(compra) || compra < 0) return fallo('La compra mínima no puede ser negativa.');
+
+    const total = enteroOpcional(el.cuponUsosTotal.value);
+    const porCliente = enteroOpcional(el.cuponUsosCliente.value);
+    if (!total.vacio && !total.ok) return fallo('Los usos máximos totales tienen que ser un entero, 0 o más.');
+    if (!porCliente.vacio && !porCliente.ok) return fallo('Los usos por cliente tienen que ser un entero, 0 o más.');
+
+    const inicio = inputLocalAIso(el.cuponFechaInicio.value);
+    const vence = inputLocalAIso(el.cuponFechaVencimiento.value);
+    if (inicio && Number.isNaN(new Date(inicio).getTime())) return fallo('La fecha de inicio no es válida.');
+    if (vence && Number.isNaN(new Date(vence).getTime())) return fallo('La fecha de vencimiento no es válida.');
+    if (inicio && vence && new Date(vence) < new Date(inicio)) return fallo('El vencimiento no puede ser anterior al inicio.');
+
+    const datos = {
+      tipo,
+      valor,
+      activo: el.cuponActivo.checked,
+      fecha_inicio: inicio,
+      fecha_vencimiento: vence,
+      usos_maximos_total: total.vacio ? null : total.n,
+      usos_por_cliente: porCliente.vacio ? null : porCliente.n,
+      compra_minima: compra,
+      primera_compra: el.cuponPrimeraCompra.checked,
+      sucursales_permitidas: el.cuponSucursales.value ? [el.cuponSucursales.value] : null,
+      modalidades_permitidas: el.cuponModalidades.value ? [el.cuponModalidades.value] : null,
+      acumulable_con_pago: el.cuponAcumulable.checked
+    };
+
+    el.btnGuardarCupon.disabled = true;
+    mostrarEstado(el.cuponFormEstado, 'Guardando...');
+    try {
+      const consulta = id
+        ? cliente.from('cupones').update(datos).eq('id', id)
+        : cliente.from('cupones').insert({ ...datos, codigo });
+      const { error: errorGuardar } = await consulta;
+      if (errorGuardar) throw errorGuardar;
+      cerrarFormCupon(true);
+      await cargarCupones({ silencioso: true });
+      mostrarEstadoCupones(id ? 'Cupón actualizado.' : 'Cupón creado.', 'ok');
+    } catch (errorGuardar) {
+      console.warn('No se pudo guardar el cupón:', errorGuardar);
+      mostrarEstado(el.cuponFormEstado, mensajeErrorCupones(errorGuardar, 'guardar'), 'error');
+    } finally {
+      el.btnGuardarCupon.disabled = false;
+    }
+  }
+
+  async function alternarCupon(id) {
+    const cupon = cuponesLista.find(item => String(item.id) === String(id));
+    if (!cupon || !cliente || !puedeVerCupones()) return;
+    try {
+      const { error } = await cliente.from('cupones').update({ activo: !cupon.activo }).eq('id', id);
+      if (error) throw error;
+      await cargarCupones({ silencioso: true });
+      mostrarEstadoCupones(cupon.activo ? 'Cupón pausado.' : 'Cupón activado.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo cambiar el estado del cupón:', error);
+      mostrarAvisoCupones(mensajeErrorCupones(error, 'actualizar'), 'error');
+    }
+  }
+
+  async function borrarCupon(id) {
+    const cupon = cuponesLista.find(item => String(item.id) === String(id));
+    if (!cupon || !cliente || !puedeVerCupones()) return;
+    const usos = resumenUsosCupon(id).cantidad;
+    if (usos > 0) {
+      // Con historial no se ofrece borrar: solo pausar.
+      if (!cupon.activo) {
+        mostrarToast('Este cupón ya se usó: solo se puede pausar (ya está pausado).', 'info');
+        return;
+      }
+      const pausar = await confirmarAccion({
+        titulo: 'No se puede borrar',
+        mensaje: `Este cupón ya se usó: solo se puede pausar (${cupon.codigo}, ${usos} uso${usos === 1 ? '' : 's'}).`,
+        textoConfirmar: 'Pausar'
+      });
+      if (pausar) await alternarCupon(id);
+      return;
+    }
+    if (!await confirmarAccion({ titulo: 'Borrar cupón', mensaje: `¿Borrar el cupón ${cupon.codigo}? No se puede deshacer.`, textoConfirmar: 'Borrar', peligro: true })) return;
+    try {
+      const { error } = await cliente.from('cupones').delete().eq('id', id);
+      if (error) throw error;
+      await cargarCupones({ silencioso: true });
+      mostrarEstadoCupones('Cupón borrado.', 'ok');
+      mostrarAvisoCupones('');
+    } catch (error) {
+      console.warn('No se pudo borrar el cupón:', error);
+      mostrarAvisoCupones(mensajeErrorCupones(error, 'borrar'), 'error');
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Fidelidad (solo dueño). Reglas espejo de pm_fidelidad_config (019);
+  // el servidor es la autoridad: si la config es inválida, el programa queda inactivo.
+  // ---------------------------------------------------------------
+  const FIDELIDAD_MAX_NIVELES = 20;
+
+  function puedeVerFidelidad() {
+    return adminRol === 'dueno' && !adminRolError;
+  }
+
+  function mostrarAvisoFidelidad(texto, tipo = 'info') {
+    if (!el.fidelidadAviso) return;
+    if (!texto) {
+      el.fidelidadAviso.hidden = true;
+      el.fidelidadAviso.textContent = '';
+      return;
+    }
+    el.fidelidadAviso.hidden = false;
+    el.fidelidadAviso.dataset.tipo = tipo;
+    el.fidelidadAviso.textContent = texto;
+  }
+
+  // Texto de un input -> entero >= 0, o null si no es un entero válido.
+  function enteroFidelidad(valor) {
+    const texto = String(valor === null || valor === undefined ? '' : valor).trim();
+    return /^\d{1,9}$/.test(texto) ? Number(texto) : null;
+  }
+
+  function numeroFidelidad(valor) {
+    const texto = String(valor === null || valor === undefined ? '' : valor).trim();
+    if (texto === '') return null;
+    const numero = Number(texto);
+    return Number.isFinite(numero) ? numero : null;
+  }
+
+  function nivelFidelidadVacio() {
+    return { en: '', tipo: 'descuento_porcentaje', valor: '', tope: '', producto: '', dias: '30' };
+  }
+
+  // Config guardada (jsonb) -> valores crudos del formulario, sin descartar nada legible.
+  function formularioDesdeConfigFidelidad(cfg) {
+    const texto = (v) => (v === null || v === undefined || typeof v === 'object' ? '' : String(v));
+    const base = cfg && typeof cfg === 'object' && !Array.isArray(cfg) ? cfg : {};
+    const niveles = Array.isArray(base.niveles) ? base.niveles : [];
+    return {
+      activo: base.activo === true,
+      pedidoMinimo: texto(base.pedido_minimo),
+      ciclo: texto(base.ciclo),
+      niveles: niveles.map(n => {
+        const nivel = n && typeof n === 'object' ? n : {};
+        return {
+          en: texto(nivel.en),
+          tipo: nivel.tipo === 'producto_gratis' ? 'producto_gratis' : 'descuento_porcentaje',
+          valor: texto(nivel.valor),
+          tope: texto(nivel.tope_en_pesos),
+          producto: texto(nivel.producto_id),
+          dias: texto(nivel.dias_vencimiento)
+        };
+      })
+    };
+  }
+
+  // Valida valores crudos del formulario. Devuelve { error } o { config }.
+  function validarFidelidad(datos) {
+    const minimo = enteroFidelidad(datos.pedidoMinimo);
+    if (minimo === null) return { error: 'El pedido mínimo tiene que ser un número entero de pesos, 0 o más.' };
+
+    const ciclo = enteroFidelidad(datos.ciclo);
+    if (ciclo === null || ciclo < 1 || ciclo > 1000) return { error: 'El ciclo tiene que ser un número entero entre 1 y 1000.' };
+
+    if (!datos.niveles.length) return { error: 'Tiene que haber al menos un nivel.' };
+    if (datos.niveles.length > FIDELIDAD_MAX_NIVELES) return { error: `Pueden ser como máximo ${FIDELIDAD_MAX_NIVELES} niveles.` };
+
+    const usados = new Set();
+    const niveles = [];
+    for (let i = 0; i < datos.niveles.length; i++) {
+      const n = datos.niveles[i];
+      const pref = `Nivel ${i + 1}:`;
+
+      const en = enteroFidelidad(n.en);
+      if (en === null || en < 1 || en > ciclo) return { error: `${pref} el número de pedido ("en") tiene que ser un entero entre 1 y ${ciclo}.` };
+      if (usados.has(en)) return { error: `${pref} el pedido nº ${en} está repetido en otro nivel.` };
+      usados.add(en);
+
+      const dias = enteroFidelidad(n.dias);
+      if (dias === null || dias < 1 || dias > 365) return { error: `${pref} los días de vencimiento tienen que ser un entero entre 1 y 365.` };
+
+      if (n.tipo === 'descuento_porcentaje') {
+        const valor = numeroFidelidad(n.valor);
+        if (valor === null || valor <= 0 || valor > 100) return { error: `${pref} el porcentaje tiene que ser mayor a 0 y hasta 100.` };
+        let tope = null;
+        if (String(n.tope).trim() !== '') {
+          tope = numeroFidelidad(n.tope);
+          if (tope === null || tope <= 0) return { error: `${pref} el tope en pesos tiene que ser mayor a 0, o quedar vacío.` };
+        }
+        niveles.push({ en, tipo: 'descuento_porcentaje', valor, tope_en_pesos: tope, dias_vencimiento: dias });
+      } else if (n.tipo === 'producto_gratis') {
+        const producto = String(n.producto || '').trim();
+        if (producto.length < 1 || producto.length > 80) return { error: `${pref} elegí el producto a regalar.` };
+        niveles.push({ en, tipo: 'producto_gratis', producto_id: producto, dias_vencimiento: dias });
+      } else {
+        return { error: `${pref} el tipo no es válido.` };
+      }
+    }
+
+    niveles.sort((a, b) => a.en - b.en);
+    return {
+      config: { activo: datos.activo === true, pedido_minimo: minimo, ciclo, niveles }
+    };
+  }
+
+  function opcionesProductoFidelidad(seleccionado) {
+    const productos = carta && Array.isArray(carta.productos) ? carta.productos.filter(p => p && p.id) : [];
+    const ordenados = productos.slice().sort((a, b) => String(a.nombre || a.id).localeCompare(String(b.nombre || b.id), 'es'));
+    let html = `<option value="">Elegí un producto</option>`;
+    let encontrado = !seleccionado;
+    ordenados.forEach(p => {
+      if (String(p.id) === seleccionado) encontrado = true;
+      html += `<option value="${escaparHtml(p.id)}"${String(p.id) === seleccionado ? ' selected' : ''}>${escaparHtml(p.nombre || p.id)}</option>`;
+    });
+    if (!encontrado) {
+      html += `<option value="${escaparHtml(seleccionado)}" selected>${escaparHtml(seleccionado)} (no está en la carta)</option>`;
+    }
+    return html;
+  }
+
+  function htmlNivelFidelidad(nivel, indice, total) {
+    const esPorc = nivel.tipo !== 'producto_gratis';
+    return `<div class="admin-fidelidad-nivel" data-fidelidad-nivel>
+      <div class="fid-nivel-head">
+        <strong>Nivel ${indice + 1}</strong>
+        <button type="button" class="fid-quitar" data-fidelidad-accion="quitar" aria-label="Quitar nivel ${indice + 1}" title="Quitar nivel"${total <= 1 ? ' disabled' : ''}>&times;</button>
+      </div>
+      <div class="fid-bloque">
+        <h4>Condición</h4>
+        <div class="fid-grid">
+          <label class="admin-campo">
+            <span>En el pedido nº</span>
+            <input type="number" min="1" max="1000" step="1" inputmode="numeric" data-campo="en" value="${escaparHtml(nivel.en)}">
+          </label>
+        </div>
+      </div>
+      <div class="fid-bloque">
+        <h4>Premio</h4>
+        <div class="fid-grid">
+          <label class="admin-campo">
+            <span>Tipo</span>
+            <select data-campo="tipo">
+              <option value="descuento_porcentaje"${esPorc ? ' selected' : ''}>Descuento (%)</option>
+              <option value="producto_gratis"${esPorc ? '' : ' selected'}>Producto gratis</option>
+            </select>
+          </label>
+          <label class="admin-campo" data-grupo="porcentaje"${esPorc ? '' : ' hidden'}>
+            <span>Valor (%)</span>
+            <input type="number" min="1" max="100" step="1" inputmode="decimal" data-campo="valor" value="${escaparHtml(nivel.valor)}">
+          </label>
+          <label class="admin-campo" data-grupo="porcentaje"${esPorc ? '' : ' hidden'}>
+            <span>Tope en pesos (opcional)</span>
+            <input type="number" min="1" step="1" inputmode="numeric" data-campo="tope" placeholder="Sin tope" value="${escaparHtml(nivel.tope)}">
+          </label>
+          <label class="admin-campo" data-grupo="producto"${esPorc ? ' hidden' : ''}>
+            <span>Producto</span>
+            <select data-campo="producto">${opcionesProductoFidelidad(nivel.producto)}</select>
+            <small class="admin-ayuda">Se regala la opción más barata, sin costo.</small>
+          </label>
+          <label class="admin-campo">
+            <span>Vence a los (días)</span>
+            <input type="number" min="1" max="365" step="1" inputmode="numeric" data-campo="dias" value="${escaparHtml(nivel.dias)}">
+          </label>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderNivelesFidelidad(niveles) {
+    if (!el.fidelidadNiveles) return;
+    el.fidelidadNiveles.innerHTML = niveles.map((n, i) => htmlNivelFidelidad(n, i, niveles.length)).join('');
+  }
+
+  // Lee los niveles tal como están en pantalla (valores crudos).
+  function leerNivelesFidelidadDom() {
+    if (!el.fidelidadNiveles) return [];
+    return Array.from(el.fidelidadNiveles.querySelectorAll('[data-fidelidad-nivel]')).map(fila => {
+      const campo = (nombre) => {
+        const nodo = fila.querySelector(`[data-campo="${nombre}"]`);
+        return nodo ? nodo.value : '';
+      };
+      return {
+        en: campo('en'),
+        tipo: campo('tipo'),
+        valor: campo('valor'),
+        tope: campo('tope'),
+        producto: campo('producto'),
+        dias: campo('dias')
+      };
+    });
+  }
+
+  function leerFormularioFidelidad() {
+    return {
+      activo: !!(el.fidelidadActivo && el.fidelidadActivo.checked),
+      pedidoMinimo: el.fidelidadPedidoMinimo ? el.fidelidadPedidoMinimo.value : '',
+      ciclo: el.fidelidadCiclo ? el.fidelidadCiclo.value : '',
+      niveles: leerNivelesFidelidadDom()
+    };
+  }
+
+  function llenarFormularioFidelidad(datos) {
+    if (el.fidelidadActivo) el.fidelidadActivo.checked = datos.activo === true;
+    if (el.fidelidadPedidoMinimo) el.fidelidadPedidoMinimo.value = datos.pedidoMinimo;
+    if (el.fidelidadCiclo) el.fidelidadCiclo.value = datos.ciclo;
+    renderNivelesFidelidad(datos.niveles.length ? datos.niveles : [nivelFidelidadVacio()]);
+  }
+
+  function renderEstadisticasFidelidad(premios) {
+    if (!el.fidelidadStats) return;
+    const ahora = Date.now();
+    const etiquetas = { descuento_porcentaje: 'Descuento (%)', producto_gratis: 'Producto gratis' };
+    const contar = lista => {
+      const usados = lista.filter(p => p.usado).length;
+      const vigentes = lista.filter(p => !p.usado && new Date(p.vencimiento).getTime() > ahora).length;
+      return { generados: lista.length, usados, vigentes, vencidos: lista.length - usados - vigentes };
+    };
+    const t = contar(premios);
+    const kpi = (nombre, valor) => `<div class="fid-kpi"><small>${escaparHtml(nombre)}</small><strong>${escaparHtml(valor)}</strong></div>`;
+    const porTipo = Object.keys(etiquetas).map(tipo => {
+      const c = contar(premios.filter(p => p.tipo === tipo));
+      return `<div class="fid-tipo"><span>${escaparHtml(etiquetas[tipo])}</span><span>${escaparHtml(c.generados)} gen. · ${escaparHtml(c.usados)} usados · ${escaparHtml(c.vigentes)} vigentes · ${escaparHtml(c.vencidos)} vencidos</span></div>`;
+    }).join('');
+    el.fidelidadStats.innerHTML = `<div class="fid-kpis">${kpi('Generados', t.generados)}${kpi('Usados', t.usados)}${kpi('Vigentes', t.vigentes)}${kpi('Vencidos sin usar', t.vencidos)}</div><div class="fid-tipos">${porTipo}</div>`;
+  }
+
+  async function cargarEstadisticasFidelidad() {
+    if (!el.fidelidadStats) return;
+    mostrarEstado(el.fidelidadStatsEstado, 'Cargando estadísticas...');
+    el.fidelidadStats.innerHTML = '';
+    try {
+      const premios = [];
+      const PAGINA = 1000;
+      for (let desde = 0; desde < 20000; desde += PAGINA) {
+        const { data, error } = await cliente
+          .from('premios')
+          .select('tipo,usado,vencimiento')
+          .order('creado_en', { ascending: true })
+          .range(desde, desde + PAGINA - 1);
+        if (error) throw error;
+        const filas = Array.isArray(data) ? data : [];
+        premios.push(...filas);
+        if (filas.length < PAGINA) break;
+      }
+      renderEstadisticasFidelidad(premios);
+      mostrarEstado(el.fidelidadStatsEstado, '');
+    } catch (error) {
+      console.warn('No se pudieron cargar las estadísticas de fidelidad:', error);
+      mostrarEstado(el.fidelidadStatsEstado, 'No se pudieron cargar las estadísticas', 'error');
+    }
+  }
+
+  async function cargarFidelidad() {
+    if (!cliente || fidelidadCargando || !puedeVerFidelidad()) return;
+    fidelidadCargando = true;
+    mostrarEstado(el.fidelidadEstado, 'Cargando configuración...');
+    mostrarAvisoFidelidad('');
+    mostrarEstado(el.fidelidadFormEstado, '');
+
+    try {
+      const { data, error } = await cliente
+        .from('config_negocio')
+        .select('valor')
+        .eq('clave', 'fidelidad')
+        .maybeSingle();
+      if (error) throw error;
+
+      fidelidadConfigGuardada = data ? data.valor : null;
+      if (data) {
+        const datos = formularioDesdeConfigFidelidad(data.valor);
+        llenarFormularioFidelidad(datos);
+        if (validarFidelidad(datos).error) {
+          mostrarAvisoFidelidad('La configuración actual es inválida: el programa está inactivo.', 'error');
+        }
+      } else {
+        llenarFormularioFidelidad({ activo: false, pedidoMinimo: '0', ciclo: '10', niveles: [nivelFidelidadVacio()] });
+        mostrarAvisoFidelidad('Todavía no hay configuración de fidelidad: el programa está inactivo.', 'info');
+      }
+      fidelidadCargada = true;
+      mostrarEstado(el.fidelidadEstado, '');
+    } catch (error) {
+      console.warn('No se pudo cargar la configuración de fidelidad:', error);
+      mostrarEstado(el.fidelidadEstado, '');
+      mostrarAvisoFidelidad(esErrorPermiso(error)
+        ? 'No tenés permiso para hacer esto.'
+        : 'No se pudo cargar la configuración de fidelidad.', 'error');
+    } finally {
+      fidelidadCargando = false;
+    }
+
+    await cargarEstadisticasFidelidad();
+  }
+
+  async function guardarFidelidad(evento) {
+    if (evento) evento.preventDefault();
+    if (!cliente || !puedeVerFidelidad()) return;
+
+    const resultado = validarFidelidad(leerFormularioFidelidad());
+    if (resultado.error) {
+      mostrarEstado(el.fidelidadFormEstado, resultado.error, 'error');
+      return;
+    }
+    const config = resultado.config;
+
+    const estabaActivo = !!(fidelidadConfigGuardada && fidelidadConfigGuardada.activo === true);
+    if (estabaActivo && !config.activo
+      && !await confirmarAccion({ titulo: 'Desactivar fidelidad', mensaje: '¿Desactivar el programa de fidelidad? Los clientes dejan de sumar y de ver premios nuevos mientras esté inactivo.', textoConfirmar: 'Desactivar', peligro: true })) {
+      return;
+    }
+
+    if (el.btnGuardarFidelidad) el.btnGuardarFidelidad.disabled = true;
+    if (el.btnGuardarFidelidadTop) el.btnGuardarFidelidadTop.disabled = true;
+    mostrarEstado(el.fidelidadFormEstado, 'Guardando...');
+    try {
+      const { error } = await cliente
+        .from('config_negocio')
+        .upsert({ clave: 'fidelidad', valor: config }, { onConflict: 'clave' });
+      if (error) throw error;
+
+      fidelidadConfigGuardada = config;
+      llenarFormularioFidelidad(formularioDesdeConfigFidelidad(config));
+      mostrarAvisoFidelidad('');
+      mostrarEstado(el.fidelidadFormEstado, 'Configuración guardada.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo guardar la configuración de fidelidad:', error);
+      mostrarEstado(el.fidelidadFormEstado, esErrorPermiso(error)
+        ? 'No tenés permiso para hacer esto.'
+        : 'No se pudo guardar la configuración de fidelidad.', 'error');
+    } finally {
+      if (el.btnGuardarFidelidad) el.btnGuardarFidelidad.disabled = false;
+      if (el.btnGuardarFidelidadTop) el.btnGuardarFidelidadTop.disabled = false;
+    }
+  }
+
+  function conectarEventosFidelidad() {
+    if (el.btnFidelidadRecargar) el.btnFidelidadRecargar.addEventListener('click', () => cargarFidelidad());
+    if (el.formFidelidad) el.formFidelidad.addEventListener('submit', guardarFidelidad);
+    if (el.btnFidelidadAgregarNivel) {
+      el.btnFidelidadAgregarNivel.addEventListener('click', () => {
+        const niveles = leerNivelesFidelidadDom();
+        if (niveles.length >= FIDELIDAD_MAX_NIVELES) {
+          mostrarEstado(el.fidelidadFormEstado, `Pueden ser como máximo ${FIDELIDAD_MAX_NIVELES} niveles.`, 'error');
+          return;
+        }
+        niveles.push(nivelFidelidadVacio());
+        renderNivelesFidelidad(niveles);
+      });
+    }
+    if (el.fidelidadNiveles) {
+      el.fidelidadNiveles.addEventListener('click', (evento) => {
+        const boton = evento.target.closest('[data-fidelidad-accion="quitar"]');
+        const fila = boton && boton.closest('[data-fidelidad-nivel]');
+        if (!fila) return;
+        const filas = Array.from(el.fidelidadNiveles.querySelectorAll('[data-fidelidad-nivel]'));
+        if (filas.length <= 1) return;
+        const niveles = leerNivelesFidelidadDom();
+        niveles.splice(filas.indexOf(fila), 1);
+        renderNivelesFidelidad(niveles);
+      });
+      el.fidelidadNiveles.addEventListener('change', (evento) => {
+        const selector = evento.target.closest('[data-campo="tipo"]');
+        const fila = selector && selector.closest('[data-fidelidad-nivel]');
+        if (!fila) return;
+        const esPorc = selector.value !== 'producto_gratis';
+        fila.querySelectorAll('[data-grupo="porcentaje"]').forEach(n => { n.hidden = !esPorc; });
+        fila.querySelectorAll('[data-grupo="producto"]').forEach(n => { n.hidden = esPorc; });
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Estadísticas (solo dueño). El servidor calcula todo; acá solo se muestra.
+  // ---------------------------------------------------------------
+  const estadisticas = { periodo: 'hoy', seq: 0, resumen: null, cupones: null, rango: null, sucursal: null };
+
+  function statsEl(id) { return document.getElementById(id); }
+
+  function fechaArgentinaISO(fecha) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_AR, year: 'numeric', month: '2-digit', day: '2-digit' }).format(fecha);
+  }
+
+  function sumarDiasISO(iso, dias) {
+    const [a, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+  }
+
+  // Límites: inicio del día local (-03:00), fin exclusivo.
+  function rangoEstadisticas() {
+    const hoy = fechaArgentinaISO(new Date());
+    let desde = hoy;
+    let hasta = hoy;
+    if (estadisticas.periodo === '7') desde = sumarDiasISO(hoy, -6);
+    else if (estadisticas.periodo === '30') desde = sumarDiasISO(hoy, -29);
+    else if (estadisticas.periodo === 'custom') {
+      desde = (statsEl('stats-desde') || {}).value || '';
+      hasta = (statsEl('stats-hasta') || {}).value || '';
+      if (!desde || !hasta) return null;
+    }
+    return { desde, hasta, p_desde: `${desde}T00:00:00-03:00`, p_hasta: `${sumarDiasISO(hasta, 1)}T00:00:00-03:00` };
+  }
+
+  function mensajeErrorStats(error) {
+    if (esErrorPermiso(error)) return 'No tenés permiso para hacer esto.';
+    const msg = String((error && error.message) || '');
+    if (msg.includes('731')) return 'El período no puede superar los 731 días.';
+    return 'No se pudieron cargar las estadísticas. Probá de nuevo.';
+  }
+
+  function avisoStats(texto) {
+    const aviso = statsEl('stats-aviso');
+    if (!aviso) return;
+    aviso.hidden = !texto;
+    aviso.dataset.tipo = 'error';
+    aviso.textContent = texto || '';
+  }
+
+  async function cargarEstadisticas() {
+    if (!cliente || !puedeVerCupones()) return;
+    const rango = rangoEstadisticas();
+    const contenido = statsEl('stats-contenido');
+    const estado = statsEl('stats-estado');
+    const btnCsv = statsEl('btn-stats-csv');
+    const mi = ++estadisticas.seq; // invalida consultas anteriores
+    avisoStats('');
+    if (!rango) {
+      mostrarEstado(estado, 'Elegí las dos fechas.');
+      return;
+    }
+    if (rango.p_hasta <= rango.p_desde) {
+      mostrarEstado(estado, '');
+      avisoStats('La fecha "hasta" no puede ser anterior a "desde".');
+      return;
+    }
+    const suc = (statsEl('stats-sucursal') || {}).value || null;
+    const args = { p_desde: rango.p_desde, p_hasta: rango.p_hasta, p_sucursal: suc };
+    mostrarEstado(estado, 'Cargando estadísticas...');
+    if (btnCsv) btnCsv.disabled = true;
+    try {
+      const [r1, r2] = await Promise.all([
+        cliente.rpc('stats_resumen', args),
+        cliente.rpc('stats_cupones_fidelidad', args)
+      ]);
+      if (mi !== estadisticas.seq) return;
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
+      estadisticas.resumen = r1.data || {};
+      estadisticas.cupones = r2.data || {};
+      estadisticas.rango = rango;
+      estadisticas.sucursal = suc;
+      renderEstadisticas();
+      mostrarEstado(estado, '');
+      if (contenido) contenido.hidden = false;
+      if (btnCsv) btnCsv.disabled = false;
+    } catch (error) {
+      if (mi !== estadisticas.seq) return;
+      console.warn('No se pudieron cargar las estadísticas:', error);
+      mostrarEstado(estado, '');
+      if (contenido) contenido.hidden = true;
+      avisoStats(mensajeErrorStats(error));
+    }
+  }
+
+  function statsNum(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+
+  function statsVariacion(pct) {
+    if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) {
+      return '<span class="admin-stats-var">—</span>';
+    }
+    const n = Number(pct);
+    const clase = n > 0 ? 'sube' : (n < 0 ? 'baja' : '');
+    const signo = n > 0 ? '▲ +' : (n < 0 ? '▼ ' : '');
+    return `<span class="admin-stats-var ${clase}">${signo}${PM.escaparHtml(String(n).replace('.', ','))}%</span>`;
+  }
+
+  function statsTarjeta(titulo, valor, variacion) {
+    return `<div class="admin-stats-tarjeta"><span class="admin-stats-tit">${PM.escaparHtml(titulo)}</span>`
+      + `<strong>${PM.escaparHtml(valor)}</strong>`
+      + `<span class="admin-stats-sub">${variacion === undefined ? '&nbsp;' : statsVariacion(variacion) + ' vs. período anterior'}</span></div>`;
+  }
+
+  function statsLista(filas, vacio) {
+    if (!filas.length) return `<p class="admin-envios-vacio">${PM.escaparHtml(vacio)}</p>`;
+    const max = Math.max(...filas.map(f => f.valor), 1);
+    return '<ul class="admin-stats-lista">' + filas.map(f => `<li class="admin-stats-lista-fila">
+      <span class="admin-stats-lista-nombre" title="${PM.escaparHtml(f.nombre)}">${PM.escaparHtml(f.nombre)}</span>
+      <span class="admin-stats-barra"><i style="width:${Math.max(2, Math.round(f.valor / max * 100))}%"></i></span>
+      <span class="admin-stats-lista-cant">${PM.escaparHtml(f.cant)}</span>
+      <span class="admin-stats-lista-total">${PM.escaparHtml(f.total)}</span></li>`).join('') + '</ul>';
+  }
+
+  // Barras SVG: datos = [{etiqueta, valor, titulo}]; el titulo es el tooltip.
+  function statsBarrasSvg(datos, opciones = {}) {
+    if (!datos.length) return '<p class="admin-envios-vacio">Sin datos en el período.</p>';
+    const W = 640, H = 220, izq = 50, der = 8, arr = 10, aba = 28;
+    const max = Math.max(...datos.map(d => d.valor), 0);
+    const tope = max > 0 ? max : 1;
+    const ancho = (W - izq - der) / datos.length;
+    const barra = Math.max(2, ancho * 0.7);
+    const alto = H - arr - aba;
+    const ejeY = [0, 0.5, 1].map(f => {
+      const y = arr + alto - alto * f;
+      const txt = opciones.formatoEje ? opciones.formatoEje(tope * f) : String(Math.round(tope * f));
+      return `<line x1="${izq}" x2="${W - der}" y1="${y}" y2="${y}" class="adm-eje"/><text x="${izq - 6}" y="${y + 4}" text-anchor="end" class="adm-txt">${PM.escaparHtml(txt)}</text>`;
+    }).join('');
+    const salto = Math.ceil(datos.length / (opciones.maxEtiquetas || 8));
+    const barras = datos.map((d, i) => {
+      const h = d.valor / tope * alto;
+      const x = izq + i * ancho + (ancho - barra) / 2;
+      const y = arr + alto - h;
+      const et = i % salto === 0 ? `<text x="${x + barra / 2}" y="${H - 10}" text-anchor="middle" class="adm-txt">${PM.escaparHtml(d.etiqueta)}</text>` : '';
+      return `<g class="adm-barra" tabindex="0"><title>${PM.escaparHtml(d.titulo)}</title><rect x="${x}" y="${arr}" width="${barra}" height="${alto}" fill="transparent"/><rect class="adm-r" x="${x}" y="${y}" width="${barra}" height="${Math.max(h, d.valor > 0 ? 1 : 0)}" rx="2"/></g>${et}`;
+    }).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" class="admin-stats-svg" role="img" aria-label="${PM.escaparHtml(opciones.alt || 'Gráfico de barras')}">${ejeY}${barras}</svg>`;
+  }
+
+  function statsPlata(v) { return formatearPrecio(statsNum(v)); }
+
+  function statsCompacto(v) {
+    const n = statsNum(v);
+    if (n >= 1000000) return `$${(n / 1000000).toFixed(1).replace('.', ',')} M`;
+    if (n >= 1000) return `$${Math.round(n / 1000)} mil`;
+    return `$${Math.round(n)}`;
+  }
+
+  function renderEstadisticas() {
+    const r = estadisticas.resumen || {};
+    const c = estadisticas.cupones || {};
+    const v = r.variacion || {};
+    const pon = (id, html) => { const nodo = statsEl(id); if (nodo) nodo.innerHTML = html; };
+
+    pon('stats-tarjetas',
+      statsTarjeta('Facturación', statsPlata(r.facturacion), v.facturacion_pct)
+      + statsTarjeta('Pedidos entregados', String(statsNum(r.pedidos)), v.pedidos_pct)
+      + statsTarjeta('Ticket promedio', statsPlata(r.ticket_promedio), v.ticket_pct)
+      + statsTarjeta('Cancelados', String(statsNum(r.cancelados)))
+      + statsTarjeta('Envío cobrado', statsPlata(r.envio_cobrado))
+      + statsTarjeta('Regalos', String(statsNum(r.regalos))));
+
+    const dias = (Array.isArray(r.ventas_por_dia) ? r.ventas_por_dia : []).map(d => {
+      const f = String(d.dia || '');
+      const corta = f.length >= 10 ? `${f.slice(8, 10)}/${f.slice(5, 7)}` : f;
+      return { etiqueta: corta, valor: statsNum(d.facturacion), titulo: `${corta}: ${statsPlata(d.facturacion)} · ${statsNum(d.pedidos)} pedidos` };
+    });
+    pon('stats-dias', statsBarrasSvg(dias, { formatoEje: statsCompacto, alt: 'Ventas por día' }));
+
+    const porHora = new Map((Array.isArray(r.ventas_por_hora) ? r.ventas_por_hora : []).map(h => [Number(h.hora), h]));
+    const horas = Array.from({ length: 24 }, (_, h) => {
+      const x = porHora.get(h) || {};
+      return { etiqueta: String(h), valor: statsNum(x.pedidos), titulo: `${h}:00 hs: ${statsNum(x.pedidos)} pedidos · ${statsPlata(x.facturacion)}` };
+    });
+    pon('stats-horas', statsBarrasSvg(horas, { maxEtiquetas: 12, alt: 'Pedidos por hora' }));
+
+    pon('stats-pagos', statsLista((r.metodos_pago || []).map(m => ({
+      nombre: m.metodo || 'Sin dato', valor: statsNum(m.facturacion),
+      cant: `${statsNum(m.pedidos)} ped.`, total: statsPlata(m.facturacion)
+    })), 'Sin datos en el período.'));
+    pon('stats-modalidades', statsLista((r.modalidades || []).map(m => ({
+      nombre: etiquetaModalidadPedido(m.modalidad), valor: statsNum(m.pedidos),
+      cant: `${statsNum(m.pedidos)} ped.`, total: statsPlata(m.facturacion)
+    })), 'Sin datos en el período.'));
+    pon('stats-top', statsLista((r.top_productos || []).map(p => ({
+      nombre: p.nombre || p.producto_id || 'Producto', valor: statsNum(p.cantidad),
+      cant: `${statsNum(p.cantidad)} u.`, total: statsPlata(p.ingresos)
+    })), 'Sin ventas en el período.'));
+
+    const cupones = Array.isArray(c.cupones) ? c.cupones : [];
+    pon('stats-cupones', cupones.length
+      ? '<div class="admin-stats-tabla-wrap"><table class="admin-stats-tabla"><thead><tr><th>Cupón</th><th>Usos</th><th>Ventas</th><th>Descuento</th></tr></thead><tbody>'
+        + cupones.map(x => `<tr><td>${PM.escaparHtml(x.codigo)}</td><td>${statsNum(x.usos)}</td><td>${PM.escaparHtml(statsPlata(x.ventas_generadas))}</td><td>${PM.escaparHtml(statsPlata(x.descuento_otorgado))}</td></tr>`).join('')
+        + '</tbody></table></div>'
+      : '<p class="admin-envios-vacio">No se usaron cupones en el período.</p>');
+
+    const f = c.fidelidad || {};
+    const costo = f.regalos_costo_estimado === null || f.regalos_costo_estimado === undefined ? 'sin dato' : statsPlata(f.regalos_costo_estimado);
+    pon('stats-fidelidad', '<dl class="admin-stats-dl">'
+      + `<div><dt>Premios generados</dt><dd>${statsNum(f.premios_generados)}</dd></div>`
+      + `<div><dt>Canjeados</dt><dd>${statsNum(f.premios_canjeados)}</dd></div>`
+      + `<div><dt>Descuento por premios</dt><dd>${PM.escaparHtml(statsPlata(f.descuento_premios_porcentaje))}</dd></div>`
+      + `<div><dt>Regalos</dt><dd>${statsNum(f.regalos)}</dd></div>`
+      + `<div><dt>Costo de regalos</dt><dd>${PM.escaparHtml(costo)}</dd></div></dl>`);
+  }
+
+  function exportarEstadisticasCsv() {
+    const r = estadisticas.resumen;
+    if (!r || !estadisticas.rango) return;
+    const filas = [
+      ['Periodo', `${estadisticas.rango.desde} a ${estadisticas.rango.hasta}`],
+      ['Sucursal', estadisticas.sucursal ? (SUCURSALES_CORTO[estadisticas.sucursal] || estadisticas.sucursal) : 'Todas'],
+      ['Facturacion', r.facturacion], ['Pedidos entregados', r.pedidos], ['Ticket promedio', r.ticket_promedio],
+      ['Cancelados', r.cancelados], ['Envio cobrado', r.envio_cobrado], ['Regalos', r.regalos],
+      [], ['Top productos'], ['Producto', 'Cantidad', 'Ingresos'],
+      ...(r.top_productos || []).map(p => [p.nombre || p.producto_id, p.cantidad, p.ingresos])
+    ];
+    const contenido = '﻿' + filas.map(fila => fila.map(campoCsv).join(';')).join('\r\n');
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `estadisticas-${estadisticas.rango.desde}-a-${estadisticas.rango.hasta}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function conectarEventosEstadisticas() {
+    document.querySelectorAll('[data-stats-periodo]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        estadisticas.periodo = boton.dataset.statsPeriodo;
+        document.querySelectorAll('[data-stats-periodo]').forEach(b => b.classList.toggle('activa', b === boton));
+        const rango = statsEl('stats-rango');
+        if (rango) rango.hidden = estadisticas.periodo !== 'custom';
+        if (estadisticas.periodo === 'custom') {
+          const hoy = fechaArgentinaISO(new Date());
+          const d = statsEl('stats-desde');
+          const h = statsEl('stats-hasta');
+          if (d && !d.value) d.value = sumarDiasISO(hoy, -6);
+          if (h && !h.value) h.value = hoy;
+        }
+        cargarEstadisticas();
+      });
+    });
+    ['stats-sucursal', 'stats-desde', 'stats-hasta'].forEach(id => {
+      const nodo = statsEl(id);
+      if (nodo) nodo.addEventListener('change', cargarEstadisticas);
+    });
+    const rec = statsEl('btn-stats-recargar');
+    if (rec) rec.addEventListener('click', cargarEstadisticas);
+    const csv = statsEl('btn-stats-csv');
+    if (csv) csv.addEventListener('click', exportarEstadisticasCsv);
+  }
+
+  // ---------------------------------------------------------------
+  // Clientes / CRM (solo dueño, solo lectura). El servidor segmenta y calcula.
+  // ---------------------------------------------------------------
+  const CRM_LIMITE = 50;
+  const CRM_SEGMENTOS = {
+    nuevo: 'Nuevo', ocasional: 'Ocasional', frecuente: 'Frecuente', inactivo: 'Inactivo', registrado: 'Registrado'
+  };
+  const crm = {
+    seq: 0, fichaSeq: 0, buscar: '', segmento: '', orden: 'ultima_visita', dir: 'desc',
+    filas: [], total: 0, cargado: false, telSel: null, bloqueoScroll: false, timer: null
+  };
+
+  function crmEl(id) { return document.getElementById(id); }
+
+  function crmNombre(c) {
+    return [c.nombre, c.apellido].map(x => String(x || '').trim()).filter(Boolean).join(' ') || 'Sin nombre';
+  }
+
+  function crmFecha(iso) {
+    if (!iso) return '—';
+    const f = new Date(iso);
+    if (Number.isNaN(f.getTime())) return '—';
+    return new Intl.DateTimeFormat('es-AR', { timeZone: ZONA_AR, day: '2-digit', month: '2-digit', year: '2-digit' }).format(f);
+  }
+
+  function crmHace(dias) {
+    if (dias === null || dias === undefined || !Number.isFinite(Number(dias))) return '';
+    const d = Number(dias);
+    return d <= 0 ? 'hoy' : `hace ${d} d`;
+  }
+
+  function crmInsignia(segmento) {
+    const s = CRM_SEGMENTOS[segmento] ? segmento : 'nuevo';
+    return `<span class="crm-seg crm-seg-${s}"><i class="crm-seg-punto" aria-hidden="true"></i>${PM.escaparHtml(CRM_SEGMENTOS[s])}</span>`;
+  }
+
+  // Iniciales para el círculo: primera letra de las dos primeras palabras ('?' si no hay nombre).
+  function crmIniciales(c) {
+    const partes = [c.nombre, c.apellido].map(x => String(x || '').trim()).filter(Boolean).join(' ').split(/\s+/).filter(Boolean);
+    if (!partes.length) return '?';
+    return partes.slice(0, 2).map(p => Array.from(p)[0]).join('').toLocaleUpperCase('es-AR');
+  }
+
+  const CRM_ICONO_WA = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20l1.3-4.1A8 8 0 1 1 8.2 18.8z"/><path d="M9 9.5c.3 2.2 2.3 4.2 4.5 4.5l1.2-1.2-1.6-1-.8.6c-.8-.4-1.5-1.1-1.9-1.9l.6-.8-1-1.6z"/></svg>';
+
+  // WhatsApp siempre visible: habilitado solo si aceptó promos y el teléfono es válido.
+  function crmBotonWa(c) {
+    const nombre = crmNombre(c);
+    const url = c.acepta_promos === true ? PM.urlWhatsappCliente(c.telefono) : '';
+    if (url) {
+      const etq = PM.escaparHtml(`Enviar WhatsApp a ${nombre}`);
+      return `<a class="crm-wa-btn" href="${PM.escaparHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${etq}" title="${etq}">${CRM_ICONO_WA}</a>`;
+    }
+    const motivo = c.acepta_promos === true ? 'Teléfono no válido para WhatsApp' : 'No aceptó recibir promociones';
+    return `<button type="button" class="crm-wa-btn crm-wa-off" aria-disabled="true" aria-label="${PM.escaparHtml(motivo)}" title="${PM.escaparHtml(motivo)}">${CRM_ICONO_WA}</button>`;
+  }
+
+  function avisoCrm(texto) {
+    const aviso = crmEl('crm-aviso');
+    if (!aviso) return;
+    aviso.hidden = !texto;
+    aviso.dataset.tipo = 'error';
+    aviso.textContent = texto || '';
+  }
+
+  function mensajeErrorCrm(error, base) {
+    if (esErrorPermiso(error)) return 'No tenés permiso para hacer esto.';
+    const msg = String((error && error.message) || '');
+    if (msg.includes('No tenés permiso')) return 'No tenés permiso para hacer esto.';
+    return base;
+  }
+
+  function renderCrmLista() {
+    const cont = crmEl('crm-lista');
+    if (!cont) return;
+    if (!crm.filas.length) {
+      cont.innerHTML = '<p class="admin-envios-vacio">No hay clientes para este filtro.</p>';
+    } else {
+      cont.innerHTML = crm.filas.map(c => {
+        const tel = String(c.telefono || '');
+        const sel = tel === crm.telSel ? ' seleccionada' : '';
+        const hace = crmHace(c.dias_sin_pedir);
+        return `<div class="crm-fila crm-item${sel}">
+          <button type="button" class="crm-main" data-crm-tel="${PM.escaparHtml(tel)}">
+            <span class="crm-avatar" aria-hidden="true">${PM.escaparHtml(crmIniciales(c))}</span>
+            <span class="crm-cliente">
+              <strong>${PM.escaparHtml(crmNombre(c))}</strong>
+              <small>${PM.escaparHtml(PM.formatearTelefonoAR(tel))} ${crmInsignia(c.segmento)}</small>
+            </span>
+            <span class="crm-stats">
+              <span class="crm-num" data-etq="Ped.">${statsNum(c.pedidos)}</span>
+              <span class="crm-num" data-etq="Gasto">${PM.escaparHtml(statsPlata(c.gasto))}</span>
+              <span class="crm-num" data-etq="Ticket">${PM.escaparHtml(statsPlata(c.ticket_promedio))}</span>
+              <span class="crm-num crm-ultima" data-etq="Última">${PM.escaparHtml(crmFecha(c.ultima_visita))}<small>${PM.escaparHtml(hace)}</small></span>
+            </span>
+          </button>
+          <span class="crm-wa-col">${crmBotonWa(c)}</span>
+        </div>`;
+      }).join('');
+    }
+    const total = crmEl('crm-total');
+    if (total) total.textContent = `${crm.filas.length} de ${crm.total} clientes`;
+    const mas = crmEl('btn-crm-mas');
+    if (mas) mas.hidden = crm.filas.length >= crm.total;
+    document.querySelectorAll('[data-crm-orden]').forEach(b => {
+      const activa = b.dataset.crmOrden === crm.orden;
+      b.classList.toggle('activa', activa);
+      b.dataset.dir = activa ? crm.dir : '';
+    });
+  }
+
+  async function cargarCrm(append = false) {
+    if (!cliente || !puedeVerCupones()) return;
+    const estado = crmEl('crm-estado');
+    const mi = ++crm.seq;
+    avisoCrm('');
+    const offset = append ? crm.filas.length : 0;
+    mostrarEstado(estado, 'Cargando clientes...');
+    try {
+      const { data, error } = await cliente.rpc('crm_clientes', {
+        p_buscar: crm.buscar || null,
+        p_orden: crm.orden,
+        p_dir: crm.dir,
+        p_segmento: crm.segmento || null,
+        p_limite: CRM_LIMITE,
+        p_offset: offset
+      });
+      if (mi !== crm.seq) return;
+      if (error) throw error;
+      const filas = Array.isArray(data && data.filas) ? data.filas : [];
+      crm.filas = append ? crm.filas.concat(filas) : filas;
+      crm.total = statsNum(data && data.total);
+      crm.cargado = true;
+      mostrarEstado(estado, '');
+      renderCrmLista();
+    } catch (error) {
+      if (mi !== crm.seq) return;
+      console.warn('No se pudieron cargar los clientes:', error);
+      mostrarEstado(estado, '');
+      avisoCrm(mensajeErrorCrm(error, 'No se pudieron cargar los clientes. Probá de nuevo.'));
+    }
+  }
+
+  function crmDescribirPremio(p) {
+    if (p.tipo === 'descuento_porcentaje') {
+      const tope = p.tope_en_pesos ? ` (tope ${statsPlata(p.tope_en_pesos)})` : '';
+      return `${statsNum(p.valor)}% de descuento${tope}`;
+    }
+    if (p.tipo === 'producto_gratis') return `Producto gratis${p.producto_id ? ` (${p.producto_id})` : ''}`;
+    return String(p.tipo || 'Premio');
+  }
+
+  function crmSeccion(titulo, html) {
+    return `<section class="crm-sec"><h4>${PM.escaparHtml(titulo)}</h4>${html}</section>`;
+  }
+
+  function renderCrmFicha(f) {
+    const cont = crmEl('crm-ficha-cuerpo');
+    const titulo = crmEl('crm-ficha-titulo');
+    if (!cont) return;
+    const c = f.cliente || {};
+    if (titulo) titulo.textContent = crmNombre(c);
+    const tel = String(c.telefono || '').replace(/\D/g, '');
+    const urlWspCrm = PM.urlWhatsappCliente(tel);
+    const wa = urlWspCrm ? `<a class="btn-secundario crm-wa" href="${PM.escaparHtml(urlWspCrm)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>` : '';
+    const dato = (t, v) => `<div><dt>${PM.escaparHtml(t)}</dt><dd>${PM.escaparHtml(v)}</dd></div>`;
+    const hace = crmHace(c.dias_sin_pedir);
+
+    let html = `<div class="crm-ficha-top"><span>${PM.escaparHtml(PM.formatearTelefonoAR(tel))}${crmInsignia(c.segmento)}</span>${wa}</div>`;
+    html += `<dl class="crm-dl">
+      ${dato('Pedidos', String(statsNum(c.pedidos)))}
+      ${dato('Gasto', statsPlata(c.gasto))}
+      ${dato('Ticket prom.', statsPlata(c.ticket_promedio))}
+      ${dato('Última visita', c.ultima_visita ? `${crmFecha(c.ultima_visita)}${hace ? ' · ' + hace : ''}` : '—')}
+      ${dato('Promos', c.acepta_promos ? 'Acepta' : 'No acepta')}
+      ${dato('Origen', c.origen === 'registro' ? 'Registro' : 'Pedido')}
+    </dl>`;
+
+    const fid = f.fidelidad || {};
+    let fidHtml;
+    if (!fid.activo) {
+      fidHtml = `<p class="crm-linea">Programa inactivo · ${statsNum(fid.pedidos_contados)} pedidos contados</p>`;
+    } else {
+      const sig = fid.siguiente_nivel;
+      const meta = sig ? ` · faltan ${statsNum(sig.faltan)} para el nivel de ${statsNum(sig.en)}` : '';
+      fidHtml = `<p class="crm-linea">${statsNum(fid.pedidos_contados)} de ${statsNum(fid.ciclo)} del ciclo${PM.escaparHtml(meta)}</p>`;
+    }
+    html += crmSeccion('Fidelidad', fidHtml);
+
+    const premios = f.premios || {};
+    const vig = Array.isArray(premios.vigentes) ? premios.vigentes : [];
+    const usa = Array.isArray(premios.usados) ? premios.usados : [];
+    let prHtml = vig.length
+      ? '<ul class="crm-mini">' + vig.map(p => `<li><span>${PM.escaparHtml(crmDescribirPremio(p))}</span><small>vence ${PM.escaparHtml(crmFecha(p.vencimiento))}</small></li>`).join('') + '</ul>'
+      : '<p class="crm-linea">Sin premios vigentes</p>';
+    if (usa.length) prHtml += `<p class="crm-linea crm-suave">${usa.length} premio(s) usado(s)</p>`;
+    html += crmSeccion('Premios', prHtml);
+
+    const favs = Array.isArray(f.favoritos) ? f.favoritos : [];
+    html += crmSeccion('Favoritos', favs.length
+      ? '<ul class="crm-mini">' + favs.map(p => `<li><span>${PM.escaparHtml(p.nombre || p.producto_id || '')}</span><small>×${statsNum(p.cantidad)}</small></li>`).join('') + '</ul>'
+      : '<p class="crm-linea">Todavía sin pedidos entregados</p>');
+
+    const peds = Array.isArray(f.pedidos) ? f.pedidos : [];
+    html += crmSeccion('Últimos pedidos', peds.length
+      ? '<ul class="crm-mini crm-pedidos">' + peds.map(p => `<li>
+          <span>PM-${PM.escaparHtml(String(p.numero_orden ?? ''))} <small>${PM.escaparHtml(formatearFechaCupon(p.fecha))} · ${PM.escaparHtml(SUCURSALES_CORTO[p.sucursal] || p.sucursal || '')}${p.cupon_codigo ? ' · ' + PM.escaparHtml(p.cupon_codigo) : ''}</small></span>
+          <span class="crm-num">${PM.escaparHtml(statsPlata(p.total))} <small>${PM.escaparHtml(String(p.estado || ''))}</small></span></li>`).join('') + '</ul>'
+      : '<p class="crm-linea">Sin pedidos</p>');
+
+    cont.innerHTML = html;
+  }
+
+  function cerrarCrmFicha() {
+    crm.telSel = null;
+    crm.fichaSeq++;
+    const ficha = crmEl('crm-ficha');
+    if (ficha) ficha.hidden = true;
+    const layout = document.querySelector('.crm-layout');
+    if (layout) layout.classList.remove('con-ficha');
+    if (crm.bloqueoScroll) {
+      document.body.classList.remove('admin-modal-abierto');
+      crm.bloqueoScroll = false;
+    }
+    document.querySelectorAll('.crm-item.seleccionada').forEach(n => n.classList.remove('seleccionada'));
+  }
+
+  async function abrirCrmFicha(tel) {
+    if (!cliente || !tel) return;
+    const ficha = crmEl('crm-ficha');
+    const cuerpo = crmEl('crm-ficha-cuerpo');
+    const titulo = crmEl('crm-ficha-titulo');
+    if (!ficha || !cuerpo) return;
+    const mi = ++crm.fichaSeq;
+    crm.telSel = tel;
+    ficha.hidden = false;
+    const layout = document.querySelector('.crm-layout');
+    if (layout) layout.classList.add('con-ficha');
+    if (!crm.bloqueoScroll && window.matchMedia('(max-width: 1099px)').matches) {
+      document.body.classList.add('admin-modal-abierto');
+      crm.bloqueoScroll = true;
+    }
+    document.querySelectorAll('.crm-item').forEach(n => n.classList.toggle('seleccionada', n.dataset.crmTel === tel));
+    if (titulo) titulo.textContent = 'Cliente';
+    cuerpo.innerHTML = '<p class="admin-estado">Cargando ficha...</p>';
+    try {
+      const { data, error } = await cliente.rpc('crm_cliente_ficha', { p_telefono: tel });
+      if (mi !== crm.fichaSeq) return;
+      if (error) throw error;
+      if (!data) {
+        cuerpo.innerHTML = '<p class="admin-envios-vacio">No se encontró el cliente.</p>';
+        return;
+      }
+      renderCrmFicha(data);
+    } catch (error) {
+      if (mi !== crm.fichaSeq) return;
+      console.warn('No se pudo cargar la ficha:', error);
+      cuerpo.innerHTML = `<p class="admin-envios-vacio">${PM.escaparHtml(mensajeErrorCrm(error, 'No se pudo cargar la ficha. Probá de nuevo.'))}</p>`;
+    }
+  }
+
+  async function exportarCrmCsv() {
+    if (!cliente || !puedeVerCupones()) return;
+    const btn = crmEl('btn-crm-csv');
+    if (btn) btn.disabled = true;
+    avisoCrm('');
+    try {
+      const { data, error } = await cliente.rpc('crm_exportar', {
+        p_segmento: crm.segmento || null,
+        p_solo_promos: !!(crmEl('crm-solo-promos') || {}).checked
+      });
+      if (error) throw error;
+      const filas = Array.isArray(data) ? data : [];
+      const cab = ['Telefono', 'Nombre', 'Apellido', 'Segmento', 'Pedidos', 'Gasto total', 'Ultima visita', 'Acepta promos'];
+      const cuerpo = filas.map(r => [r.telefono, r.nombre, r.apellido, r.segmento, r.pedidos, r.gasto_total,
+        r.ultima_visita ? fechaArgentinaISO(new Date(r.ultima_visita)) : '', r.acepta_promos ? 'Si' : 'No']);
+      const contenido = '﻿' + [cab, ...cuerpo].map(fila => fila.map(campoCsv).join(';')).join('\r\n');
+      const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clientes-${fechaArgentinaISO(new Date())}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.warn('No se pudo exportar:', error);
+      avisoCrm(mensajeErrorCrm(error, 'No se pudo exportar. Probá de nuevo.'));
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function conectarEventosCrm() {
+    const buscar = crmEl('crm-buscar');
+    if (buscar) {
+      buscar.addEventListener('input', () => {
+        clearTimeout(crm.timer);
+        crm.timer = setTimeout(() => {
+          crm.buscar = buscar.value.trim();
+          cerrarCrmFicha();
+          cargarCrm();
+        }, 300);
+      });
+    }
+    document.querySelectorAll('[data-crm-segmento]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        crm.segmento = boton.dataset.crmSegmento;
+        document.querySelectorAll('[data-crm-segmento]').forEach(b => {
+          b.classList.toggle('activa', b === boton);
+          b.setAttribute('aria-pressed', b === boton ? 'true' : 'false');
+        });
+        cerrarCrmFicha();
+        cargarCrm();
+      });
+    });
+    document.querySelectorAll('[data-crm-orden]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        const campo = boton.dataset.crmOrden;
+        if (crm.orden === campo) crm.dir = crm.dir === 'desc' ? 'asc' : 'desc';
+        else { crm.orden = campo; crm.dir = 'desc'; }
+        cargarCrm();
+      });
+    });
+    const lista = crmEl('crm-lista');
+    if (lista) {
+      lista.addEventListener('click', ev => {
+        const fila = ev.target.closest('[data-crm-tel]');
+        if (fila) abrirCrmFicha(fila.dataset.crmTel);
+      });
+    }
+    const mas = crmEl('btn-crm-mas');
+    if (mas) mas.addEventListener('click', () => cargarCrm(true));
+    const rec = crmEl('btn-crm-recargar');
+    if (rec) rec.addEventListener('click', () => cargarCrm());
+    const csv = crmEl('btn-crm-csv');
+    if (csv) csv.addEventListener('click', exportarCrmCsv);
+    const cerrar = crmEl('btn-crm-ficha-cerrar');
+    if (cerrar) cerrar.addEventListener('click', cerrarCrmFicha);
+    document.addEventListener('keydown', ev => {
+      const ficha = crmEl('crm-ficha');
+      if (ev.key === 'Escape' && ficha && !ficha.hidden) cerrarCrmFicha();
+    });
+  }
+
+  /* ===== Horarios, estado manual y cierres especiales ===== */
+
+  const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const ORDEN_DIAS = [1, 2, 3, 4, 5, 6, 0];
+  const MODOS_HORARIO = {
+    automatico: 'Automático',
+    forzar_abierto: 'Forzar abierto',
+    forzar_cerrado: 'Forzar cerrado'
+  };
+  const MODOS_EXCEPCION = {
+    abierto: 'Abierto',
+    solo_delivery: 'Solo delivery',
+    solo_retiro: 'Solo retiro',
+    cerrado: 'Cerrado'
+  };
+  const SUCURSALES_HORARIO_RESPALDO = ['maestro-quiroga', 'intendente-lascano'];
+
+  let horSucursal = '';
+  let horTurnos = {};      // dia -> [{ desde, hasta }]
+  let horOriginales = [];  // filas leídas de la BD { id, dia_semana, desde }
+  let horModo = 'automatico';
+  let horCierres = [];
+  let horExcepciones = [];
+  let horCargado = false;
+  let horCargando = false;
+  let horSucio = false;
+  let horBotonOrigen = null;
+
+  function horEl(id) { return document.getElementById(id); }
+
+  // Cambia el estado "sin guardar" y muestra u oculta la barra inferior.
+  function marcarHorSucio(valor) {
+    horSucio = !!valor;
+    const barra = horEl('hor-barra-cambios');
+    if (barra) barra.hidden = !horSucio;
+  }
+
+  // Íconos de los chips de modalidad (SVG de trazo, heredan el color).
+  const HOR_ICONO_RETIRO = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg>';
+  const HOR_ICONO_DELIVERY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="17" r="2.6"/><circle cx="19" cy="17" r="2.6"/><path d="M5 17h5l3-6.5h3.5M13 10.5 15.5 17M16.5 10.5 15 7h-2.5M7 10.5h3"/></svg>';
+
+  function puedeVerHorarios() {
+    if (adminRolError) return false;
+    if (adminRol === 'dueno') return true;
+    return adminRol === 'sucursal' && !!adminSucursalId;
+  }
+
+  function esDuenoHorarios() {
+    return adminRol === 'dueno' && !adminRolError;
+  }
+
+  function idsSucursalesHorario() {
+    const ids = Object.keys(SUCURSALES_NOMBRES);
+    return ids.length ? ids : SUCURSALES_HORARIO_RESPALDO;
+  }
+
+  function mensajeErrorHorarios(error) {
+    const codigo = String((error && error.code) || '');
+    const status = Number(error && error.status);
+    if (codigo === '42501' || status === 403) return 'No tenés permiso para hacer esto.';
+    const detalle = (error && error.message) ? error.message : 'Error desconocido.';
+    return `No se pudo completar la operación: ${detalle}`;
+  }
+
+  function mostrarAvisoHorarios(texto, tipo = 'error') {
+    const aviso = horEl('hor-aviso');
+    if (!aviso) return;
+    if (!texto) { aviso.hidden = true; aviso.textContent = ''; return; }
+    aviso.hidden = false;
+    aviso.dataset.tipo = tipo;
+    aviso.textContent = texto;
+  }
+
+  function hhmm(valor) {
+    return String(valor || '').slice(0, 5);
+  }
+
+  function minutosDeHora(valor) {
+    const m = /^(\d{2}):(\d{2})$/.exec(String(valor || ''));
+    if (!m) return null;
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    if (h > 23 || min > 59) return null;
+    return h * 60 + min;
+  }
+
+  function turnoCruzaMedianoche(turno) {
+    const ini = minutosDeHora(turno.desde);
+    const fin = minutosDeHora(turno.hasta);
+    return ini !== null && fin !== null && fin <= ini;
+  }
+
+  function renderSelectorSucursalHorarios() {
+    const wrap = horEl('hor-sucursal-wrap');
+    const select = horEl('hor-sucursal');
+    if (!wrap || !select) return;
+    if (esDuenoHorarios()) {
+      const ids = idsSucursalesHorario();
+      wrap.hidden = false;
+      select.innerHTML = ids
+        .map(id => `<option value="${PM.escaparHtml(id)}">${PM.escaparHtml(SUCURSALES_NOMBRES[id] || id)}</option>`)
+        .join('');
+      if (!horSucursal || !ids.includes(horSucursal)) horSucursal = ids[0];
+      select.value = horSucursal;
+    } else {
+      wrap.hidden = true;
+      horSucursal = adminSucursalId || '';
+    }
+    const nombreEdit = horEl('hor-editando-nombre');
+    if (nombreEdit) nombreEdit.textContent = SUCURSALES_NOMBRES[horSucursal] || horSucursal || '';
+    const cierresCard = horEl('hor-cierres-card');
+    if (cierresCard) cierresCard.hidden = !esDuenoHorarios();
+    const excSucursal = horEl('exc-sucursal-wrap');
+    if (excSucursal) excSucursal.hidden = !esDuenoHorarios();
+  }
+
+  async function cargarHorarios() {
+    if (!cliente || !puedeVerHorarios() || horCargando) return;
+    renderSelectorSucursalHorarios();
+    if (!horSucursal) return;
+    horCargando = true;
+    const sucursal = horSucursal;
+    mostrarEstado(horEl('hor-estado'), 'Cargando horarios...');
+    mostrarAvisoHorarios('');
+    try {
+      const consultas = [
+        cliente.from('sucursal_horarios').select('id,dia_semana,desde,hasta,acepta_retiro,acepta_delivery').eq('sucursal_id', sucursal).order('desde', { ascending: true }),
+        cliente.from('sucursal_estado_manual').select('modo').eq('sucursal_id', sucursal).maybeSingle(),
+        cliente.from('excepciones_dia').select('id,sucursal_id,fecha,modo,desde,hasta,motivo').eq('sucursal_id', sucursal).gte('fecha', fechaArgentinaHoy()).order('fecha', { ascending: true })
+      ];
+      if (esDuenoHorarios()) {
+        consultas.push(cliente.from('cierres_especiales').select('id,sucursal_id,desde,hasta,motivo').order('desde', { ascending: true }));
+      }
+      const [rHor, rModo, rExc, rCierres] = await Promise.all(consultas);
+      if (rHor.error) throw rHor.error;
+      if (rModo.error) throw rModo.error;
+      if (rExc.error) throw rExc.error;
+      if (rCierres && rCierres.error) throw rCierres.error;
+
+      horOriginales = (rHor.data || []).map(f => ({ id: f.id, dia_semana: Number(f.dia_semana), desde: hhmm(f.desde) }));
+      horTurnos = {};
+      for (let d = 0; d < 7; d++) horTurnos[d] = [];
+      (rHor.data || []).forEach(f => {
+        const dia = Number(f.dia_semana);
+        if (horTurnos[dia]) horTurnos[dia].push({
+          desde: hhmm(f.desde),
+          hasta: hhmm(f.hasta),
+          acepta_retiro: f.acepta_retiro !== false,
+          acepta_delivery: f.acepta_delivery !== false
+        });
+      });
+      horModo = rModo.data && MODOS_HORARIO[rModo.data.modo] ? rModo.data.modo : 'automatico';
+      horCierres = rCierres ? (rCierres.data || []) : [];
+      horExcepciones = rExc.data || [];
+      horCargado = true;
+      marcarHorSucio(false);
+      renderModoHorarios();
+      renderDiasHorarios();
+      renderCierres();
+      renderExcepciones();
+      mostrarEstado(horEl('hor-estado'), '');
+      cargarEstadoActualHorarios();
+    } catch (error) {
+      console.warn('No se pudieron cargar los horarios:', error);
+      mostrarEstado(horEl('hor-estado'), '');
+      mostrarAvisoHorarios(mensajeErrorHorarios(error));
+    } finally {
+      horCargando = false;
+    }
+  }
+
+  function textoMomentoHorario(iso) {
+    const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(String(iso || ''));
+    if (!m) return '';
+    const hoy = fechaArgentinaHoy();
+    let dia;
+    if (m[1] === hoy) dia = 'hoy';
+    else if (m[1] === sumarDiasFecha(hoy, 1)) dia = 'mañana';
+    else {
+      const f = fechaUTCDesdeISO(m[1]);
+      dia = f ? `el ${DIAS_SEMANA[f.getUTCDay()].toLowerCase()} ${m[1].slice(8, 10)}/${m[1].slice(5, 7)}` : m[1];
+    }
+    return `${dia} a las ${m[2]}`;
+  }
+
+  async function cargarEstadoActualHorarios() {
+    const caja = horEl('hor-estado-actual');
+    if (!caja || !cliente || !horSucursal) return;
+    const sucursal = horSucursal;
+    try {
+      const { data, error } = await cliente.rpc('sucursal_estado', { p_sucursal_id: sucursal });
+      if (error) throw error;
+      if (sucursal !== horSucursal) return;
+      const estado = data || {};
+      let texto;
+      if (estado.abierto) {
+        const hora = (/T(\d{2}:\d{2})/.exec(String(estado.cierra_a || '')) || [])[1];
+        texto = hora ? `Abierto ahora, cierra a las ${hora}` : 'Abierto ahora';
+        caja.dataset.abierto = 'si';
+      } else {
+        const prox = textoMomentoHorario(estado.proxima_apertura);
+        texto = prox ? `Cerrado, abre ${prox}` : 'Cerrado';
+        caja.dataset.abierto = 'no';
+      }
+      if (/cierre/i.test(String(estado.motivo || ''))) texto += ' (cierre especial)';
+      if (estado.modalidades_hoy === 'solo_delivery') texto += ' · Hoy solo delivery';
+      else if (estado.modalidades_hoy === 'solo_retiro') texto += ' · Hoy solo retiro';
+      caja.textContent = texto;
+    } catch (error) {
+      caja.dataset.abierto = '';
+      caja.textContent = 'No se pudo calcular el estado actual.';
+    }
+  }
+
+  function renderModoHorarios() {
+    document.querySelectorAll('input[name="hor-modo"]').forEach(radio => {
+      radio.checked = radio.value === horModo;
+    });
+    const forzado = horEl('hor-forzado');
+    if (forzado) {
+      forzado.hidden = horModo === 'automatico';
+      forzado.dataset.modo = horModo;
+    }
+    const tituloForzado = horEl('hor-forzado-titulo');
+    if (tituloForzado) {
+      tituloForzado.textContent = horModo === 'forzar_abierto' ? 'Modo forzado: ABIERTO' : (horModo === 'forzar_cerrado' ? 'Modo forzado: CERRADO' : '');
+    }
+    const texto = horEl('hor-forzado-texto');
+    if (texto) {
+      texto.textContent = horModo === 'forzar_abierto'
+        ? 'El local figura abierto aunque esté fuera de horario.'
+        : (horModo === 'forzar_cerrado' ? 'El local figura cerrado aunque esté dentro de horario.' : '');
+    }
+  }
+
+  async function cambiarModoHorario(modo) {
+    if (!cliente || !puedeVerHorarios() || !horSucursal || !MODOS_HORARIO[modo]) return;
+    if (modo === horModo) return;
+    if (modo === 'forzar_cerrado'
+        && !await confirmarAccion({ titulo: 'Forzar cerrado', mensaje: 'El local figurará cerrado y no recibirá pedidos hasta que vuelvas a automático.', textoConfirmar: 'Forzar cerrado', peligro: true })) {
+      renderModoHorarios();
+      return;
+    }
+    mostrarAvisoHorarios('');
+    mostrarEstado(horEl('hor-estado'), 'Guardando estado...');
+    try {
+      const { error } = await cliente
+        .from('sucursal_estado_manual')
+        .upsert({ sucursal_id: horSucursal, modo, actualizado_en: new Date().toISOString() }, { onConflict: 'sucursal_id' });
+      if (error) throw error;
+      horModo = modo;
+      renderModoHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Estado actualizado.', 'ok');
+      cargarEstadoActualHorarios();
+    } catch (error) {
+      console.warn('No se pudo cambiar el estado:', error);
+      mostrarEstado(horEl('hor-estado'), '');
+      mostrarAvisoHorarios(mensajeErrorHorarios(error));
+      renderModoHorarios();
+    }
+  }
+
+  function filaTurnoHtml(dia, indice, turno) {
+    const desde = PM.escaparHtml(turno.desde);
+    const hasta = PM.escaparHtml(turno.hasta);
+    const nombre = PM.escaparHtml(DIAS_SEMANA[dia]);
+    return `<div class="hor-turno" data-dia="${dia}" data-indice="${indice}">
+      <div class="hor-horas">
+        <input type="time" value="${desde}" data-hor-campo="desde" aria-label="Desde, ${nombre}">
+        <span class="hor-flecha" aria-hidden="true">\u2192</span>
+        <input type="time" value="${hasta}" data-hor-campo="hasta" aria-label="Hasta, ${nombre}">
+      </div>
+      <button type="button" class="btn-icono hor-quitar" data-hor-accion="quitar" aria-label="Quitar turno de ${nombre}">\u2715</button>
+      ${turnoCruzaMedianoche(turno) ? '<small class="hor-cruza">Termina al día siguiente</small>' : ''}
+      <div class="hor-chips" role="group" aria-label="Modalidades, ${nombre}">
+        <label class="hor-chip"><input type="checkbox" data-hor-campo="acepta_retiro"${turno.acepta_retiro !== false ? ' checked' : ''}><span>${HOR_ICONO_RETIRO} Retiro</span></label>
+        <label class="hor-chip"><input type="checkbox" data-hor-campo="acepta_delivery"${turno.acepta_delivery !== false ? ' checked' : ''}><span>${HOR_ICONO_DELIVERY} Delivery</span></label>
+      </div>
+    </div>`;
+  }
+
+  // Resumen de modalidades del día: Ambas / Solo delivery / Solo retiro / Mixto.
+  function resumenModalidadesDia(turnos) {
+    if (!turnos.length) return '';
+    const todos = campo => turnos.every(t => t[campo] !== false);
+    if (todos('acepta_retiro') && todos('acepta_delivery')) return 'Ambas';
+    const algunRet = turnos.some(t => t.acepta_retiro !== false);
+    const algunDel = turnos.some(t => t.acepta_delivery !== false);
+    if (algunRet && !algunDel) return 'Solo retiro';
+    if (algunDel && !algunRet) return 'Solo delivery';
+    return 'Mixto';
+  }
+
+  function renderDiasHorarios() {
+    const caja = horEl('hor-dias');
+    if (!caja) return;
+    caja.innerHTML = ORDEN_DIAS.map(dia => {
+      const turnos = horTurnos[dia] || [];
+      const filas = turnos.length
+        ? turnos.map((t, i) => filaTurnoHtml(dia, i, t)).join('')
+        : '<p class="hor-cerrado-dia">Cerrado</p>';
+      const resumen = resumenModalidadesDia(turnos);
+      const nombreDia = PM.escaparHtml(DIAS_SEMANA[dia]);
+      return `<div class="hor-dia" data-dia="${dia}">
+        <div class="hor-dia-cab">
+          <div class="hor-dia-nombre"><strong>${nombreDia}</strong>${resumen ? `<span class="hor-badge">${PM.escaparHtml(resumen)}</span>` : ''}</div>
+          <div class="hor-dia-acciones">
+            <button type="button" class="btn-secundario" data-hor-accion="agregar" data-dia="${dia}">+ Turno</button>
+            <div class="hor-menu">
+              <button type="button" class="btn-icono hor-menu-btn" data-hor-accion="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Más acciones de ${nombreDia}">⋯</button>
+              <div class="hor-menu-lista" role="menu" hidden>
+                <button type="button" role="menuitem" data-hor-accion="copiar" data-dia="${dia}">Copiar a todos</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hor-dia-turnos">${filas}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function cerrarMenusDia(devolverFoco) {
+    document.querySelectorAll('.hor-menu-btn[aria-expanded="true"]').forEach(btn => {
+      btn.setAttribute('aria-expanded', 'false');
+      const lista = btn.parentElement.querySelector('.hor-menu-lista');
+      if (lista) lista.hidden = true;
+      if (devolverFoco) btn.focus();
+    });
+  }
+
+  function manejarClickDias(evento) {
+    const boton = evento.target.closest('[data-hor-accion]');
+    if (!boton) return;
+    const accion = boton.dataset.horAccion;
+    if (accion === 'menu') {
+      const abierto = boton.getAttribute('aria-expanded') === 'true';
+      cerrarMenusDia(false);
+      if (!abierto) {
+        boton.setAttribute('aria-expanded', 'true');
+        const lista = boton.parentElement.querySelector('.hor-menu-lista');
+        if (lista) {
+          lista.hidden = false;
+          const primero = lista.querySelector('[role="menuitem"]');
+          if (primero) primero.focus();
+        }
+      }
+      return;
+    }
+    if (accion === 'copiar') {
+      cerrarMenusDia(false);
+      copiarDiaATodos(Number(boton.dataset.dia));
+      return;
+    }
+    if (accion === 'agregar') {
+      const dia = Number(boton.dataset.dia);
+      const lista = horTurnos[dia] || (horTurnos[dia] = []);
+      lista.push(lista.length ? { desde: '', hasta: '', acepta_retiro: true, acepta_delivery: true } : { desde: '19:00', hasta: '23:30', acepta_retiro: true, acepta_delivery: true });
+    } else if (accion === 'quitar') {
+      const fila = boton.closest('.hor-turno');
+      horTurnos[Number(fila.dataset.dia)].splice(Number(fila.dataset.indice), 1);
+    } else {
+      return;
+    }
+    marcarHorSucio(true);
+    renderDiasHorarios();
+  }
+
+  // Copia los turnos y modalidades de un día a los 7 días (menú "⋯" de cada fila).
+  async function copiarDiaATodos(dia) {
+    if (!(dia >= 0 && dia <= 6)) return;
+    if (!await confirmarAccion({ titulo: 'Copiar a todos los días', mensaje: `Copiar ${DIAS_SEMANA[dia]} a todos los días.\nEsto reemplaza los horarios de los otros 6 días.`, textoConfirmar: 'Copiar' })) return;
+    const origen = (horTurnos[dia] || []).map(t => ({ ...t }));
+    for (let d = 0; d < 7; d++) horTurnos[d] = origen.map(t => ({ ...t }));
+    marcarHorSucio(true);
+    renderDiasHorarios();
+  }
+
+  async function descartarCambiosHorarios() {
+    if (!horSucio) return;
+    if (!await confirmarAccion({ titulo: 'Descartar cambios', mensaje: '¿Descartar los cambios de horarios sin guardar?', textoConfirmar: 'Descartar', textoCancelar: 'Seguir editando', peligro: true })) return;
+    marcarHorSucio(false);
+    cargarHorarios();
+  }
+
+  function manejarInputDias(evento) {
+    const campo = evento.target.closest('[data-hor-campo]');
+    if (!campo) return;
+    const fila = campo.closest('.hor-turno');
+    const turno = horTurnos[Number(fila.dataset.dia)][Number(fila.dataset.indice)];
+    if (!turno) return;
+    const nombreCampo = campo.dataset.horCampo;
+    if (campo.type === 'checkbox') {
+      // Nunca ambas modalidades apagadas: si se apaga la última, vuelve a quedar activa.
+      const otro = nombreCampo === 'acepta_retiro' ? 'acepta_delivery' : 'acepta_retiro';
+      if (!campo.checked && turno[otro] === false) {
+        campo.checked = true;
+        const msg = 'Cada turno tiene que aceptar retiro o delivery (al menos uno).';
+        mostrarAvisoHorarios(msg, 'info');
+        setTimeout(() => { const av = horEl('hor-aviso'); if (av && av.textContent === msg) mostrarAvisoHorarios(''); }, 4000);
+        return;
+      }
+      turno[nombreCampo] = campo.checked;
+      marcarHorSucio(true);
+      // Refresca el badge resumen del dia sin redibujar (no pierde el foco).
+      const diaEl = campo.closest('.hor-dia');
+      const badge = diaEl && diaEl.querySelector('.hor-badge');
+      if (badge) badge.textContent = resumenModalidadesDia(horTurnos[Number(fila.dataset.dia)]);
+      return;
+    }
+    turno[nombreCampo] = campo.value;
+    marcarHorSucio(true);
+    let nota = fila.querySelector('.hor-cruza');
+    if (turnoCruzaMedianoche(turno) && !nota) {
+      nota = document.createElement('small');
+      nota.className = 'hor-cruza';
+      nota.textContent = 'Termina al día siguiente';
+      fila.appendChild(nota);
+    } else if (!turnoCruzaMedianoche(turno) && nota) {
+      nota.remove();
+    }
+  }
+
+  // Devuelve un mensaje de error o '' si los horarios son válidos.
+  function validarHorarios() {
+    for (let dia = 0; dia < 7; dia++) {
+      const nombre = DIAS_SEMANA[dia];
+      const rangos = [];
+      for (const t of (horTurnos[dia] || [])) {
+        const ini = minutosDeHora(t.desde);
+        const fin = minutosDeHora(t.hasta);
+        if (ini === null || fin === null) return `${nombre}: completá "desde" y "hasta" con una hora válida (HH:MM).`;
+        if (t.acepta_retiro === false && t.acepta_delivery === false) return `${nombre}: cada turno tiene que aceptar retiro o delivery (al menos uno).`;
+        rangos.push({ ini, fin: fin <= ini ? fin + 1440 : fin });
+      }
+      rangos.sort((a, b) => a.ini - b.ini);
+      for (let i = 1; i < rangos.length; i++) {
+        if (rangos[i].ini < rangos[i - 1].fin) return `${nombre}: hay turnos superpuestos.`;
+      }
+    }
+    return '';
+  }
+
+  async function guardarHorarios() {
+    if (!cliente || !puedeVerHorarios() || !horSucursal || !horCargado) return;
+    mostrarAvisoHorarios('');
+    const fallo = validarHorarios();
+    if (fallo) { mostrarAvisoHorarios(fallo); return; }
+
+    const filas = [];
+    for (let dia = 0; dia < 7; dia++) {
+      (horTurnos[dia] || []).forEach(t => {
+        filas.push({
+          sucursal_id: horSucursal,
+          dia_semana: dia,
+          desde: t.desde,
+          hasta: t.hasta,
+          acepta_retiro: t.acepta_retiro !== false,
+          acepta_delivery: t.acepta_delivery !== false
+        });
+      });
+    }
+    if (!filas.length && !await confirmarAccion({ titulo: 'Sin turnos', mensaje: 'La sucursal no tiene ningún turno cargado y quedará siempre abierta. ¿Guardar igual?', textoConfirmar: 'Guardar igual' })) return;
+
+    const boton = horEl('btn-hor-guardar');
+    if (boton) boton.disabled = true;
+    mostrarEstado(horEl('hor-estado'), 'Guardando horarios...');
+    try {
+      // Primero se insertan/actualizan los turnos nuevos y después se borran los que sobran:
+      // si algo falla a mitad de camino nunca queda la sucursal sin horarios.
+      if (filas.length) {
+        const { error } = await cliente
+          .from('sucursal_horarios')
+          .upsert(filas, { onConflict: 'sucursal_id,dia_semana,desde' });
+        if (error) throw error;
+      }
+      const claves = new Set(filas.map(f => `${f.dia_semana}|${f.desde}`));
+      const sobrantes = horOriginales.filter(o => !claves.has(`${o.dia_semana}|${o.desde}`)).map(o => o.id);
+      if (sobrantes.length) {
+        const { error } = await cliente.from('sucursal_horarios').delete().in('id', sobrantes);
+        if (error) throw error;
+      }
+      marcarHorSucio(false);
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Horarios guardados.', 'ok');
+    } catch (error) {
+      console.warn('No se pudieron guardar los horarios:', error);
+      mostrarEstado(horEl('hor-estado'), '');
+      mostrarAvisoHorarios(mensajeErrorHorarios(error));
+    } finally {
+      if (boton) boton.disabled = false;
+    }
+  }
+
+  /* --- Cierres especiales (solo dueño) --- */
+
+  function formatearFechaCierre(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+  }
+
+  function renderCierres() {
+    const caja = horEl('hor-cierres');
+    if (!caja) return;
+    if (!horCierres.length) {
+      caja.innerHTML = '<p class="admin-ayuda">No hay cierres especiales cargados.</p>';
+      return;
+    }
+    const hoy = fechaArgentinaHoy();
+    caja.innerHTML = horCierres.map(c => {
+      const pasado = String(c.hasta) < hoy;
+      const rango = c.desde === c.hasta
+        ? formatearFechaCierre(c.desde)
+        : `${formatearFechaCierre(c.desde)} al ${formatearFechaCierre(c.hasta)}`;
+      const sucursal = c.sucursal_id ? (SUCURSALES_NOMBRES[c.sucursal_id] || c.sucursal_id) : 'Todas las sucursales';
+      return `<button type="button" class="hor-cierre${pasado ? ' pasado' : ''}" data-cierre-id="${PM.escaparHtml(c.id)}">
+        <strong>${PM.escaparHtml(rango)}</strong>
+        <span>${PM.escaparHtml(sucursal)}${pasado ? ' · Pasado' : ''}</span>
+        <small>${PM.escaparHtml(c.motivo || 'Sin motivo')}</small>
+      </button>`;
+    }).join('');
+  }
+
+  function abrirFormCierre(cierre) {
+    const modal = horEl('modal-cierre');
+    if (!modal || !esDuenoHorarios()) return;
+    horBotonOrigen = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const editando = !!cierre;
+    horEl('cierre-id').value = editando ? cierre.id : '';
+    const select = horEl('cierre-sucursal');
+    select.innerHTML = '<option value="">Todas las sucursales</option>' + idsSucursalesHorario()
+      .map(id => `<option value="${PM.escaparHtml(id)}">${PM.escaparHtml(SUCURSALES_NOMBRES[id] || id)}</option>`).join('');
+    select.value = editando && cierre.sucursal_id ? cierre.sucursal_id : '';
+    horEl('cierre-desde').value = editando ? String(cierre.desde).slice(0, 10) : '';
+    horEl('cierre-hasta').value = editando ? String(cierre.hasta).slice(0, 10) : '';
+    horEl('cierre-motivo').value = editando ? (cierre.motivo || '') : '';
+    horEl('cierre-titulo').textContent = editando ? 'Editar cierre' : 'Nuevo cierre';
+    horEl('btn-borrar-cierre').hidden = !editando;
+    mostrarEstado(horEl('cierre-estado'), '');
+    modal.hidden = false;
+    document.body.classList.add('admin-modal-abierto');
+    horEl('cierre-desde').focus({ preventScroll: true });
+  }
+
+  function cerrarFormCierre() {
+    const modal = horEl('modal-cierre');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    document.body.classList.remove('admin-modal-abierto');
+    const origen = horBotonOrigen;
+    horBotonOrigen = null;
+    if (origen && origen.isConnected) origen.focus({ preventScroll: true });
+  }
+
+  async function guardarCierre(evento) {
+    evento.preventDefault();
+    if (!cliente || !esDuenoHorarios()) return;
+    const estado = horEl('cierre-estado');
+    const fallo = mensaje => mostrarEstado(estado, mensaje, 'error');
+    const id = horEl('cierre-id').value;
+    const desde = horEl('cierre-desde').value;
+    const hasta = horEl('cierre-hasta').value;
+    const motivo = horEl('cierre-motivo').value.trim();
+    const sucursal = horEl('cierre-sucursal').value || null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(desde) || !/^\d{4}-\d{2}-\d{2}$/.test(hasta)) return fallo('Elegí la fecha desde y hasta.');
+    if (hasta < desde) return fallo('La fecha "hasta" no puede ser anterior a "desde".');
+    if (motivo.length > 200) return fallo('El motivo no puede tener más de 200 caracteres.');
+    const datos = { sucursal_id: sucursal, desde, hasta, motivo: motivo || null };
+    const boton = horEl('btn-guardar-cierre');
+    boton.disabled = true;
+    mostrarEstado(estado, 'Guardando...');
+    try {
+      const { error } = await (id
+        ? cliente.from('cierres_especiales').update(datos).eq('id', id)
+        : cliente.from('cierres_especiales').insert(datos));
+      if (error) throw error;
+      cerrarFormCierre();
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Cierre guardado.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo guardar el cierre:', error);
+      fallo(mensajeErrorHorarios(error));
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  async function borrarCierre() {
+    const id = horEl('cierre-id').value;
+    if (!id || !cliente || !esDuenoHorarios()) return;
+    if (!await confirmarAccion({ titulo: 'Borrar cierre', mensaje: '¿Borrar este cierre especial?', textoConfirmar: 'Borrar', peligro: true })) return;
+    try {
+      const { error } = await cliente.from('cierres_especiales').delete().eq('id', id);
+      if (error) throw error;
+      cerrarFormCierre();
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Cierre borrado.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo borrar el cierre:', error);
+      mostrarEstado(horEl('cierre-estado'), mensajeErrorHorarios(error), 'error');
+    }
+  }
+
+  /* --- Excepciones por fecha --- */
+
+  function renderExcepciones() {
+    const caja = horEl('hor-excepciones');
+    if (!caja) return;
+    if (!horExcepciones.length) {
+      caja.innerHTML = '<p class="admin-ayuda">No hay excepciones próximas.</p>';
+      return;
+    }
+    caja.innerHTML = horExcepciones.map(e => {
+      const horario = e.desde && e.hasta ? `${hhmm(e.desde)} a ${hhmm(e.hasta)}` : (e.modo === 'cerrado' ? '' : 'Horario del día');
+      return `<button type="button" class="hor-cierre" data-exc-id="${PM.escaparHtml(e.id)}">
+        <strong>${PM.escaparHtml(formatearFechaCierre(e.fecha))} · ${PM.escaparHtml(MODOS_EXCEPCION[e.modo] || e.modo)}</strong>
+        ${horario ? `<span>${PM.escaparHtml(horario)}</span>` : ''}
+        <small>${PM.escaparHtml(e.motivo || 'Sin motivo')}</small>
+      </button>`;
+    }).join('');
+  }
+
+  function sincronizarModoExcepcion() {
+    const cerrado = horEl('exc-modo').value === 'cerrado';
+    ['exc-desde', 'exc-hasta'].forEach(id => {
+      const campo = horEl(id);
+      campo.disabled = cerrado;
+      if (cerrado) campo.value = '';
+    });
+  }
+
+  function abrirFormExcepcion(exc) {
+    const modal = horEl('modal-excepcion');
+    if (!modal || !puedeVerHorarios()) return;
+    horBotonOrigen = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const editando = !!exc;
+    horEl('exc-id').value = editando ? exc.id : '';
+    const select = horEl('exc-sucursal');
+    select.innerHTML = (esDuenoHorarios() ? idsSucursalesHorario() : [horSucursal])
+      .map(id => `<option value="${PM.escaparHtml(id)}">${PM.escaparHtml(SUCURSALES_NOMBRES[id] || id)}</option>`).join('');
+    select.value = editando ? exc.sucursal_id : horSucursal;
+    select.disabled = editando || !esDuenoHorarios();
+    horEl('exc-fecha').value = editando ? String(exc.fecha).slice(0, 10) : '';
+    horEl('exc-modo').value = editando && MODOS_EXCEPCION[exc.modo] ? exc.modo : 'abierto';
+    horEl('exc-desde').value = editando && exc.desde ? hhmm(exc.desde) : '';
+    horEl('exc-hasta').value = editando && exc.hasta ? hhmm(exc.hasta) : '';
+    horEl('exc-motivo').value = editando ? (exc.motivo || '') : '';
+    horEl('exc-titulo').textContent = editando ? 'Editar excepción' : 'Nueva excepción';
+    horEl('btn-borrar-exc').hidden = !editando;
+    sincronizarModoExcepcion();
+    mostrarEstado(horEl('exc-estado'), '');
+    modal.hidden = false;
+    document.body.classList.add('admin-modal-abierto');
+    horEl('exc-fecha').focus({ preventScroll: true });
+  }
+
+  function cerrarFormExcepcion() {
+    const modal = horEl('modal-excepcion');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    document.body.classList.remove('admin-modal-abierto');
+    const origen = horBotonOrigen;
+    horBotonOrigen = null;
+    if (origen && origen.isConnected) origen.focus({ preventScroll: true });
+  }
+
+  async function guardarExcepcion(evento) {
+    evento.preventDefault();
+    if (!cliente || !puedeVerHorarios()) return;
+    const estado = horEl('exc-estado');
+    const fallo = mensaje => mostrarEstado(estado, mensaje, 'error');
+    const id = horEl('exc-id').value;
+    const fecha = horEl('exc-fecha').value;
+    const modo = horEl('exc-modo').value;
+    const desde = horEl('exc-desde').value;
+    const hasta = horEl('exc-hasta').value;
+    const motivo = horEl('exc-motivo').value.trim();
+    const sucursal = esDuenoHorarios() ? horEl('exc-sucursal').value : adminSucursalId;
+    if (!sucursal) return fallo('Elegí la sucursal.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return fallo('Elegí la fecha.');
+    if (!MODOS_EXCEPCION[modo]) return fallo('Elegí el modo.');
+    if (modo === 'cerrado' && (desde || hasta)) return fallo('"Cerrado" no lleva horario.');
+    if ((desde && !hasta) || (!desde && hasta)) return fallo('Completá "desde" y "hasta", o dejá los dos vacíos.');
+    if (desde && (minutosDeHora(desde) === null || minutosDeHora(hasta) === null)) return fallo('Horario inválido (HH:MM).');
+    if (motivo.length > 200) return fallo('El motivo no puede tener más de 200 caracteres.');
+    const datos = { sucursal_id: sucursal, fecha, modo, desde: desde || null, hasta: hasta || null, motivo: motivo || null };
+    const boton = horEl('btn-guardar-exc');
+    boton.disabled = true;
+    mostrarEstado(estado, 'Guardando...');
+    try {
+      const { error } = await (id
+        ? cliente.from('excepciones_dia').update(datos).eq('id', id)
+        : cliente.from('excepciones_dia').insert(datos));
+      if (error) {
+        if (String(error.code) === '23505') return fallo('Ya hay una excepción para esa sucursal y fecha. Editala desde la lista.');
+        throw error;
+      }
+      cerrarFormExcepcion();
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Excepción guardada.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo guardar la excepción:', error);
+      fallo(mensajeErrorHorarios(error));
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  async function borrarExcepcion() {
+    const id = horEl('exc-id').value;
+    if (!id || !cliente || !puedeVerHorarios()) return;
+    if (!await confirmarAccion({ titulo: 'Borrar excepción', mensaje: '¿Borrar esta excepción?', textoConfirmar: 'Borrar', peligro: true })) return;
+    try {
+      const { error } = await cliente.from('excepciones_dia').delete().eq('id', id);
+      if (error) throw error;
+      cerrarFormExcepcion();
+      await cargarHorarios();
+      mostrarEstado(horEl('hor-estado'), 'Excepción borrada.', 'ok');
+    } catch (error) {
+      console.warn('No se pudo borrar la excepción:', error);
+      mostrarEstado(horEl('exc-estado'), mensajeErrorHorarios(error), 'error');
+    }
+  }
+
+  function conectarEventosHorarios() {
+    const dias = horEl('hor-dias');
+    if (dias) {
+      dias.addEventListener('click', manejarClickDias);
+      dias.addEventListener('input', manejarInputDias);
+      // Escape cierra el menú "⋯" y devuelve el foco; clic afuera también lo cierra.
+      dias.addEventListener('keydown', evento => {
+        if (evento.key === 'Escape' && dias.querySelector('.hor-menu-btn[aria-expanded="true"]')) {
+          evento.preventDefault();
+          evento.stopPropagation();
+          cerrarMenusDia(true);
+        }
+      });
+      document.addEventListener('click', evento => {
+        if (!evento.target.closest('.hor-menu')) cerrarMenusDia(false);
+      });
+    }
+    const sel = horEl('hor-sucursal');
+    if (sel) {
+      sel.addEventListener('change', async () => {
+        if (horSucio && !await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios de horarios sin guardar. ¿Cambiar de sucursal igual?', textoConfirmar: 'Cambiar igual', textoCancelar: 'Quedarme', peligro: true })) {
+          sel.value = horSucursal;
+          return;
+        }
+        horSucursal = sel.value;
+        cargarHorarios();
+      });
+    }
+    document.querySelectorAll('input[name="hor-modo"]').forEach(radio => {
+      radio.addEventListener('change', () => { if (radio.checked) cambiarModoHorario(radio.value); });
+    });
+    const auto = horEl('btn-hor-auto');
+    if (auto) auto.addEventListener('click', () => cambiarModoHorario('automatico'));
+    const guardar = horEl('btn-hor-guardar');
+    if (guardar) guardar.addEventListener('click', guardarHorarios);
+    const descartar = horEl('btn-hor-descartar');
+    if (descartar) descartar.addEventListener('click', descartarCambiosHorarios);
+    const recargar = horEl('btn-hor-recargar');
+    if (recargar) {
+      recargar.addEventListener('click', async () => {
+        if (horSucio && !await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios sin guardar. ¿Recargar igual?', textoConfirmar: 'Recargar', textoCancelar: 'Seguir editando', peligro: true })) return;
+        cargarHorarios();
+      });
+    }
+    const nuevo = horEl('btn-nuevo-cierre');
+    if (nuevo) nuevo.addEventListener('click', () => abrirFormCierre(null));
+    const lista = horEl('hor-cierres');
+    if (lista) {
+      lista.addEventListener('click', ev => {
+        const b = ev.target.closest('[data-cierre-id]');
+        if (!b) return;
+        const c = horCierres.find(x => String(x.id) === b.dataset.cierreId);
+        if (c) abrirFormCierre(c);
+      });
+    }
+    const nuevaExc = horEl('btn-nueva-exc');
+    if (nuevaExc) nuevaExc.addEventListener('click', () => abrirFormExcepcion(null));
+    const listaExc = horEl('hor-excepciones');
+    if (listaExc) {
+      listaExc.addEventListener('click', ev => {
+        const b = ev.target.closest('[data-exc-id]');
+        if (!b) return;
+        const e = horExcepciones.find(x => String(x.id) === b.dataset.excId);
+        if (e) abrirFormExcepcion(e);
+      });
+    }
+    const formExc = horEl('form-excepcion');
+    if (formExc) formExc.addEventListener('submit', guardarExcepcion);
+    const modoExc = horEl('exc-modo');
+    if (modoExc) modoExc.addEventListener('change', sincronizarModoExcepcion);
+    const borrarExc = horEl('btn-borrar-exc');
+    if (borrarExc) borrarExc.addEventListener('click', borrarExcepcion);
+    ['btn-cerrar-exc', 'btn-cancelar-exc'].forEach(id => {
+      const b = horEl(id);
+      if (b) b.addEventListener('click', cerrarFormExcepcion);
+    });
+    const overlayExc = horEl('modal-excepcion');
+    if (overlayExc) overlayExc.addEventListener('mousedown', ev => { if (ev.target === overlayExc) cerrarFormExcepcion(); });
+    document.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape' && overlayExc && !overlayExc.hidden) cerrarFormExcepcion();
+    });
+    const form = horEl('form-cierre');
+    if (form) form.addEventListener('submit', guardarCierre);
+    const borrar = horEl('btn-borrar-cierre');
+    if (borrar) borrar.addEventListener('click', borrarCierre);
+    ['btn-cerrar-cierre', 'btn-cancelar-cierre'].forEach(id => {
+      const b = horEl(id);
+      if (b) b.addEventListener('click', cerrarFormCierre);
+    });
+    const overlay = horEl('modal-cierre');
+    if (overlay) overlay.addEventListener('mousedown', ev => { if (ev.target === overlay) cerrarFormCierre(); });
+    document.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape' && overlay && !overlay.hidden) cerrarFormCierre();
+    });
+  }
+
   function mostrarVistaAdmin(vista) {
+    if (vista === 'clientes' && !puedeVerCupones()) vista = 'pedidos';
+    if (vista === 'horarios' && !puedeVerHorarios()) vista = 'pedidos';
+    if (vista === 'disponibilidad' && !puedeVerHorarios()) vista = 'pedidos';
+    const esDisp = vista === 'disponibilidad';
+    if (el.vistaDisponibilidad) el.vistaDisponibilidad.hidden = !esDisp;
+    if (esDisp && cliente) {
+      if (!agotadosCargados) cargarAgotados();
+      else renderAgotados();
+    }
+    const esHorarios = vista === 'horarios';
+    const vistaHorarios = document.getElementById('admin-vista-horarios');
+    if (vistaHorarios) vistaHorarios.hidden = !esHorarios;
+    if (esHorarios && cliente) cargarHorarios();
+    const esCrm = vista === 'clientes';
+    const vistaCrm = crmEl('admin-vista-clientes');
+    if (vistaCrm) vistaCrm.hidden = !esCrm;
+    if (!esCrm) cerrarCrmFicha();
+    if (esCrm && cliente) cargarCrm();
+    if (vista === 'cupones' && !puedeVerCupones()) vista = 'pedidos';
+    if (vista === 'fidelidad' && !puedeVerFidelidad()) vista = 'pedidos';
+    if (vista === 'estadisticas' && !puedeVerCupones()) vista = 'pedidos';
+    const esStats = vista === 'estadisticas';
+    const vistaStats = document.getElementById('admin-vista-estadisticas');
+    if (vistaStats) vistaStats.hidden = !esStats;
+    if (esStats && cliente) cargarEstadisticas();
     const esPedidos = vista === 'pedidos';
     const esEnvios = vista === 'envios';
+    const esCupones = vista === 'cupones';
+    const esFidelidad = vista === 'fidelidad';
     el.tabsVista.forEach(tab => {
       const activa = tab.dataset.adminVista === vista;
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats || esCrm || esHorarios || esDisp;
+    if (el.vistaFidelidad) el.vistaFidelidad.hidden = !esFidelidad;
+    if (esFidelidad && cliente) {
+      if (!fidelidadCargada) cargarFidelidad();
+      else cargarEstadisticasFidelidad();
+    }
+    if (el.vistaCupones) el.vistaCupones.hidden = !esCupones;
+    if (esCupones && cliente) {
+      if (!cuponesCargados) cargarCupones();
+      else renderCupones();
+    }
     if (el.vistaPedidos) el.vistaPedidos.hidden = !esPedidos;
     if (el.vistaEnvios) el.vistaEnvios.hidden = !esEnvios;
     if (esPedidos && cliente) {
       if (!pedidosCargados) cargarPedidos();
-      else renderPedidosLista();
+      else renderPedidos();
     }
     if (esEnvios && cliente) {
       if (!enviosCargados) cargarEnvios();
@@ -2674,6 +6668,7 @@
         renderTramosEnvios();
       }
     }
+    if (adminRolError) aplicarAvisoRol();
   }
 
   function conectarEventos() {
@@ -2683,27 +6678,131 @@
     if (el.btnExportar) el.btnExportar.addEventListener('click', exportarCarta);
     if (el.btnRecargar) {
       el.btnRecargar.addEventListener('click', async () => {
-        if (cambiosPendientes && !window.confirm('Hay cambios sin guardar. ¿Recargar de todos modos?')) return;
+        if (cambiosPendientes && !await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios sin guardar. ¿Recargar de todos modos?', textoConfirmar: 'Recargar', textoCancelar: 'Seguir editando', peligro: true })) return;
         await cargarCarta();
       });
     }
 
+    conectarEventosHorarios();
+
     el.tabsVista.forEach(tab => {
-      tab.addEventListener('click', () => mostrarVistaAdmin(tab.dataset.adminVista));
+      tab.addEventListener('click', async () => {
+        const destino = tab.dataset.adminVista;
+        if (horSucio && destino !== 'horarios') {
+          if (!await confirmarAccion({ titulo: 'Cambios sin guardar', mensaje: 'Hay cambios de horarios sin guardar. Si cambiás de pestaña se pierden. ¿Salir igual?', textoConfirmar: 'Salir igual', textoCancelar: 'Quedarme', peligro: true })) return;
+          marcarHorSucio(false);
+        }
+        mostrarVistaAdmin(destino);
+      });
     });
 
     if (el.btnPedidosActualizar) {
       el.btnPedidosActualizar.addEventListener('click', () => cargarPedidos());
     }
     if (el.btnPedidosActivarSonido) {
-      el.btnPedidosActivarSonido.addEventListener('click', activarSonidoPedidos);
+      el.btnPedidosActivarSonido.addEventListener('click', alternarSonidoPedidos);
     }
-    if (el.pedidosFiltroEstado) el.pedidosFiltroEstado.addEventListener('change', renderPedidosLista);
-    if (el.pedidosFiltroSucursal) el.pedidosFiltroSucursal.addEventListener('change', renderPedidosLista);
-    if (el.pedidosFiltroFecha) el.pedidosFiltroFecha.addEventListener('change', renderPedidosLista);
+    if (el.pedidosVolumen) {
+      el.pedidosVolumen.addEventListener('change', cambiarVolumenPedidos);
+    }
+    document.addEventListener('pointerdown', () => {
+      if (!pedidosSonidoActivo) return;
+      desbloquearAudioPedidos();
+    }, { capture: true, once: true });
+    if (el.pedidosFiltroPeriodo) {
+      el.pedidosFiltroPeriodo.addEventListener('change', () => {
+        cambiarPeriodoPedidos(el.pedidosFiltroPeriodo.value);
+      });
+    }
+    if (el.pedidosPeriodoEtiqueta) {
+      el.pedidosPeriodoEtiqueta.addEventListener('click', volverAHoyPedidos);
+    }
+    if (el.btnPedidosAnterior) {
+      el.btnPedidosAnterior.addEventListener('click', () => moverPeriodoPedidos(-1));
+    }
+    if (el.btnPedidosSiguiente) {
+      el.btnPedidosSiguiente.addEventListener('click', () => moverPeriodoPedidos(1));
+    }
+    if (el.pedidosFiltroDesde) {
+      el.pedidosFiltroDesde.addEventListener('change', () => aplicarCambioRangoPedidos('desde'));
+    }
+    if (el.pedidosFiltroHasta) {
+      el.pedidosFiltroHasta.addEventListener('change', () => aplicarCambioRangoPedidos('hasta'));
+    }
+    if (el.pedidosFiltroSucursal) el.pedidosFiltroSucursal.addEventListener('change', renderPedidos);
+    el.pedidosVistaBtns.forEach(boton => {
+      boton.addEventListener('click', () => {
+        pedidosVista = boton.dataset.pedidosVista === 'lista' ? 'lista' : 'tablero';
+        actualizarControlesPedidos();
+        renderPedidos();
+      });
+    });
+    el.pedidosModalidadBtns.forEach(boton => {
+      boton.addEventListener('click', () => {
+        pedidosModalidad = boton.dataset.pedidosModalidad || '';
+        actualizarControlesPedidos();
+        renderPedidos();
+      });
+    });
+    if (el.btnPedidosExportar) el.btnPedidosExportar.addEventListener('click', exportarPedidosCsv);
+    if (el.agotadosSucursal) {
+      el.agotadosSucursal.addEventListener('change', () => renderAgotados());
+    }
+    if (el.agotadosLista) {
+      el.agotadosLista.addEventListener('click', (evento) => {
+        if (evento.target.closest('[data-agotados-ver-todos]')) {
+          agotadosFiltroEstado = 'todos';
+          renderAgotados();
+          return;
+        }
+        const boton = evento.target.closest('[data-agotado-id]');
+        if (!boton || boton.disabled) return;
+        cambiarAgotado(boton.dataset.agotadoId, boton.dataset.agotadoSucursal, boton.getAttribute('aria-checked') !== 'true', { origen: 'pedidos' });
+      });
+    }
+    if (el.agotadosBuscar) el.agotadosBuscar.addEventListener('input', renderAgotados);
+    if (el.agotadosCategoria) el.agotadosCategoria.addEventListener('change', renderAgotados);
+    if (el.agotadosFiltroEstado) {
+      el.agotadosFiltroEstado.addEventListener('change', () => {
+        agotadosFiltroEstado = el.agotadosFiltroEstado.value || 'no-disponibles';
+        renderAgotados();
+      });
+    }
 
-    if (el.pedidosLista) {
-      el.pedidosLista.addEventListener('click', (evento) => {
+    if (el.pedidosContenedor) {
+      el.pedidosContenedor.addEventListener('click', async (evento) => {
+        const botonColumna = evento.target.closest('[data-columna-toggle]');
+        const columnaCerrada = botonColumna ? null : evento.target.closest('.admin-pedidos-columna.colapsada');
+        if (botonColumna || columnaCerrada) {
+          const columna = (botonColumna || columnaCerrada).closest('[data-columna]');
+          if (columna) {
+            const colapsada = !columna.classList.contains('colapsada');
+            aplicarEstadoColumnaCancelados(columna, colapsada);
+            guardarCanceladosAbierto(!colapsada);
+            if (!colapsada) {
+              // en celular el carril es horizontal: dejar la columna a la vista
+              const reducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              if (window.matchMedia && window.matchMedia('(max-width: 720px)').matches) {
+                columna.scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', inline: 'end', block: 'nearest' });
+              }
+              const foco = columna.querySelector('[data-columna-toggle]');
+              if (foco && botonColumna) foco.focus();
+            } else {
+              const foco = columna.querySelector('[data-columna-toggle]');
+              if (foco && botonColumna) foco.focus();
+            }
+          }
+          return;
+        }
+
+        const boton = evento.target.closest('[data-pedido-accion]');
+        if (boton) {
+          const tarjeta = boton.closest('[data-pedido-id]');
+          if (tarjeta) await ejecutarAccionPedido(tarjeta.dataset.pedidoId, boton.dataset.pedidoAccion, boton);
+          return;
+        }
+
+        if (evento.target.closest('summary, details, a, input, select, textarea, label')) return;
         const tarjeta = evento.target.closest('[data-pedido-id]');
         if (tarjeta) abrirDetallePedido(tarjeta.dataset.pedidoId);
       });
@@ -2712,11 +6811,8 @@
     if (el.pedidoDetalleContenido) {
       el.pedidoDetalleContenido.addEventListener('click', async (evento) => {
         const boton = evento.target.closest('[data-pedido-accion]');
-        if (!boton) return;
-        const nuevoEstado = boton.dataset.pedidoAccion;
-        if (nuevoEstado === 'cancelado' && !window.confirm('¿Cancelar este pedido?')) return;
-        if (nuevoEstado === 'entregado' && !window.confirm('¿Marcar este pedido como entregado?')) return;
-        if (pedidoAbiertoId) await actualizarEstadoPedido(pedidoAbiertoId, nuevoEstado, boton);
+        if (!boton || !pedidoAbiertoId) return;
+        await ejecutarAccionPedido(pedidoAbiertoId, boton.dataset.pedidoAccion, boton);
       });
     }
 
@@ -2732,6 +6828,39 @@
     }
     if (el.formConfigEnvios) el.formConfigEnvios.addEventListener('submit', guardarConfigEnvios);
     if (el.btnNuevoTramo) el.btnNuevoTramo.addEventListener('click', () => abrirFormTramo(null));
+    conectarEventosFidelidad();
+    conectarEventosEstadisticas();
+    conectarEventosCrm();
+    if (el.btnNuevoCupon) el.btnNuevoCupon.addEventListener('click', () => abrirFormCupon(null));
+    if (el.btnCuponesRecargar) el.btnCuponesRecargar.addEventListener('click', () => cargarCupones());
+    [el.btnCancelarCupon, el.btnCerrarCupon].forEach(boton => {
+      if (boton) boton.addEventListener('click', () => cerrarFormCupon());
+    });
+    if (el.modalCupon) {
+      el.modalCupon.addEventListener('click', (evento) => {
+        if (evento.target === el.modalCupon) cerrarFormCupon();
+      });
+      el.modalCupon.addEventListener('keydown', atraparFocoCupon);
+    }
+    if (el.formCupon) el.formCupon.addEventListener('submit', guardarCupon);
+    if (el.cuponTipo) el.cuponTipo.addEventListener('change', actualizarEtiquetaValorCupon);
+    if (el.cuponesLista) {
+      el.cuponesLista.addEventListener('click', async (evento) => {
+        const boton = evento.target.closest('[data-cupon-accion]');
+        const fila = boton && boton.closest('[data-cupon-id]');
+        if (!fila) return;
+        const id = fila.dataset.cuponId;
+        const accion = boton.dataset.cuponAccion;
+        if (accion === 'editar') {
+          const cupon = cuponesLista.find(item => String(item.id) === String(id));
+          if (cupon) abrirFormCupon(cupon);
+        } else if (accion === 'toggle') {
+          await alternarCupon(id);
+        } else if (accion === 'eliminar') {
+          await borrarCupon(id);
+        }
+      });
+    }
     if (el.btnCancelarTramo) el.btnCancelarTramo.addEventListener('click', cerrarFormTramo);
     if (el.formTramo) el.formTramo.addEventListener('submit', guardarTramo);
 
@@ -2764,6 +6893,12 @@
     }
 
     if (el.btnNuevaCategoria) el.btnNuevaCategoria.addEventListener('click', () => abrirModalCategoria('crear'));
+    if (el.btnOrdenarCategorias) el.btnOrdenarCategorias.addEventListener('click', () => alternarModoOrden('categorias'));
+    if (el.btnOrdenarProductos) el.btnOrdenarProductos.addEventListener('click', () => alternarModoOrden('productos'));
+    [el.listaCategorias, el.listaProductos].forEach(contenedor => {
+      if (!contenedor) return;
+      contenedor.addEventListener('pointerdown', (evento) => iniciarArrastreOrden(evento, contenedor));
+    });
     if (el.btnEditarCategoria) {
       el.btnEditarCategoria.addEventListener('click', () => {
         if (categoriaActivaId) abrirModalCategoria('editar', categoriaActivaId);
@@ -2816,6 +6951,10 @@
 
     if (el.listaCategorias) {
       el.listaCategorias.addEventListener('click', (evento) => {
+        if (modoOrden === 'categorias') {
+          manejarMoverOrden(evento, el.listaCategorias);
+          return;
+        }
         const boton = evento.target.closest('[data-accion]');
         if (!boton) return;
         const id = boton.dataset.id;
@@ -2853,6 +6992,17 @@
       });
 
       el.listaProductos.addEventListener('click', (evento) => {
+        if (modoOrden === 'productos') {
+          manejarMoverOrden(evento, el.listaProductos);
+          return;
+        }
+        const sw = evento.target.closest('[data-agotado-carta]');
+        if (sw) {
+          if (!sw.disabled) {
+            cambiarAgotado(sw.dataset.agotadoCarta, sw.dataset.agotadoSucursal, sw.getAttribute('aria-checked') !== 'true', { origen: 'carta' });
+          }
+          return;
+        }
         const zona = evento.target.closest('[data-upload-zona]');
         const boton = evento.target.closest('[data-accion]');
 
@@ -2909,6 +7059,10 @@
 
     document.addEventListener('keydown', (evento) => {
       if (evento.key !== 'Escape') return;
+      if (el.modalCupon && !el.modalCupon.hidden) {
+        cerrarFormCupon();
+        return;
+      }
       if (el.modalCategoria && !el.modalCategoria.hidden) {
         cerrarModalCategoria();
         return;
@@ -2921,13 +7075,16 @@
     });
 
     window.addEventListener('beforeunload', (evento) => {
-      if (!cambiosPendientes) return;
+      if (!cambiosPendientes && !horSucio) return;
       evento.preventDefault();
       evento.returnValue = '';
     });
   }
 
   async function iniciar() {
+    cargarPreferenciasSonido();
+    actualizarEstadoSonido();
+    inicializarFiltrosPedidos();
     conectarEventos();
     await Promise.all([cargarConfig(), cargarSucursalesConfig()]);
 

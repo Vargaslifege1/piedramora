@@ -66,6 +66,12 @@
           <span id="pedidos-badge" class="admin-tab-badge" hidden>0</span>
         </button>
         <button type="button" class="admin-tab" data-admin-vista="envios">Envíos</button>
+        <button type="button" class="admin-tab" data-admin-vista="cupones" hidden>Cupones</button>
+        <button type="button" class="admin-tab" data-admin-vista="fidelidad" hidden>Fidelidad</button>
+        <button type="button" class="admin-tab" data-admin-vista="estadisticas" hidden>Estadísticas</button>
+        <button type="button" class="admin-tab" data-admin-vista="clientes" hidden>Clientes</button>
+        <button type="button" class="admin-tab" data-admin-vista="horarios" hidden>Horarios</button>
+        <button type="button" class="admin-tab" data-admin-vista="disponibilidad" hidden>Disponibilidad</button>
       </nav>
 
       <div id="admin-vista-carta" class="admin-vista">
@@ -92,8 +98,12 @@
             <h2>Categorías</h2>
             <p class="admin-ayuda">Hacé clic en una categoría para ver y editar únicamente sus productos.</p>
           </div>
-          <button type="button" id="btn-nueva-categoria" class="btn-primario">+ Nueva categoría</button>
+          <div class="admin-detalle-acciones">
+            <button type="button" id="btn-ordenar-categorias" class="btn-secundario" aria-pressed="false">Ordenar</button>
+            <button type="button" id="btn-nueva-categoria" class="btn-primario">+ Nueva categoría</button>
+          </div>
         </div>
+        <p id="orden-ayuda-categorias" class="admin-ayuda admin-orden-ayuda" hidden>Arrastrá el asa o usá las flechas para ordenar las categorías. Después tocá «Guardar y publicar».</p>
         <div id="lista-categorias" class="admin-categorias-grid"></div>
       </section>
 
@@ -114,6 +124,7 @@
             </div>
           </div>
           <div class="admin-detalle-acciones">
+            <button type="button" id="btn-ordenar-productos" class="btn-secundario" aria-pressed="false">Ordenar productos</button>
             <button type="button" id="btn-editar-categoria" class="btn-secundario">Editar categoría</button>
             <button type="button" id="btn-nuevo-producto" class="btn-primario">+ Agregar producto</button>
           </div>
@@ -124,6 +135,7 @@
           <button type="button" id="btn-vacio-nuevo-producto" class="btn-primario">+ Agregar el primero</button>
         </div>
 
+        <p id="orden-ayuda-productos" class="admin-ayuda admin-orden-ayuda" hidden>Arrastrá el asa o usá las flechas para ordenar los productos de esta categoría. Después tocá «Guardar y publicar».</p>
         <div id="lista-productos" class="admin-lista-productos"></div>
       </section>
 
@@ -219,47 +231,74 @@
         <div class="admin-pedidos-head">
           <div>
             <p class="admin-eyebrow">Pedidos</p>
-            <h2>Bandeja de pedidos</h2>
-            <p class="admin-ayuda">Últimos 100 pedidos, los más nuevos primero. Se actualiza en tiempo real.</p>
+            <h2>Centro de pedidos</h2>
+            <p class="admin-ayuda">Tablero por estado con actualización en tiempo real. Los retiros pasan de Listos a Completados.</p>
           </div>
-          <div class="admin-pedidos-acciones">
-            <button type="button" id="btn-pedidos-activar-sonido" class="btn-secundario">Activar sonido</button>
+          <div class="admin-pedidos-acciones admin-pedidos-sonido">
+            <button type="button" id="btn-pedidos-activar-sonido" class="btn-secundario" aria-pressed="true">Silenciar</button>
+            <label class="admin-pedidos-volumen">
+              <span>Volumen</span>
+              <input id="pedidos-volumen" type="range" min="0" max="100" step="5" value="70">
+            </label>
             <button type="button" id="btn-pedidos-actualizar" class="btn-secundario">Actualizar</button>
           </div>
         </div>
+        <p id="pedidos-sonido-estado" class="admin-estado admin-pedidos-sonido-estado" aria-live="polite">Activá el sonido</p>
 
         <p id="pedidos-estado" class="admin-estado" aria-live="polite"></p>
         <div id="pedidos-aviso" class="admin-aviso" hidden></div>
 
-        <div class="admin-pedidos-filtros">
-          <label class="admin-campo">
-            <span>Estado</span>
-            <select id="pedidos-filtro-estado">
-              <option value="activos">Pendientes y confirmados</option>
-              <option value="pendiente">Pendientes</option>
-              <option value="confirmado">Confirmados</option>
-              <option value="entregado">Entregados</option>
-              <option value="cancelado">Cancelados</option>
-              <option value="todos">Todos</option>
-            </select>
-          </label>
-          <label class="admin-campo">
-            <span>Sucursal</span>
-            <select id="pedidos-filtro-sucursal">
-              <option value="">Todas</option>
-            </select>
-          </label>
-          <label class="admin-campo">
-            <span>Fecha</span>
-            <select id="pedidos-filtro-fecha">
-              <option value="hoy">Hoy</option>
-              <option value="7">Últimos 7 días</option>
-              <option value="todos">Todos</option>
-            </select>
-          </label>
+        <div class="admin-pedidos-toolbar">
+          <div class="admin-pedidos-periodo">
+            <label class="admin-pedidos-periodo-select">
+              <select id="pedidos-filtro-periodo" aria-label="Período de los pedidos">
+                <option value="dia">Por día</option>
+                <option value="semana">Por semana</option>
+                <option value="mes">Por mes</option>
+                <option value="personalizado">Personalizado</option>
+              </select>
+            </label>
+            <div class="admin-pedidos-periodo-nav" role="group" aria-label="Navegar período">
+              <button type="button" id="btn-pedidos-anterior" class="admin-pedidos-nav-btn" aria-label="Período anterior">‹</button>
+              <button type="button" id="pedidos-periodo-etiqueta" class="admin-pedidos-periodo-etiqueta" title="Volver a hoy">Hoy</button>
+              <button type="button" id="btn-pedidos-siguiente" class="admin-pedidos-nav-btn" aria-label="Período siguiente">›</button>
+            </div>
+            <div id="pedidos-rango" class="admin-pedidos-rango" hidden>
+              <label class="admin-campo">
+                <span>Desde</span>
+                <input id="pedidos-filtro-desde" type="date">
+              </label>
+              <label class="admin-campo">
+                <span>Hasta</span>
+                <input id="pedidos-filtro-hasta" type="date">
+              </label>
+            </div>
+          </div>
+          <div class="admin-pedidos-toolbar-derecha">
+            <label class="admin-campo">
+              <span>Sucursal</span>
+              <select id="pedidos-filtro-sucursal">
+                <option value="">Todas</option>
+              </select>
+            </label>
+            <div class="admin-pedidos-vista" role="group" aria-label="Vista de pedidos">
+              <button type="button" class="btn-secundario activa" data-pedidos-vista="tablero">Tablero</button>
+              <button type="button" class="btn-secundario" data-pedidos-vista="lista">Lista</button>
+            </div>
+            <button type="button" id="btn-pedidos-exportar" class="btn-secundario">Exportar CSV</button>
+          </div>
         </div>
 
-        <div id="pedidos-lista" class="admin-pedidos-lista"></div>
+        <div class="admin-pedidos-modalidades" role="group" aria-label="Filtrar por modalidad">
+          <button type="button" class="btn-secundario activa" data-pedidos-modalidad="">Todos</button>
+          <button type="button" class="btn-secundario" data-pedidos-modalidad="retiro">Para llevar</button>
+          <button type="button" class="btn-secundario" data-pedidos-modalidad="delivery">Delivery</button>
+        </div>
+
+        <div id="pedidos-contenedor" class="admin-pedidos-contenedor">
+          <div id="pedidos-tablero" class="admin-pedidos-tablero"></div>
+          <div id="pedidos-lista" class="admin-pedidos-lista" hidden></div>
+        </div>
       </section>
 
       <section id="admin-vista-envios" class="admin-vista" hidden>
@@ -277,7 +316,7 @@
         <p id="envios-estado" class="admin-estado" aria-live="polite"></p>
         <div id="envios-aviso" class="admin-aviso" hidden></div>
 
-        <section class="admin-card">
+        <section class="admin-card admin-envios-card-config">
           <div class="admin-seccion-head">
             <div>
               <h3>Configuración general</h3>
@@ -314,7 +353,7 @@
               <p class="admin-ayuda">Se cobra cuando no hay tramo aplicable o cuando no hay coordenadas de la dirección.</p>
             </div>
           </div>
-          <div id="zonas-normales-lista" class="admin-envios-zonas"></div>
+          <div id="zonas-normales-lista" class="admin-zonas-lista"></div>
           <p id="zonas-normales-estado" class="admin-estado" aria-live="polite"></p>
         </section>
 
@@ -322,6 +361,7 @@
           <div class="admin-seccion-head">
             <div>
               <h3>Tramos por cuadras</h3>
+              <p class="admin-ayuda" id="tramos-metros-referencia">1 cuadra = 100 metros.</p>
               <p class="admin-ayuda">Los tramos activos no deben superponerse. El último tramo activo debería llegar hasta 999 cuadras para no dejar envíos sin precio.</p>
             </div>
             <button type="button" id="btn-nuevo-tramo" class="btn-primario">+ Nuevo tramo</button>
@@ -359,11 +399,474 @@
           </form>
 
           <p id="tramos-estado" class="admin-estado" aria-live="polite"></p>
-          <div id="tramos-lista" class="admin-envios-tramos"></div>
+          <div id="tramos-lista" class="admin-tramos-lista"></div>
         </section>
+      </section>
+
+      <section id="admin-vista-cupones" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Cupones</p>
+            <h2>Códigos de descuento</h2>
+            <p class="admin-ayuda">El descuento se calcula sobre los productos (sin envío). Fechas en horario de Argentina.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-nuevo-cupon" class="btn-primario">+ Nuevo cupón</button>
+            <button type="button" id="btn-cupones-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <p id="cupones-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="cupones-aviso" class="admin-aviso" hidden></div>
+
+        <section class="admin-card">
+          <div id="cupones-lista" class="admin-cupones-grid"></div>
+        </section>
+      </section>
+
+      <section id="admin-vista-fidelidad" class="admin-vista" hidden>
+        <div class="fid-wrap">
+        <div class="fid-cabecera">
+          <div class="fid-cabecera-titulo">
+            <p class="admin-eyebrow">Fidelidad</p>
+            <h2>Programa de premios</h2>
+          </div>
+          <div class="fid-cabecera-acciones">
+            <button type="button" id="btn-fidelidad-recargar" class="btn-secundario">Recargar</button>
+            <button type="submit" form="form-fidelidad" id="btn-guardar-fidelidad-top" class="btn-primario">Guardar</button>
+          </div>
+        </div>
+        <p class="admin-ayuda">Cuentan los pedidos entregados cuyo subtotal de productos llega al pedido mínimo.</p>
+
+        <p id="fidelidad-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="fidelidad-aviso" class="admin-aviso" hidden></div>
+        <div class="admin-aviso" data-tipo="info">Los cambios aplican a los premios que se generen desde ahora. Los premios ya otorgados conservan sus condiciones. Si cambiás el ciclo o los niveles, el progreso de los clientes se recalcula con las reglas nuevas.</div>
+
+        <section class="admin-card">
+          <form id="form-fidelidad" class="fid-form" novalidate>
+            <div class="fid-reglas">
+              <label class="admin-campo admin-campo-check">
+                <input id="fidelidad-activo" type="checkbox">
+                <span>Programa activo</span>
+              </label>
+              <label class="admin-campo">
+                <span>Pedido mínimo ($)</span>
+                <input id="fidelidad-pedido-minimo" type="number" min="0" step="1" inputmode="numeric">
+              </label>
+              <label class="admin-campo">
+                <span>Ciclo (pedidos, 1 a 1000)</span>
+                <input id="fidelidad-ciclo" type="number" min="1" max="1000" step="1" inputmode="numeric">
+              </label>
+            </div>
+            <div id="fidelidad-niveles" class="fid-niveles"></div>
+            <div>
+              <button type="button" id="btn-fidelidad-agregar-nivel" class="btn-primario fid-agregar">+ Agregar nivel</button>
+            </div>
+            <p id="fidelidad-form-estado" class="admin-estado" aria-live="polite"></p>
+            <div class="admin-form-acciones">
+              <button type="submit" id="btn-guardar-fidelidad" class="btn-primario">Guardar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="admin-card">
+          <h3>Premios generados</h3>
+          <p id="fidelidad-stats-estado" class="admin-estado" aria-live="polite"></p>
+          <div id="fidelidad-stats" class="fid-stats"></div>
+        </section>
+        </div>
+      </section>
+      <section id="admin-vista-estadisticas" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Estadísticas</p>
+            <h2>Ventas y clientes</h2>
+            <p class="admin-ayuda">Estadísticas con pedidos entregados; los datos de prueba también cuentan.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-stats-csv" class="btn-secundario" disabled>Exportar CSV</button>
+            <button type="button" id="btn-stats-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <section class="admin-card admin-stats-filtros">
+          <label class="admin-campo">
+            <span>Sucursal</span>
+            <select id="stats-sucursal">
+              <option value="">Todas</option>
+              <option value="intendente-lascano">Lascano</option>
+              <option value="maestro-quiroga">Maestro Quiroga</option>
+            </select>
+          </label>
+          <div class="admin-stats-periodos" role="group" aria-label="Período">
+            <button type="button" class="btn-secundario activa" data-stats-periodo="hoy">Hoy</button>
+            <button type="button" class="btn-secundario" data-stats-periodo="7">7 días</button>
+            <button type="button" class="btn-secundario" data-stats-periodo="30">30 días</button>
+            <button type="button" class="btn-secundario" data-stats-periodo="custom">Personalizado</button>
+          </div>
+          <div id="stats-rango" class="admin-stats-rango" hidden>
+            <label class="admin-campo"><span>Desde</span><input id="stats-desde" type="date"></label>
+            <label class="admin-campo"><span>Hasta</span><input id="stats-hasta" type="date"></label>
+          </div>
+        </section>
+
+        <p id="stats-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="stats-aviso" class="admin-aviso" hidden></div>
+        <div id="stats-contenido" hidden>
+          <div id="stats-tarjetas" class="admin-stats-tarjetas"></div>
+          <div class="admin-stats-fila admin-stats-graficos">
+            <section class="admin-card"><h3>Ventas por día</h3><div id="stats-dias" class="admin-stats-grafico"></div></section>
+            <section class="admin-card"><h3>Pedidos por hora</h3><div id="stats-horas" class="admin-stats-grafico"></div></section>
+          </div>
+          <div class="admin-stats-fila admin-stats-widgets">
+            <section class="admin-card"><h3>Métodos de pago</h3><div id="stats-pagos" class="admin-stats-scroll"></div></section>
+            <section class="admin-card"><h3>Modalidades</h3><div id="stats-modalidades" class="admin-stats-scroll"></div></section>
+            <section class="admin-card"><h3>Top 10 productos</h3><div id="stats-top" class="admin-stats-scroll"></div></section>
+          </div>
+          <div class="admin-stats-fila admin-stats-inferior">
+            <section class="admin-card"><h3>Fidelidad</h3><div id="stats-fidelidad"></div></section>
+            <section class="admin-card"><h3>Cupones</h3><div id="stats-cupones" class="admin-stats-scroll"></div></section>
+          </div>
+        </div>
+      </section>
+
+      <section id="admin-vista-clientes" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Clientes</p>
+            <h2>CRM de clientes</h2>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-crm-csv" class="btn-secundario">Exportar CSV</button>
+            <button type="button" id="btn-crm-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <div class="crm-filtros">
+          <input id="crm-buscar" type="search" placeholder="Buscar por nombre o teléfono" maxlength="80" autocomplete="off" aria-label="Buscar cliente">
+          <div id="crm-segmentos" class="crm-segmentos" role="group" aria-label="Segmento">
+            <button type="button" class="crm-chip activa" aria-pressed="true" data-crm-segmento="">Todos</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="nuevo">Nuevo</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="ocasional">Ocasional</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="frecuente">Frecuente</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="inactivo">Inactivo</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="registrado">Registrado</button>
+            <label class="crm-chip crm-chip-check" title="Se aplica al exportar el CSV"><input type="checkbox" id="crm-solo-promos"><span>Solo acepta promos</span></label>
+          </div>
+        </div>
+
+        <p id="crm-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="crm-aviso" class="admin-aviso" hidden></div>
+
+        <div class="crm-layout">
+          <section class="admin-card crm-lista-card">
+            <div class="crm-fila crm-cabecera">
+              <div class="crm-cols">
+                <span class="crm-solo-desk" aria-hidden="true"></span>
+                <span class="crm-solo-desk">Cliente</span>
+                <span class="crm-solo-cel">Ordenar por:</span>
+                <button type="button" class="crm-orden" data-crm-orden="pedidos">Ped.</button>
+                <button type="button" class="crm-orden" data-crm-orden="gasto">Gasto</button>
+                <span class="crm-solo-desk" title="Ticket promedio">Ticket</span>
+                <button type="button" class="crm-orden activa" data-crm-orden="ultima_visita">Última</button>
+              </div>
+              <span class="crm-wa-col" aria-hidden="true"></span>
+            </div>
+            <div id="crm-lista" class="crm-lista"></div>
+            <div class="crm-pie">
+              <span id="crm-total" class="crm-total"></span>
+              <button type="button" id="btn-crm-mas" class="btn-secundario" hidden>Cargar más</button>
+            </div>
+          </section>
+
+          <aside id="crm-ficha" class="crm-ficha" aria-label="Ficha del cliente" hidden>
+            <div class="crm-ficha-head">
+              <h3 id="crm-ficha-titulo">Cliente</h3>
+              <button type="button" id="btn-crm-ficha-cerrar" class="btn-icono" aria-label="Cerrar ficha">×</button>
+            </div>
+            <div id="crm-ficha-cuerpo" class="crm-ficha-cuerpo"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="admin-vista-disponibilidad" class="admin-vista disp-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Disponibilidad</p>
+            <h2 class="hor-editando">Editando: <span id="agotados-editando-nombre"></span></h2>
+            <p class="admin-ayuda">Marcá los productos que no tienen stock en esta sucursal. Se ocultan como agotados en la carta pública.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <label id="agotados-sucursal-campo" class="admin-campo admin-agotados-sucursal hor-sucursal" hidden>
+              <span>Sucursal</span>
+              <select id="agotados-sucursal"></select>
+            </label>
+          </div>
+        </div>
+        <section id="admin-agotados" class="admin-card admin-agotados">
+          <p id="agotados-estado" class="admin-estado" aria-live="polite"></p>
+          <div id="agotados-aviso" class="admin-aviso" hidden></div>
+          <div class="admin-agotados-barra">
+            <div class="admin-agotados-resumen">
+              <strong id="agotados-resumen" aria-live="polite">0 agotados</strong>
+            </div>
+            <div class="admin-agotados-filtros">
+              <select id="agotados-filtro-estado" aria-label="Filtrar por estado">
+                <option value="no-disponibles">No disponibles</option>
+                <option value="disponibles">Disponibles</option>
+                <option value="todos">Todos</option>
+              </select>
+              <input id="agotados-buscar" type="search" placeholder="Buscar producto..." autocomplete="off" aria-label="Buscar producto">
+              <select id="agotados-categoria" aria-label="Filtrar por categoría"></select>
+            </div>
+          </div>
+          <div id="agotados-lista" class="admin-agotados-lista"></div>
+        </section>
+      </section>
+
+      <section id="admin-vista-horarios" class="admin-vista hor-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Horarios</p>
+            <h2 class="hor-editando">Editando: <span id="hor-editando-nombre"></span></h2>
+            <p class="admin-ayuda">Horario de Argentina. Un turno que termina antes de empezar cruza la medianoche.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <label class="admin-campo hor-sucursal" id="hor-sucursal-wrap" hidden>
+              <span>Sucursal</span>
+              <select id="hor-sucursal"></select>
+            </label>
+            <button type="button" id="btn-hor-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+        <p id="hor-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="hor-aviso" class="admin-aviso" hidden></div>
+
+        <div id="hor-forzado" class="hor-forzado" role="alert" hidden>
+          <strong id="hor-forzado-titulo">Modo forzado</strong>
+          <span id="hor-forzado-texto"></span>
+          <button type="button" id="btn-hor-auto" class="btn-secundario">Volver a automático</button>
+        </div>
+
+        <div class="hor-grid">
+          <section class="admin-card hor-card hor-card-estado">
+            <h3>Estado del local</h3>
+            <p id="hor-estado-actual" class="hor-actual">Cargando...</p>
+            <div class="hor-modos" role="radiogroup" aria-label="Modo de apertura">
+              <label class="hor-modo"><input type="radio" name="hor-modo" value="automatico"><span>Automático</span></label>
+              <label class="hor-modo"><input type="radio" name="hor-modo" value="forzar_abierto"><span>Forzar abierto</span></label>
+              <label class="hor-modo"><input type="radio" name="hor-modo" value="forzar_cerrado"><span>Forzar cerrado</span></label>
+            </div>
+          </section>
+
+          <section id="hor-cierres-card" class="admin-card hor-card hor-card-cierres" hidden>
+            <div class="hor-card-head">
+              <h3>Cierres especiales</h3>
+              <button type="button" id="btn-nuevo-cierre" class="btn-primario">+ Nuevo cierre</button>
+            </div>
+            <p class="admin-ayuda">Los pedidos programados para esos días quedan pendientes hasta que el local los acepte.</p>
+            <div id="hor-cierres" class="hor-cierres"></div>
+          </section>
+
+          <section class="admin-card hor-card hor-card-excepciones">
+            <div class="hor-card-head">
+              <h3>Excepciones por fecha</h3>
+              <button type="button" id="btn-nueva-exc" class="btn-primario">+ Nueva excepción</button>
+            </div>
+            <p class="admin-ayuda">Reemplazan el horario semanal de esa fecha. No anulan cierres especiales ni "Forzar cerrado". "Cerrado" solo suprime los turnos que empiezan ese día.</p>
+            <div id="hor-excepciones" class="hor-cierres"></div>
+          </section>
+
+          <section class="admin-card hor-card hor-card-dias">
+            <div class="hor-card-head">
+              <h3>Horarios por día</h3>
+            </div>
+            <div id="hor-dias" class="hor-dias"></div>
+          </section>
+        </div>
+
+        <div id="hor-barra-cambios" class="hor-barra" hidden>
+          <span class="hor-barra-texto" role="status">Tenés cambios sin guardar</span>
+          <div class="hor-barra-botones">
+            <button type="button" id="btn-hor-descartar" class="btn-secundario">Descartar</button>
+            <button type="button" id="btn-hor-guardar" class="btn-primario">Guardar</button>
+          </div>
+        </div>
+
       </section>
     </section>
   </main>
+
+  <div id="modal-excepcion" class="admin-modal-overlay admin-cupon-overlay" hidden>
+    <form id="form-excepcion" class="admin-modal admin-cupon-modal hor-modal" role="dialog" aria-modal="true" aria-labelledby="exc-titulo" novalidate>
+      <input type="hidden" id="exc-id">
+      <div class="admin-cupon-modal-head">
+        <h2 id="exc-titulo">Nueva excepción</h2>
+        <button type="button" id="btn-cerrar-exc" class="btn-icono" aria-label="Cerrar formulario">✕</button>
+      </div>
+      <div class="admin-cupon-modal-cuerpo">
+        <label class="admin-campo" id="exc-sucursal-wrap">
+          <span>Sucursal</span>
+          <select id="exc-sucursal"></select>
+        </label>
+        <label class="admin-campo">
+          <span>Fecha</span>
+          <input id="exc-fecha" type="date" required>
+        </label>
+        <label class="admin-campo">
+          <span>Modo</span>
+          <select id="exc-modo">
+            <option value="abierto">Abierto</option>
+            <option value="solo_delivery">Solo delivery</option>
+            <option value="solo_retiro">Solo retiro</option>
+            <option value="cerrado">Cerrado</option>
+          </select>
+        </label>
+        <label class="admin-campo">
+          <span>Desde (opcional)</span>
+          <input id="exc-desde" type="time">
+        </label>
+        <label class="admin-campo">
+          <span>Hasta (opcional)</span>
+          <input id="exc-hasta" type="time">
+        </label>
+        <p class="admin-ayuda hor-campo-ancho">Sin horario: se usa el turno semanal del día o 20:30 a 00:30.</p>
+        <label class="admin-campo hor-campo-ancho">
+          <span>Motivo (opcional)</span>
+          <input id="exc-motivo" type="text" maxlength="200" autocomplete="off" placeholder="Feriado, evento...">
+        </label>
+      </div>
+      <div class="admin-cupon-modal-pie">
+        <p id="exc-estado" class="admin-estado" aria-live="polite"></p>
+        <div class="admin-cupon-modal-botones">
+          <button type="button" id="btn-borrar-exc" class="btn-peligro" hidden>Borrar</button>
+          <button type="button" id="btn-cancelar-exc" class="btn-secundario">Cancelar</button>
+          <button type="submit" id="btn-guardar-exc" class="btn-primario">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div id="modal-cierre" class="admin-modal-overlay admin-cupon-overlay" hidden>
+    <form id="form-cierre" class="admin-modal admin-cupon-modal hor-modal" role="dialog" aria-modal="true" aria-labelledby="cierre-titulo" novalidate>
+      <input type="hidden" id="cierre-id">
+      <div class="admin-cupon-modal-head">
+        <h2 id="cierre-titulo">Nuevo cierre</h2>
+        <button type="button" id="btn-cerrar-cierre" class="btn-icono" aria-label="Cerrar formulario">✕</button>
+      </div>
+      <div class="admin-cupon-modal-cuerpo">
+        <label class="admin-campo">
+          <span>Sucursal</span>
+          <select id="cierre-sucursal"></select>
+        </label>
+        <label class="admin-campo">
+          <span>Desde</span>
+          <input id="cierre-desde" type="date" required>
+        </label>
+        <label class="admin-campo">
+          <span>Hasta (inclusive)</span>
+          <input id="cierre-hasta" type="date" required>
+        </label>
+        <label class="admin-campo hor-campo-ancho">
+          <span>Motivo (opcional)</span>
+          <input id="cierre-motivo" type="text" maxlength="200" autocomplete="off" placeholder="Feriado, vacaciones...">
+        </label>
+      </div>
+      <div class="admin-cupon-modal-pie">
+        <p id="cierre-estado" class="admin-estado" aria-live="polite"></p>
+        <div class="admin-cupon-modal-botones">
+          <button type="button" id="btn-borrar-cierre" class="btn-peligro" hidden>Borrar</button>
+          <button type="button" id="btn-cancelar-cierre" class="btn-secundario">Cancelar</button>
+          <button type="submit" id="btn-guardar-cierre" class="btn-primario">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div id="modal-cupon" class="admin-modal-overlay admin-cupon-overlay" hidden>
+    <form id="form-cupon" class="admin-modal admin-cupon-modal" role="dialog" aria-modal="true" aria-labelledby="cupon-form-titulo" novalidate>
+      <input type="hidden" id="cupon-id">
+      <div class="admin-cupon-modal-head">
+        <h2 id="cupon-form-titulo">Nuevo cupón</h2>
+        <button type="button" id="btn-cerrar-cupon" class="btn-icono" aria-label="Cerrar formulario">✕</button>
+      </div>
+      <div class="admin-cupon-modal-cuerpo">
+            <label class="admin-campo">
+              <span>Código</span>
+              <input id="cupon-codigo" type="text" maxlength="40" autocomplete="off" placeholder="LICHI">
+            </label>
+            <label class="admin-campo">
+              <span>Tipo</span>
+              <select id="cupon-tipo">
+                <option value="porcentaje">Porcentaje (%)</option>
+                <option value="monto_fijo">Monto fijo ($)</option>
+              </select>
+            </label>
+            <label class="admin-campo">
+              <span id="cupon-valor-etiqueta">Valor (1 a 100)</span>
+              <input id="cupon-valor" type="number" min="0" step="1" inputmode="decimal">
+            </label>
+            <label class="admin-campo">
+              <span>Compra mínima ($)</span>
+              <input id="cupon-compra-minima" type="number" min="0" step="1" inputmode="decimal" placeholder="0">
+            </label>
+            <label class="admin-campo">
+              <span>Válido desde</span>
+              <input id="cupon-fecha-inicio" type="datetime-local">
+            </label>
+            <label class="admin-campo">
+              <span>Vence</span>
+              <input id="cupon-fecha-vencimiento" type="datetime-local">
+            </label>
+            <label class="admin-campo">
+              <span>Usos máximos totales</span>
+              <input id="cupon-usos-total" type="number" min="0" step="1" inputmode="numeric" placeholder="Vacío = sin límite">
+            </label>
+            <label class="admin-campo">
+              <span>Usos por cliente</span>
+              <input id="cupon-usos-cliente" type="number" min="0" step="1" inputmode="numeric" placeholder="Vacío = sin límite">
+            </label>
+            <label class="admin-campo">
+              <span>Sucursales</span>
+              <select id="cupon-sucursales">
+                <option value="">Todas</option>
+                <option value="intendente-lascano">Lascano</option>
+                <option value="maestro-quiroga">Maestro Quiroga</option>
+              </select>
+            </label>
+            <label class="admin-campo">
+              <span>Modalidades</span>
+              <select id="cupon-modalidades">
+                <option value="">Todas</option>
+                <option value="delivery">Delivery</option>
+                <option value="retiro">Retiro</option>
+              </select>
+            </label>
+            <div class="admin-cupon-opciones admin-cupon-nota">
+              <label class="admin-campo admin-campo-check admin-cupon-chip">
+                <input id="cupon-activo" type="checkbox" checked>
+                <span>Activo</span>
+              </label>
+              <label class="admin-campo admin-campo-check admin-cupon-chip">
+                <input id="cupon-primera-compra" type="checkbox">
+                <span>Solo primera compra</span>
+              </label>
+              <label class="admin-campo admin-campo-check admin-cupon-chip">
+                <input id="cupon-acumulable" type="checkbox">
+                <span>Acumulable con descuento por medio de pago</span>
+              </label>
+            </div>
+            <p id="cupon-nota-usos" class="admin-ayuda admin-cupon-nota" hidden>Los usos anteriores conservan el descuento que tuvieron</p>
+      </div>
+      <div class="admin-cupon-modal-pie">
+        <p id="cupon-form-estado" class="admin-estado" aria-live="polite"></p>
+        <div class="admin-cupon-modal-botones">
+          <button type="button" id="btn-cancelar-cupon" class="btn-secundario">Cancelar</button>
+          <button type="submit" id="btn-guardar-cupon" class="btn-primario">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
 
   <div id="modal-categoria" class="admin-modal-overlay" hidden>
     <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="modal-categoria-titulo">
@@ -417,10 +920,12 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/core/utils.js"></script>
-  <script src="js/core/carta-ids.js"></script>
-  <script src="admin.js"></script>
+  <div id="pedido-ticket" class="admin-pedido-ticket" aria-hidden="true"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous" defer></script>
+  <script src="js/core/utils.js" defer></script>
+  <script src="js/core/carta-ids.js" defer></script>
+  <script src="admin.js" defer></script>
 </body>
 
 </html>

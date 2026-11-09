@@ -13,7 +13,13 @@
   <meta property="og:title" content="Piedra Mora | Pizzas, Lomitos y Hamburguesas en Catamarca">
   <meta property="og:description"
     content="Pedí pizzas, hamburguesas, lomitos y milanesas online en Piedra Mora. Elegí tu sucursal y hacé tu pedido en segundos.">
-  <meta property="og:image" content="assets/fachada-local.webp">
+  <!-- TODO(dominio): og:url, canonical, og:image, twitter:image, JSON-LD, robots.txt y sitemap.xml usan https://piedramora.com.ar/.
+       Si el dominio final es otro (o GitHub Pages en /piedramora/), reemplazar ese prefijo en esos 6 lugares.
+       TODO(imagen): no hay una imagen 1200x630; se usa la fachada (1086x1448). Ideal: crear assets/og-1200x630.jpg y apuntar acá. -->
+  <meta property="og:image" content="https://piedramora.com.ar/assets/fachada-local.webp">
+  <meta property="og:image:width" content="1086">
+  <meta property="og:image:height" content="1448">
+  <meta property="og:image:alt" content="Fachada del local Piedra Mora">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Piedra Mora" data-marca-meta="">
   <meta property="og:locale" content="es_AR">
@@ -23,14 +29,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Piedra Mora" data-marca-meta="">
   <!-- Leaflet CSS y JS (Mapas interactivos) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous" defer></script>
   <!-- SEO -->
   <meta name="author" content="Piedra Mora" data-marca-meta="">
   <meta name="keywords"
     content="Piedra Mora, pizzas, hamburguesas, lomitos, milanesas, comida, Catamarca, delivery, PedidosYa, Pedix">
-
-  <meta name="theme-color" content="#0a0a0a">
 
   <link rel="canonical" href="https://piedramora.com.ar/">
 
@@ -38,7 +42,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Piedra Mora">
   <meta name="twitter:description" content="Comida con identidad en Catamarca. Pedí online en segundos.">
-  <meta name="twitter:image" content="assets/fachada-local.webp">
+  <meta name="twitter:image" content="https://piedramora.com.ar/assets/fachada-local.webp">
 
   <!-- Robots -->
   <meta name="robots" content="index, follow">
@@ -116,7 +120,7 @@
       <img src="assets/logo.webp" alt="Piedra Mora" class="logo-grande" data-marca-alt="">
       <h1 class="hero-title" data-marca data-marca-mayusculas>PIEDRA MORA</h1>
       <p class="hero-subtitle">Elegí tu sucursal y hacé tu pedido en segundos.</p>
-      <a href="#sucursales-lista" class="btn-hero-cta">
+      <a href="#sucursales" class="btn-hero-cta">
         <span aria-hidden="true">↓</span> Elegir sucursal
       </a>
     </div>
@@ -125,11 +129,11 @@
     </div>
   </header>
 
-  <section class="sucursales" aria-labelledby="titulo-sucursales">
+  <section class="sucursales" id="sucursales" aria-labelledby="titulo-sucursales">
     <div class="titulo-seccion reveal">
       <span class="eyebrow">Elegí tu sucursal</span>
       <h2 id="titulo-sucursales">¿Desde dónde querés hacer tu pedido?</h2>
-      <p class="menu-nota">Cada sucursal tiene su propio menú, promociones y precios.</p>
+      <p class="menu-nota">Cada sucursal tiene su propio menú.</p>
     </div>
 
     <!--
@@ -209,7 +213,7 @@
 
   <div class="menu-grid">
       <div class="menu-item reveal">
-        <img src="assets/menu-hamburguesas.webp" alt="Hamburguesa Piedra Mora" loading="lazy">
+        <img src="assets/productos/burguers/blue bacon.webp" alt="Hamburguesa Piedra Mora" loading="lazy">
         <span class="menu-item-nombre">Hamburguesas</span>
       </div>
       <div class="menu-item reveal">
@@ -228,7 +232,7 @@
   </section>
 
   <footer class="footer">
-    <img src="assets/logo.webp" alt="Piedra Mora" class="footer-logo" data-marca-alt="">
+    <img src="assets/logo.webp" alt="Piedra Mora" class="footer-logo" data-marca-alt="" loading="lazy" decoding="async">
 
     <div class="footer-redes">
       <a href="https://www.instagram.com/piedramora.cta/" target="_blank" rel="noopener noreferrer"
@@ -246,10 +250,11 @@
     <div class="carta-panel-inner">
       <header class="carta-header">
         <div class="carta-header-brand">
-          <img src="assets/logo.webp" alt="Piedra Mora" class="carta-header-logo" data-marca-alt="">
+          <img src="assets/logo.webp" alt="Piedra Mora" class="carta-header-logo" data-marca-alt="" loading="lazy" decoding="async">
           <div class="carta-header-text">
             <div id="carta-titulo-marca" class="carta-titulo-marca" data-marca data-marca-mayusculas>PIEDRA MORA</div>
             <div id="carta-titulo-sucursal" class="carta-titulo-sucursal-nombre"></div>
+            <div id="carta-estado" class="carta-estado" aria-live="polite" hidden></div>
           </div>
         </div>
         <button id="carta-cerrar" class="carta-cerrar" type="button" aria-label="Cerrar carta" data-carta-cerrar>
@@ -261,6 +266,75 @@
       </header>
 
       <div class="carta-body">
+        <p id="carta-aviso-cerrado" class="aviso-cerrado" role="status" hidden>Estamos cerrados. Podés dejar tu pedido programado y lo verán cuando abran.</p>
+        <p id="carta-aviso-modalidad" class="aviso-cerrado aviso-modalidad" role="status" hidden></p>
+        <!-- Tarjeta de fidelidad (se muestra en categorías y productos; la maneja main.js) -->
+        <section id="fidelidad-tarjeta" class="fidelidad-tarjeta" aria-label="Tarjeta de fidelidad" hidden>
+          <button type="button" id="fidelidad-barra" class="fidelidad-barra" aria-expanded="false" aria-controls="fidelidad-panel">
+            <span id="fidelidad-barra-texto" class="fidelidad-barra-texto">⭐ Tarjeta de fidelidad</span>
+            <svg class="fidelidad-barra-flecha" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div id="fidelidad-panel" class="fidelidad-panel" role="region" aria-label="Detalle de tu tarjeta de fidelidad">
+            <div class="fidelidad-panel-int">
+
+            <!-- Vista: invitación (sin datos guardados) -->
+            <div id="fidelidad-vista-invitacion">
+              <p id="fidelidad-texto-niveles" class="fidelidad-texto"></p>
+              <button type="button" id="fidelidad-btn-ver" class="fidelidad-btn">Ver mi progreso</button>
+            </div>
+
+            <!-- Vista: formulario de registro -->
+            <form id="fidelidad-form" class="fidelidad-form" novalidate hidden>
+              <div class="fidelidad-campo">
+                <label for="fidelidad-nombre">Nombre</label>
+                <input type="text" id="fidelidad-nombre" maxlength="60" autocomplete="given-name" required>
+              </div>
+              <div class="fidelidad-campo">
+                <label for="fidelidad-apellido">Apellido</label>
+                <input type="text" id="fidelidad-apellido" maxlength="60" autocomplete="family-name" required>
+              </div>
+              <div class="fidelidad-campo">
+                <label for="fidelidad-telefono">Teléfono / WhatsApp</label>
+                <input type="tel" id="fidelidad-telefono" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="Ej: 383 456 7890" required>
+              </div>
+              <p class="fidelidad-aviso">Usamos tu nombre y teléfono para mostrarte tu progreso y tus premios, y para gestionar tus pedidos. Podés pedir que los borremos cuando quieras (Ley 25.326).</p>
+              <label class="fidelidad-check">
+                <input type="checkbox" id="fidelidad-acepta-promos">
+                <span>Quiero recibir promociones y novedades por WhatsApp</span>
+              </label>
+              <p id="fidelidad-form-error" class="fidelidad-error" role="alert" hidden></p>
+              <div class="fidelidad-acciones">
+                <button type="submit" id="fidelidad-btn-enviar" class="fidelidad-btn">Ver mi progreso</button>
+                <button type="button" id="fidelidad-btn-cancelar" class="fidelidad-btn-link">Cancelar</button>
+              </div>
+            </form>
+
+            <!-- Vista: progreso -->
+            <div id="fidelidad-vista-progreso" hidden>
+              <div class="fidelidad-cabecera">
+                <p id="fidelidad-saludo" class="fidelidad-saludo"></p>
+                <div class="fidelidad-herramientas">
+                  <button type="button" id="fidelidad-btn-actualizar" class="fidelidad-icono-btn" aria-label="Actualizar" title="Actualizar">
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="fidelidad-menu-contenedor">
+                    <button type="button" id="fidelidad-btn-opciones" class="fidelidad-icono-btn" aria-label="Opciones" title="Opciones" aria-haspopup="true" aria-expanded="false" aria-controls="fidelidad-menu">⚙️</button>
+                    <div id="fidelidad-menu" class="fidelidad-menu" role="menu" aria-label="Opciones de fidelidad" hidden>
+                      <button type="button" id="fidelidad-btn-borrar" class="fidelidad-menu-item" role="menuitem">Borrar mis datos</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div id="fidelidad-premios" class="fidelidad-premios"></div>
+              <p id="fidelidad-faltan" class="fidelidad-proximo" aria-live="polite"></p>
+              <div id="fidelidad-sellos" class="fidelidad-sellos" role="img" aria-label="Progreso de pedidos"></div>
+            </div>
+
+            <p id="fidelidad-estado" class="fidelidad-estado" role="status" aria-live="polite" hidden></p>
+            </div>
+          </div>
+        </section>
+
         <!-- ETAPA 0: Selección de modalidad (solo para Intendente Lascano) -->
         <section id="carta-etapa-modalidad" class="carta-etapa carta-etapa-modalidad" aria-live="polite">
           <div class="carta-modalidad-header">
@@ -353,12 +427,9 @@
       </svg>
     </span>
     <span class="acceso-carrito-texto">
-      <strong>Retomar pedido activo</strong>
-      <span class="acceso-carrito-detalle">
-        <span id="acceso-carrito-items" class="acceso-carrito-items">0 productos</span>
-        <span class="acceso-carrito-separador" aria-hidden="true">•</span>
-        <span id="acceso-carrito-total" class="acceso-carrito-total">$ 0</span>
-      </span>
+      <span id="acceso-carrito-items" class="acceso-carrito-items">Ver pedido (0)</span>
+      <span class="acceso-carrito-separador" aria-hidden="true">·</span>
+      <span id="acceso-carrito-total" class="acceso-carrito-total">$ 0</span>
     </span>
   </button>
 
@@ -406,9 +477,11 @@
 
         <div class="form-grupo">
           <label for="cliente-telefono">Teléfono / WhatsApp</label>
-          <input type="tel" id="cliente-telefono" required minlength="8" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="Ej: 383 400 0000" aria-describedby="cliente-telefono-ayuda cliente-telefono-error">
-          <span id="cliente-telefono-ayuda" class="form-ayuda">Solo números; podés incluir el código de área.</span>
-          <span id="cliente-telefono-error" class="form-error" role="alert" hidden></span>
+          <input type="tel" id="cliente-telefono" required minlength="10" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="Ej: 383 456 7890" aria-describedby="cliente-telefono-ayuda cliente-telefono-error">
+          <div class="form-mensaje" aria-live="polite" aria-atomic="true">
+            <span id="cliente-telefono-ayuda" class="form-ayuda">Código de área y número, sin 0 ni 15 (ej. 3834567890).</span>
+            <span id="cliente-telefono-error" class="form-error" hidden></span>
+          </div>
         </div>
 
         <!-- Tipo de Entrega -->
@@ -418,6 +491,8 @@
             <button type="button" class="btn-opcion activa" data-tipo-entrega="delivery">🛵 Delivery</button>
             <button type="button" class="btn-opcion" data-tipo-entrega="retiro">🏃 Retiro / Takeaway</button>
           </div>
+          <p id="entrega-aviso" class="form-ayuda entrega-aviso" role="status" hidden></p>
+          <span id="entrega-error" class="form-error" role="alert" hidden></span>
         </div>
 
         <div class="form-grupo" id="form-grupo-mesa" hidden>
@@ -486,9 +561,63 @@
           <p id="checkout-pago-condicion" class="pago-condicion" aria-live="polite">Sin descuentos activos por medio de pago.</p>
         </div>
 
+        <p id="checkout-aviso-cerrado" class="aviso-cerrado" role="status" hidden>Estamos cerrados. Podés dejar tu pedido programado y lo verán cuando abran.</p>
+
+        <p id="checkout-horario" class="horario-legible" hidden></p>
+
+        <div class="form-grupo checkout-programar" id="checkout-programar">
+          <label class="fidelidad-check" id="programar-check-label">
+            <input type="checkbox" id="checkout-programar-check">
+            <span>Programar para otro día</span>
+          </label>
+          <fieldset class="programar-opciones" id="programar-opciones" hidden>
+            <legend>¿Para cuándo querés tu pedido?</legend>
+            <label class="programar-opcion" id="programar-opcion-rapida">
+              <input type="radio" name="programar-modo" id="programar-modo-rapido" value="rapido">
+              <span id="programar-rapido-texto"></span>
+            </label>
+            <label class="programar-opcion">
+              <input type="radio" name="programar-modo" id="programar-modo-otro" value="otro">
+              <span>Otro día u horario</span>
+            </label>
+          </fieldset>
+          <p id="programar-resumen" class="programar-resumen" role="status" hidden></p>
+          <div id="checkout-programar-campos" class="programar-campos" hidden>
+            <div class="programar-fila">
+              <div class="form-grupo">
+                <label for="programar-fecha">Fecha</label>
+                <input type="date" id="programar-fecha">
+              </div>
+              <div class="form-grupo">
+                <label for="programar-hora">Hora</label>
+                <input type="time" id="programar-hora">
+              </div>
+            </div>
+            <span id="programar-ayuda" class="form-ayuda"></span>
+            <span id="programar-error" class="form-error" role="alert" hidden></span>
+          </div>
+        </div>
+
         <div class="form-grupo">
           <label for="cliente-notas">Aclaraciones u observaciones</label>
           <textarea id="cliente-notas" rows="2" placeholder="Ej: Sin cebolla, timbre 2B"></textarea>
+        </div>
+
+        <p id="checkout-premios-estado" class="pedix-ayuda-texto" role="status" aria-live="polite"></p>
+        <!-- Premios de fidelidad (los llena main.js cuando el teléfono tiene premios) -->
+        <div class="form-grupo checkout-premios" id="checkout-premios" hidden>
+          <label id="checkout-premios-titulo">Tenés premios disponibles</label>
+          <div id="checkout-premios-lista" class="checkout-premios-lista" role="radiogroup" aria-labelledby="checkout-premios-titulo"></div>
+        </div>
+
+        <div class="form-grupo">
+          <label for="cliente-cupon">¿Tenés un código?</label>
+          <div class="pedix-input-wrap">
+            <input type="text" id="cliente-cupon" autocomplete="off" maxlength="40"
+                   placeholder="Ej: LICHI" aria-describedby="cupon-estado">
+            <button type="button" id="btn-aplicar-cupon" class="pedix-btn-buscar">Aplicar</button>
+          </div>
+          <p id="cupon-estado" class="pedix-ayuda-texto" role="status" aria-live="polite"></p>
         </div>
 
         <!-- Resumen de Totales -->
@@ -512,11 +641,26 @@
             <span>Descuento <span id="checkout-descuento-label">(Efectivo)</span></span>
             <span id="checkout-descuento">$ 0</span>
           </div>
+          <div class="linea-total linea-descuento linea-cupon" id="linea-cupon" hidden>
+            <span>Cupón <strong id="checkout-cupon-codigo"></strong>
+              <button type="button" id="btn-quitar-cupon" class="btn-quitar-cupon" aria-label="Quitar cupón">✕</button>
+            </span>
+            <span id="checkout-cupon">-$ 0</span>
+          </div>
+          <div class="linea-total linea-descuento linea-premio" id="linea-premio" hidden>
+            <span id="checkout-premio-etiqueta">Premio de fidelidad</span>
+            <span id="checkout-premio-monto">-$ 0</span>
+          </div>
           <div class="linea-total gran-total">
             <span>Total a pagar</span>
             <span id="checkout-total">$ 0</span>
           </div>
         </div>
+
+        <label class="fidelidad-check checkout-promos">
+          <input type="checkbox" id="cliente-acepta-promos">
+          <span>Quiero recibir promociones por WhatsApp</span>
+        </label>
 
         <p id="checkout-privacidad" class="checkout-privacidad">
           Usamos tu nombre, teléfono y dirección o ubicación solo para gestionar tu pedido y contactarte por él. Los datos se guardan en nuestro sistema. Podés pedir acceso, rectificación o supresión de tus datos <span id="checkout-privacidad-wa">escribiéndonos por WhatsApp</span>. La Agencia de Acceso a la Información Pública es el órgano de control de la Ley 25.326.
@@ -549,6 +693,7 @@
         <dd id="pedido-recibido-tiempo">-</dd>
       </div>
     </dl>
+    <p id="pedido-recibido-premio" class="pedido-recibido-premio" hidden></p>
     <p id="pedido-recibido-aviso" class="pedido-recibido-aviso"></p>
     <button type="button" id="pedido-recibido-cerrar" class="btn-confirmar-whatsapp pedido-recibido-boton">Volver a la carta</button>
   </div>
@@ -609,10 +754,10 @@
   <div id="mapa-fullscreen-leaflet" class="mapa-fullscreen-body"></div>
 </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/core/utils.js"></script>
-  <script src="js/core/carta-ids.js"></script>
-  <script src="main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous" defer></script>
+  <script src="js/core/utils.js" defer></script>
+  <script src="js/core/carta-ids.js" defer></script>
+  <script src="main.js" defer></script>
 </body>
 
 </html>
