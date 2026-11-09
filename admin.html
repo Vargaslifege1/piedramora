@@ -567,7 +567,6 @@
             <h2>CRM de clientes</h2>
           </div>
           <div class="admin-pedidos-acciones">
-            <label class="crm-check"><input type="checkbox" id="crm-solo-promos"> Solo acepta promos</label>
             <button type="button" id="btn-crm-csv" class="btn-secundario">Exportar CSV</button>
             <button type="button" id="btn-crm-recargar" class="btn-secundario">Recargar</button>
           </div>
@@ -576,12 +575,13 @@
         <div class="crm-filtros">
           <input id="crm-buscar" type="search" placeholder="Buscar por nombre o teléfono" maxlength="80" autocomplete="off" aria-label="Buscar cliente">
           <div id="crm-segmentos" class="crm-segmentos" role="group" aria-label="Segmento">
-            <button type="button" class="btn-secundario activa" data-crm-segmento="">Todos</button>
-            <button type="button" class="btn-secundario" data-crm-segmento="nuevo">Nuevos</button>
-            <button type="button" class="btn-secundario" data-crm-segmento="ocasional">Ocasionales</button>
-            <button type="button" class="btn-secundario" data-crm-segmento="frecuente">Frecuentes</button>
-            <button type="button" class="btn-secundario" data-crm-segmento="inactivo">Inactivos</button>
-            <button type="button" class="btn-secundario" data-crm-segmento="registrado">Registrados</button>
+            <button type="button" class="crm-chip activa" aria-pressed="true" data-crm-segmento="">Todos</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="nuevo">Nuevo</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="ocasional">Ocasional</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="frecuente">Frecuente</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="inactivo">Inactivo</button>
+            <button type="button" class="crm-chip" aria-pressed="false" data-crm-segmento="registrado">Registrado</button>
+            <label class="crm-chip crm-chip-check" title="Se aplica al exportar el CSV"><input type="checkbox" id="crm-solo-promos"><span>Solo acepta promos</span></label>
           </div>
         </div>
 
@@ -590,11 +590,17 @@
 
         <div class="crm-layout">
           <section class="admin-card crm-lista-card">
-            <div class="crm-fila crm-cabecera" role="row">
-              <span>Cliente</span>
-              <button type="button" class="crm-orden" data-crm-orden="pedidos">Ped.</button>
-              <button type="button" class="crm-orden" data-crm-orden="gasto">Gasto</button>
-              <button type="button" class="crm-orden activa" data-crm-orden="ultima_visita">Última</button>
+            <div class="crm-fila crm-cabecera">
+              <div class="crm-cols">
+                <span class="crm-solo-desk" aria-hidden="true"></span>
+                <span class="crm-solo-desk">Cliente</span>
+                <span class="crm-solo-cel">Ordenar por:</span>
+                <button type="button" class="crm-orden" data-crm-orden="pedidos">Ped.</button>
+                <button type="button" class="crm-orden" data-crm-orden="gasto">Gasto</button>
+                <span class="crm-solo-desk" title="Ticket promedio">Ticket</span>
+                <button type="button" class="crm-orden activa" data-crm-orden="ultima_visita">Última</button>
+              </div>
+              <span class="crm-wa-col" aria-hidden="true"></span>
             </div>
             <div id="crm-lista" class="crm-lista"></div>
             <div class="crm-pie">

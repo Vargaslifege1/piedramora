@@ -36,6 +36,7 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 
 ## Últimos cambios
 
+- 2026-11-09: admin Clientes más claro (solo presentación): una barra con buscador + chips de segmento + "Solo acepta promos", iniciales, badge con punto, ticket promedio y WhatsApp siempre visible (deshabilitado si no aceptó promos). Sin cambios de RPC ni SQL.
 - 2026-11-09: limpieza (G): quitadas imágenes sin uso (`public/images/categorias/`, `assets/logo.png`, `assets/productos/PROMOS/2 cheese.jpg`) y backups del repo; PROGRESO reorganizado (historial en `docs/HISTORIAL.md`).
 - 2026-11-09: cartel de modalidades en línea propia con ícono de moto en las tarjetas de sucursal (`main.js`, `style.css`).
 - 2026-11-09: migración 026 (SIN APLICAR): búsqueda de clientes del CRM por teléfono normalizado.

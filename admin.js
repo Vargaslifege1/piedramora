@@ -5367,7 +5367,28 @@
 
   function crmInsignia(segmento) {
     const s = CRM_SEGMENTOS[segmento] ? segmento : 'nuevo';
-    return `<span class="crm-seg crm-seg-${s}">${PM.escaparHtml(CRM_SEGMENTOS[s])}</span>`;
+    return `<span class="crm-seg crm-seg-${s}"><i class="crm-seg-punto" aria-hidden="true"></i>${PM.escaparHtml(CRM_SEGMENTOS[s])}</span>`;
+  }
+
+  // Iniciales para el círculo: primera letra de las dos primeras palabras ('?' si no hay nombre).
+  function crmIniciales(c) {
+    const partes = [c.nombre, c.apellido].map(x => String(x || '').trim()).filter(Boolean).join(' ').split(/\s+/).filter(Boolean);
+    if (!partes.length) return '?';
+    return partes.slice(0, 2).map(p => Array.from(p)[0]).join('').toLocaleUpperCase('es-AR');
+  }
+
+  const CRM_ICONO_WA = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20l1.3-4.1A8 8 0 1 1 8.2 18.8z"/><path d="M9 9.5c.3 2.2 2.3 4.2 4.5 4.5l1.2-1.2-1.6-1-.8.6c-.8-.4-1.5-1.1-1.9-1.9l.6-.8-1-1.6z"/></svg>';
+
+  // WhatsApp siempre visible: habilitado solo si aceptó promos y el teléfono es válido.
+  function crmBotonWa(c) {
+    const nombre = crmNombre(c);
+    const url = c.acepta_promos === true ? PM.urlWhatsappCliente(c.telefono) : '';
+    if (url) {
+      const etq = PM.escaparHtml(`Enviar WhatsApp a ${nombre}`);
+      return `<a class="crm-wa-btn" href="${PM.escaparHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${etq}" title="${etq}">${CRM_ICONO_WA}</a>`;
+    }
+    const motivo = c.acepta_promos === true ? 'Teléfono no válido para WhatsApp' : 'No aceptó recibir promociones';
+    return `<button type="button" class="crm-wa-btn crm-wa-off" aria-disabled="true" aria-label="${PM.escaparHtml(motivo)}" title="${PM.escaparHtml(motivo)}">${CRM_ICONO_WA}</button>`;
   }
 
   function avisoCrm(texto) {
@@ -5395,15 +5416,22 @@
         const tel = String(c.telefono || '');
         const sel = tel === crm.telSel ? ' seleccionada' : '';
         const hace = crmHace(c.dias_sin_pedir);
-        return `<button type="button" class="crm-fila crm-item${sel}" data-crm-tel="${PM.escaparHtml(tel)}">
-          <span class="crm-cliente">
-            <strong>${PM.escaparHtml(crmNombre(c))}</strong>
-            <small>${PM.escaparHtml(PM.formatearTelefonoAR(tel))} ${crmInsignia(c.segmento)}${c.acepta_promos ? ' <span class="crm-promo" title="Acepta promos">✉</span>' : ''}</small>
-          </span>
-          <span class="crm-num">${statsNum(c.pedidos)}</span>
-          <span class="crm-num">${PM.escaparHtml(statsPlata(c.gasto))}</span>
-          <span class="crm-num crm-ultima">${PM.escaparHtml(crmFecha(c.ultima_visita))}<small>${PM.escaparHtml(hace)}</small></span>
-        </button>`;
+        return `<div class="crm-fila crm-item${sel}">
+          <button type="button" class="crm-main" data-crm-tel="${PM.escaparHtml(tel)}">
+            <span class="crm-avatar" aria-hidden="true">${PM.escaparHtml(crmIniciales(c))}</span>
+            <span class="crm-cliente">
+              <strong>${PM.escaparHtml(crmNombre(c))}</strong>
+              <small>${PM.escaparHtml(PM.formatearTelefonoAR(tel))} ${crmInsignia(c.segmento)}</small>
+            </span>
+            <span class="crm-stats">
+              <span class="crm-num" data-etq="Ped.">${statsNum(c.pedidos)}</span>
+              <span class="crm-num" data-etq="Gasto">${PM.escaparHtml(statsPlata(c.gasto))}</span>
+              <span class="crm-num" data-etq="Ticket">${PM.escaparHtml(statsPlata(c.ticket_promedio))}</span>
+              <span class="crm-num crm-ultima" data-etq="Última">${PM.escaparHtml(crmFecha(c.ultima_visita))}<small>${PM.escaparHtml(hace)}</small></span>
+            </span>
+          </button>
+          <span class="crm-wa-col">${crmBotonWa(c)}</span>
+        </div>`;
       }).join('');
     }
     const total = crmEl('crm-total');
@@ -5615,7 +5643,10 @@
     document.querySelectorAll('[data-crm-segmento]').forEach(boton => {
       boton.addEventListener('click', () => {
         crm.segmento = boton.dataset.crmSegmento;
-        document.querySelectorAll('[data-crm-segmento]').forEach(b => b.classList.toggle('activa', b === boton));
+        document.querySelectorAll('[data-crm-segmento]').forEach(b => {
+          b.classList.toggle('activa', b === boton);
+          b.setAttribute('aria-pressed', b === boton ? 'true' : 'false');
+        });
         cerrarCrmFicha();
         cargarCrm();
       });
