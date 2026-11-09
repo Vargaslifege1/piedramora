@@ -452,7 +452,23 @@ function normalizarTextoMensaje(texto, unaLinea = false) {
 }
 
 // Teléfono argentino a 10 dígitos (área + número). Misma regla que el servidor (023). null si no es válido.
-const MSG_TELEFONO_AR = 'Revisá tu teléfono: código de área y número, sin 0 ni 15 (ej. 3834818271).';
+// Ejemplos ficticios (383 = Catamarca): se elige uno al cargar la página y no cambia en la sesión.
+const EJEMPLOS_TELEFONO_AR = ['3834567890', '3835123456', '3834987654', '3835246810'];
+const EJEMPLO_TELEFONO_AR = EJEMPLOS_TELEFONO_AR[Math.floor(Math.random() * EJEMPLOS_TELEFONO_AR.length)];
+const MSG_TELEFONO_AR = `Revisá tu teléfono: código de área y número, sin 0 ni 15 (ej. ${EJEMPLO_TELEFONO_AR}).`;
+
+// Ayuda fija y placeholders de los campos de teléfono con el mismo ejemplo.
+function aplicarEjemploTelefono() {
+  const ayuda = document.getElementById('cliente-telefono-ayuda');
+  if (ayuda) ayuda.textContent = `Código de área y número, sin 0 ni 15 (ej. ${EJEMPLO_TELEFONO_AR}).`;
+  const visible = `${EJEMPLO_TELEFONO_AR.slice(0, 3)} ${EJEMPLO_TELEFONO_AR.slice(3, 6)} ${EJEMPLO_TELEFONO_AR.slice(6)}`;
+  ['cliente-telefono', 'fidelidad-telefono'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.placeholder = `Ej: ${visible}`;
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicarEjemploTelefono);
+else aplicarEjemploTelefono();
 function normalizarTelefonoAR(valor) {
   return PM.normalizarTelefonoAR(valor);
 }
