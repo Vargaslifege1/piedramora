@@ -5981,20 +5981,58 @@
       const filas = turnos.length
         ? turnos.map((t, i) => filaTurnoHtml(dia, i, t)).join('')
         : '<p class="hor-cerrado-dia">Cerrado</p>';
+      const resumen = resumenModalidadesDia(turnos);
+      const nombreDia = PM.escaparHtml(DIAS_SEMANA[dia]);
       return `<div class="hor-dia" data-dia="${dia}">
-        <div class="hor-dia-nombre"><strong>${PM.escaparHtml(DIAS_SEMANA[dia])}</strong>${resumenModalidadesDia(turnos) ? ` <span class="hor-badge">${PM.escaparHtml(resumenModalidadesDia(turnos))}</span>` : ''}</div>
-        <div class="hor-dia-turnos">${filas}</div>
-        <div class="hor-dia-acciones">
-          <button type="button" class="btn-secundario" data-hor-accion="agregar" data-dia="${dia}">+ Turno</button>
+        <div class="hor-dia-cab">
+          <div class="hor-dia-nombre"><strong>${nombreDia}</strong>${resumen ? `<span class="hor-badge">${PM.escaparHtml(resumen)}</span>` : ''}</div>
+          <div class="hor-dia-acciones">
+            <button type="button" class="btn-secundario" data-hor-accion="agregar" data-dia="${dia}">+ Turno</button>
+            <div class="hor-menu">
+              <button type="button" class="btn-icono hor-menu-btn" data-hor-accion="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Más acciones de ${nombreDia}">⋯</button>
+              <div class="hor-menu-lista" role="menu" hidden>
+                <button type="button" role="menuitem" data-hor-accion="copiar" data-dia="${dia}">Copiar a todos</button>
+              </div>
+            </div>
+          </div>
         </div>
+        <div class="hor-dia-turnos">${filas}</div>
       </div>`;
     }).join('');
+  }
+
+  function cerrarMenusDia(devolverFoco) {
+    document.querySelectorAll('.hor-menu-btn[aria-expanded="true"]').forEach(btn => {
+      btn.setAttribute('aria-expanded', 'false');
+      const lista = btn.parentElement.querySelector('.hor-menu-lista');
+      if (lista) lista.hidden = true;
+      if (devolverFoco) btn.focus();
+    });
   }
 
   function manejarClickDias(evento) {
     const boton = evento.target.closest('[data-hor-accion]');
     if (!boton) return;
     const accion = boton.dataset.horAccion;
+    if (accion === 'menu') {
+      const abierto = boton.getAttribute('aria-expanded') === 'true';
+      cerrarMenusDia(false);
+      if (!abierto) {
+        boton.setAttribute('aria-expanded', 'true');
+        const lista = boton.parentElement.querySelector('.hor-menu-lista');
+        if (lista) {
+          lista.hidden = false;
+          const primero = lista.querySelector('[role="menuitem"]');
+          if (primero) primero.focus();
+        }
+      }
+      return;
+    }
+    if (accion === 'copiar') {
+      cerrarMenusDia(false);
+      copiarDiaATodos(Number(boton.dataset.dia));
+      return;
+    }
     if (accion === 'agregar') {
       const dia = Number(boton.dataset.dia);
       const lista = horTurnos[dia] || (horTurnos[dia] = []);
@@ -6009,29 +6047,11 @@
     renderDiasHorarios();
   }
 
-  // Control único de la cabecera: copia los turnos y modalidades de un día a los 7 días.
-  function textoBotonCopiar() {
-    const sel = horEl('hor-copiar-dia');
-    const btn = horEl('btn-hor-copiar');
-    if (!sel || !btn) return;
-    const dia = Number(sel.value);
-    btn.textContent = `Copiar ${(DIAS_SEMANA[dia] || '').toLowerCase()} a todos los días`;
-  }
-
-  function prepararControlCopiar() {
-    const sel = horEl('hor-copiar-dia');
-    if (!sel) return;
-    if (!sel.options.length) {
-      sel.innerHTML = ORDEN_DIAS.map(d => `<option value="${d}">${PM.escaparHtml(DIAS_SEMANA[d])}</option>`).join('');
-    }
-    textoBotonCopiar();
-  }
-
-  function copiarDiaATodos() {
-    const sel = horEl('hor-copiar-dia');
-    if (!sel) return;
-    const dia = Number(sel.value);
-    if (!window.confirm(`¿Copiar los turnos y modalidades de ${DIAS_SEMANA[dia]} a todos los días? Reemplaza lo que hay en los otros.`)) return;
+  // Copia los turnos y modalidades de un día a los 7 días (menú "⋯" de cada fila).
+  function copiarDiaATodos(dia) {
+    if (!(dia >= 0 && dia <= 6)) return;
+    if (!window.confirm(`Copiar ${DIAS_SEMANA[dia]} a todos los días.
+Esto reemplaza los horarios de los otros 6 días.`)) return;
     const origen = (horTurnos[dia] || []).map(t => ({ ...t }));
     for (let d = 0; d < 7; d++) horTurnos[d] = origen.map(t => ({ ...t }));
     marcarHorSucio(true);
@@ -6389,6 +6409,17 @@
     if (dias) {
       dias.addEventListener('click', manejarClickDias);
       dias.addEventListener('input', manejarInputDias);
+      // Escape cierra el menú "⋯" y devuelve el foco; clic afuera también lo cierra.
+      dias.addEventListener('keydown', evento => {
+        if (evento.key === 'Escape' && dias.querySelector('.hor-menu-btn[aria-expanded="true"]')) {
+          evento.preventDefault();
+          evento.stopPropagation();
+          cerrarMenusDia(true);
+        }
+      });
+      document.addEventListener('click', evento => {
+        if (!evento.target.closest('.hor-menu')) cerrarMenusDia(false);
+      });
     }
     const sel = horEl('hor-sucursal');
     if (sel) {
@@ -6410,11 +6441,6 @@
     if (guardar) guardar.addEventListener('click', guardarHorarios);
     const descartar = horEl('btn-hor-descartar');
     if (descartar) descartar.addEventListener('click', descartarCambiosHorarios);
-    prepararControlCopiar();
-    const selCopiar = horEl('hor-copiar-dia');
-    if (selCopiar) selCopiar.addEventListener('change', textoBotonCopiar);
-    const btnCopiar = horEl('btn-hor-copiar');
-    if (btnCopiar) btnCopiar.addEventListener('click', copiarDiaATodos);
     const recargar = horEl('btn-hor-recargar');
     if (recargar) {
       recargar.addEventListener('click', () => {

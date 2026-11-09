@@ -3303,9 +3303,6 @@ p {
 @media (min-width: 1024px) {
   .hor-vista .hor-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-rows: auto 1fr; grid-template-areas: "estado dias" "excepciones dias" "cierres dias"; align-items: start; }
 }
-@media (min-width: 640px) {
-  .hor-dia { grid-template-columns: 84px minmax(0, 1fr) auto; }
-}
 @media (prefers-reduced-motion: reduce) {
   .hor-vista * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
@@ -3407,9 +3404,6 @@ p {
 .hor-forzado strong { flex: 1 1 100%; font-size: 1.05rem; letter-spacing: .02em; }
 .hor-forzado[data-modo="forzar_cerrado"] { border-color: var(--admin-rojo); background: rgba(227, 30, 36, 0.14); color: var(--admin-rojo-claro); }
 .hor-forzado .btn-secundario { min-height: 40px; }
-.hor-copiar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
-.hor-copiar select { min-width: 0; max-width: 100%; min-height: 36px; }
-.hor-copiar .btn-secundario { min-height: 36px; padding: 4px 10px; font-size: 0.82rem; }
 .hor-turno { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .hor-horas { display: flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; }
 .hor-horas input[type="time"] { flex: 1 1 84px; min-width: 0; }
@@ -3436,4 +3430,42 @@ p {
 }
 @media (prefers-reduced-motion: reduce) {
   .hor-chip span { transition: none; }
+}
+
+/* ===== Tema oscuro en todos los controles del admin ===== */
+:root { color-scheme: dark; }
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]), select, textarea) {
+  color-scheme: dark;
+  background-color: #0c0c0c;
+  color: var(--admin-texto);
+  border: 1px solid var(--admin-borde-fuerte);
+  border-radius: 10px;
+  accent-color: var(--admin-dorado);
+}
+:where(select option, select optgroup) { background-color: #0c0c0c; color: var(--admin-texto); }
+:where(input[type="checkbox"], input[type="radio"], input[type="range"]) { color-scheme: dark; accent-color: var(--admin-dorado); }
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+input:-webkit-autofill, select:-webkit-autofill { -webkit-text-fill-color: var(--admin-texto); box-shadow: 0 0 0 1000px #0c0c0c inset; caret-color: var(--admin-texto); }
+::selection { background: rgba(217, 164, 65, 0.4); color: #fff; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--admin-dorado); outline-offset: 1px; border-color: var(--admin-dorado); }
+input[type="time"] ::-webkit-datetime-edit-fields-wrapper :focus,
+input[type="date"] ::-webkit-datetime-edit-fields-wrapper :focus,
+input[type="datetime-local"] ::-webkit-datetime-edit-fields-wrapper :focus { background: rgba(217, 164, 65, 0.35); color: #fff; outline: none; }
+
+/* ===== Horarios: fila de día con cabecera y menú "⋯" ===== */
+.hor-dia { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.hor-dia-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.hor-dia-nombre { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+.hor-dia-nombre .hor-badge { margin-left: 0; flex: 0 0 auto; white-space: nowrap; }
+.hor-dia-acciones { flex-wrap: nowrap; align-items: center; flex: 0 0 auto; }
+.hor-menu { position: relative; }
+.hor-menu-btn { min-width: 36px; min-height: 36px; border: 1px solid var(--admin-borde-fuerte); color: var(--admin-dorado); font-size: 1.1rem; line-height: 1; }
+.hor-menu-lista { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 170px; padding: 4px; border: 1px solid var(--admin-borde-fuerte); border-radius: var(--admin-radio-chico); background: var(--admin-panel-3); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6); }
+.hor-menu-lista[hidden] { display: none; }
+.hor-menu-lista button { display: block; width: 100%; min-height: 40px; padding: 6px 12px; text-align: left; border: 0; border-radius: 8px; background: transparent; color: var(--admin-texto); font-size: 0.88rem; cursor: pointer; }
+.hor-menu-lista button:hover, .hor-menu-lista button:focus-visible { background: rgba(217, 164, 65, 0.16); outline: none; color: var(--admin-dorado); }
+@media (prefers-reduced-motion: reduce) {
+  .hor-menu-lista, .hor-barra { transition: none !important; animation: none !important; }
 }

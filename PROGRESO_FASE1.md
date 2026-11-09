@@ -43,3 +43,4 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 - 2026-11-09: migración 026 (SIN APLICAR): búsqueda de clientes del CRM por teléfono normalizado.
 - 2026-11-09: admin: orden de categorías y productos de la carta (dueño); tablero con Cancelados abierto sin scroll horizontal desde 1100 px.
 - 2026-11-07: mensaje de WhatsApp estilo Pedix con emojis por campo (escapes `\u{...}`), verificado sin U+FFFD.
+- 2026-11-09: admin: controles (time/date/select) con tema oscuro en todas las pestañas; Horarios con "Copiar a todos" por día en menú "⋯" y badge junto al nombre (solo UX).
