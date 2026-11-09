@@ -12,14 +12,10 @@
 /assets/*
   Cache-Control: public, max-age=2592000
 
-# HTML, JS, CSS y datos: siempre revalidar (no llevan hash en el nombre).
-/*.html
-  Cache-Control: no-cache
-/*.js
-  Cache-Control: no-cache
-/*.css
-  Cache-Control: no-cache
+# Datos: siempre revalidar. HTML/JS/CSS quedan con el caché por defecto del hosting
+# (Netlify/Cloudflare ya revalidan); estos archivos no llevan hash en el nombre.
 /data/*
   Cache-Control: no-cache
+
 /admin.html
   X-Robots-Tag: noindex, nofollow
