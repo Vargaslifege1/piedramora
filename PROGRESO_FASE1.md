@@ -36,6 +36,7 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 
 ## Últimos cambios
 
+- 2026-11-09: auditoría pre-publicación: rutas relativas OK, SEO (og:image absoluta, robots sin admin, sitemap), `_headers` sin CSP. Pendiente del dueño: dominio/URLs (TODO en index.html, robots, sitemap) y URL Configuration de Supabase.
 - 2026-11-09: sitio: la pastilla de modalidad indica cuándo aplica ("Hoy/Mañana/El DD/MM solo delivery|retiro"); en pantallas angostas baja de línea si está "Más cerca de vos".
 - 2026-11-09: sitio: "Llamar" de Oeste usa su WhatsApp (383 446-4777); el cartel de modalidades de las tarjetas pasa a pastilla corta sobre la foto (detalle en title/aria-label).
 - 2026-11-09: WhatsApp reales verificados (Maestro Quiroga 383 453-4444, Oeste 383 446-4777; links 549 + 10 dígitos); el aviso de privacidad muestra el número legible.
