@@ -1133,6 +1133,12 @@ function textoSoloModalidad(m) {
   return m.delivery ? 'solo delivery' : 'solo retiro';
 }
 
+// Texto corto de la pastilla de la tarjeta: "Hoy solo delivery", "Mañana solo retiro", "El 10/11 solo delivery".
+function textoCortoModalidadTarjeta(e, m) {
+  const solo = textoSoloModalidad(m);
+  return solo ? `${prefijoDiaEstado(e)} ${solo}` : '';
+}
+
 function refrescarEstados(forzar) {
   if (estadosPromesa) return estadosPromesa;
   if (!forzar && (Date.now() - estadosUltimaCarga) < ESTADO_CACHE_MS) return Promise.resolve();
@@ -1173,11 +1179,11 @@ function actualizarEstados() {
     if (modEl) {
       const m = modalidadesDeEstado(e);
       const detalle = textoCartelModalidadTarjeta(e, m);
-      const corto = textoSoloModalidad(m);
+      const corto = textoCortoModalidadTarjeta(e, m);
       const textoEl = modEl.querySelector('[data-modalidad-texto]');
       const iconoEl = modEl.querySelector('[data-modalidad-icono]');
       // Pastilla corta sobre la foto; el detalle ("Desde las 20:30...") va en title y aria-label.
-      if (textoEl) textoEl.textContent = corto ? corto.charAt(0).toUpperCase() + corto.slice(1) : '';
+      if (textoEl) textoEl.textContent = corto;
       if (iconoEl) iconoEl.innerHTML = corto ? (m.delivery ? ICONO_MOTO : ICONO_LOCAL) : '';
       if (detalle) {
         modEl.title = detalle.charAt(0).toUpperCase() + detalle.slice(1);

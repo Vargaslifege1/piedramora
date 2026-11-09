@@ -5252,3 +5252,10 @@ body.confirmacion-abierta {
 .confirmacion-panel p { white-space: pre-line; }
 
 .form-ayuda[hidden] { display: none; }
+
+/* En pantallas angostas, si está "Más cerca de vos", la pastilla baja a una segunda línea sobre la foto */
+@media (max-width: 480px) {
+  .badge-cercana:not([hidden]) ~ .sucursal-foto-wrap .sucursal-modalidad {
+    top: 46px;
+  }
+}
