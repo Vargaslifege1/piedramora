@@ -36,6 +36,7 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 
 ## Últimos cambios
 
+- 2026-11-09: checkout: el teléfono se valida con una sola regla (10 dígitos AR) en campo (blur/input), cupón, premios y envío; el cupón ya no dice "Completá tu teléfono" si está mal escrito.
 - 2026-11-09: admin: Agotados pasa de Pedidos a su propia pestaña "Disponibilidad" (dueño y encargado, junto a Horarios). Solo estructura; misma lógica, RPC y permisos.
 - 2026-11-09: confirmaciones y avisos propios (solo UX): `confirmarAccion` en admin reemplaza todos los `window.confirm` (cupón con usos solo se pausa) y `alert` de main.js pasa a aviso propio. Sin cambios de SQL.
 - 2026-11-09: admin Horarios más claro y seguro (solo UX): título "Editando: <sucursal>", banner de modo forzado (ámbar/rojo) con "Volver a automático", turnos compactos con chips Retiro/Delivery, un único "Copiar <día> a todos los días" y barra sticky "Tenés cambios sin guardar" con aviso al cambiar de sucursal/pestaña/cerrar. Sin cambios de RPC, permisos ni reglas de guardado.

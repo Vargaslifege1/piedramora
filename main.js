@@ -3281,11 +3281,17 @@ async function validarCuponActual(codigoForzado) {
     return;
   }
 
-  const telefonoDigitos = normalizarTelefonoAR(document.getElementById('cliente-telefono')?.value);
+  const telRaw = document.getElementById('cliente-telefono')?.value;
+  const telefonoDigitos = normalizarTelefonoAR(telRaw);
   if (!telefonoDigitos) {
     cuponAplicado = null;
     mostrarLineaCupon(false);
-    mostrarEstadoCupon('Completá tu teléfono primero.', 'error');
+    const vacio = !String(telRaw ?? '').replace(/\D/g, '');
+    if (vacio) mostrarEstadoCupon('Completá tu teléfono primero.', 'error');
+    else {
+      mostrarEstadoCupon('Revisá tu teléfono: código de área y número, sin 0 ni 15 (ej. 3834818271)', 'error');
+      evaluarTelefonoCampo({ enfocar: true });
+    }
     actualizarResumenPago(obtenerSubtotalCarrito());
     return;
   }
@@ -3730,28 +3736,34 @@ function validarNombreCliente() {
   return nombre;
 }
 
-function validarTelefonoCliente() {
+// Única regla de teléfono (checkout, cupón, premios, envío). opciones.enfocar: marca error y enfoca;
+// opciones.mensajeVacio: texto si está vacío (null = sin error por vacío). Devuelve 10 dígitos o null.
+function evaluarTelefonoCampo(opciones = {}) {
   const input = document.getElementById('cliente-telefono');
   const error = document.getElementById('cliente-telefono-error');
   const telefonoVisible = normalizarTelefono(input?.value);
   const digitos = telefonoVisible.replace(/\D/g, '');
+  const fallar = (mensaje) => {
+    if (mensaje) mostrarErrorCampo(input, error, mensaje);
+    if (opciones.enfocar) input?.focus();
+    return null;
+  };
 
   if (!digitos) {
-    mostrarErrorCampo(input, error, 'Ingresá un teléfono de contacto.');
-    input?.focus();
-    return null;
+    limpiarErrorCampo(input, error);
+    return fallar(opciones.mensajeVacio === undefined ? 'Ingresá un teléfono de contacto.' : opciones.mensajeVacio);
   }
   const tel10 = normalizarTelefonoAR(telefonoVisible);
-  if (!tel10) {
-    mostrarErrorCampo(input, error, MSG_TELEFONO_AR);
-    input?.focus();
-    return null;
-  }
+  if (!tel10) return fallar(MSG_TELEFONO_AR);
 
   // Se muestra y se envía el formato nuevo (10 dígitos).
-  if (input) input.value = tel10;
+  if (input && opciones.reescribir !== false) input.value = tel10;
   limpiarErrorCampo(input, error);
   return tel10;
+}
+
+function validarTelefonoCliente() {
+  return evaluarTelefonoCampo({ enfocar: true });
 }
 
 document.getElementById('cliente-nombre')?.addEventListener('input', () => {
@@ -3764,12 +3776,19 @@ document.getElementById('cliente-nombre')?.addEventListener('input', () => {
 document.getElementById('cliente-telefono')?.addEventListener('input', (e) => {
   const normalizado = normalizarTelefono(e.currentTarget.value);
   if (normalizado !== e.currentTarget.value) e.currentTarget.value = normalizado;
-  limpiarErrorCampo(e.currentTarget, document.getElementById('cliente-telefono-error'));
+  // Mientras escribe: se quita el error si ya es válido; se marca recién con 10+ dígitos inválidos
+  // (con menos todavía está tipeando; el blur lo avisa).
+  const digitos = normalizado.replace(/\D/g, '');
+  const input = e.currentTarget;
+  const error = document.getElementById('cliente-telefono-error');
+  if (normalizarTelefonoAR(normalizado) || !digitos) limpiarErrorCampo(input, error);
+  else if (digitos.length >= 10) mostrarErrorCampo(input, error, MSG_TELEFONO_AR);
 });
 
 document.getElementById('cliente-telefono')?.addEventListener('blur', (e) => {
   const normalizado = normalizarTelefono(e.currentTarget.value);
   if (normalizado) e.currentTarget.value = normalizado;
+  evaluarTelefonoCampo({ mensajeVacio: null });
 });
 
 document.getElementById('cliente-direccion-input')?.addEventListener('input', limpiarErrorDireccion);
