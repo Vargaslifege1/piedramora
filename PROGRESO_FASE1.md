@@ -11,7 +11,7 @@ Historial completo de todas las tareas y análisis: [docs/HISTORIAL.md](docs/HIS
 
 ## Migraciones (`supabase/migrations/`)
 
-Aplicadas en la base real: 000 a 025. **No aplicada: 026** (hasta que el dueño la audite y haga backup).
+Aplicadas en la base real: 000 a 026.
 
 - 000 respaldo de la carta · 001 RLS y storage · 002 ids estables y `agotado` · 003 verificación de fase 0 (solo lectura)
 - 010 tablas de pedidos, clientes, config y envío · 011 RLS/permisos/realtime de pedidos
@@ -20,18 +20,17 @@ Aplicadas en la base real: 000 a 025. **No aplicada: 026** (hasta que el dueño 
 - 018 cupones · 019 fidelidad y premios · 020 registro de clientes y promos
 - 021 seguridad de envío (coordenadas) y trigger de estados · 022 estadísticas y CRM (solo lectura)
 - 023 teléfonos a 10 dígitos y fusión de clientes · 024 horarios en servidor y pedidos programados (`crear_pedido` de 16 parámetros)
-- 025 modalidades por turno y excepciones por fecha · 026 `crm_clientes` busca por teléfono normalizado (SIN APLICAR)
+- 025 modalidades por turno y excepciones por fecha · 026 `crm_clientes` busca por teléfono normalizado
 - 099 rollback opcional de la carta (no se ejecuta salvo emergencia)
 
-Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 022 (026 pendiente).
+Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026.
 
 ## Pendientes
 
-- Dueño: auditar y aplicar 026 (backup antes) y probar la búsqueda "383 481" en Clientes.
 - Dueño: revisar en pantalla horarios/excepciones (B), Cancelados (C), orden de la carta (E), cartel de modalidades en tarjetas y mensaje de WhatsApp (A).
 - Opcional: cargar `alias`, `cbu` y `titular` en `data/config.json` (`pagos.transferencia`) para que salgan en el WhatsApp.
 - H: estilos compactos (Cupones, Fidelidad y Envíos, Horarios en dos columnas), solo layout.
-- Merge de `feature/fase-2-horarios` a `main` y despliegue del frontend con 026 aplicada si corresponde.
+- Despliegue del frontend (el merge a `main` ya está hecho).
 - Backups fuera del repo: `C:\Users\PC\Documents\backups-piedramora\` (antes-de-carta, carta-v1, carta-fase0); `backup-*/` está en `.gitignore`.
 
 ## Últimos cambios
@@ -49,7 +48,7 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 - 2026-11-09: admin Clientes más claro (solo presentación): una barra con buscador + chips de segmento + "Solo acepta promos", iniciales, badge con punto, ticket promedio y WhatsApp siempre visible (deshabilitado si no aceptó promos). Sin cambios de RPC ni SQL.
 - 2026-11-09: limpieza (G): quitadas imágenes sin uso (`public/images/categorias/`, `assets/logo.png`, `assets/productos/PROMOS/2 cheese.jpg`) y backups del repo; PROGRESO reorganizado (historial en `docs/HISTORIAL.md`).
 - 2026-11-09: cartel de modalidades en línea propia con ícono de moto en las tarjetas de sucursal (`main.js`, `style.css`).
-- 2026-11-09: migración 026 (SIN APLICAR): búsqueda de clientes del CRM por teléfono normalizado.
+- 2026-11-09: migración 026 (aplicada): búsqueda de clientes del CRM por teléfono normalizado.
 - 2026-11-09: admin: orden de categorías y productos de la carta (dueño); tablero con Cancelados abierto sin scroll horizontal desde 1100 px.
 - 2026-11-07: mensaje de WhatsApp estilo Pedix con emojis por campo (escapes `\u{...}`), verificado sin U+FFFD.
 - 2026-11-09: admin: controles (time/date/select) con tema oscuro en todas las pestañas; Horarios con "Copiar a todos" por día en menú "⋯" y badge junto al nombre (solo UX).
