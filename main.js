@@ -822,6 +822,10 @@ function crearTarjetaSucursal(sucursal) {
       <div class="sucursal-foto-wrap">
         <img src="${PM.escaparHtml(foto)}" alt="Sucursal ${nombre}" class="sucursal-foto" loading="lazy" decoding="async">
         <div class="sucursal-foto-degradado"></div>
+        <p class="sucursal-modalidad" data-modalidad-hoy role="status" hidden>
+          <span class="sucursal-modalidad-icono" data-modalidad-icono aria-hidden="true"></span>
+          <span data-modalidad-texto></span>
+        </p>
         <div class="sucursal-foto-titulo">
           <h3>${nombre}</h3>
           <span class="estado-badge" data-estado aria-live="polite">
@@ -832,10 +836,6 @@ function crearTarjetaSucursal(sucursal) {
       </div>
 
       <div class="sucursal-info">
-        <p class="sucursal-modalidad" data-modalidad-hoy role="status" hidden>
-          <span class="sucursal-modalidad-icono" data-modalidad-icono aria-hidden="true"></span>
-          <span data-modalidad-texto></span>
-        </p>
         <p class="sucursal-direccion">
           ${ICONO_UBICACION}
           ${direccion}
@@ -1172,12 +1172,21 @@ function actualizarEstados() {
     const modEl = tarjeta.querySelector('[data-modalidad-hoy]');
     if (modEl) {
       const m = modalidadesDeEstado(e);
-      const texto = textoCartelModalidadTarjeta(e, m);
+      const detalle = textoCartelModalidadTarjeta(e, m);
+      const corto = textoSoloModalidad(m);
       const textoEl = modEl.querySelector('[data-modalidad-texto]');
       const iconoEl = modEl.querySelector('[data-modalidad-icono]');
-      if (textoEl) textoEl.textContent = texto;
-      if (iconoEl) iconoEl.innerHTML = texto ? (m.delivery ? ICONO_MOTO : ICONO_LOCAL) : '';
-      modEl.hidden = !texto;
+      // Pastilla corta sobre la foto; el detalle ("Desde las 20:30...") va en title y aria-label.
+      if (textoEl) textoEl.textContent = corto ? corto.charAt(0).toUpperCase() + corto.slice(1) : '';
+      if (iconoEl) iconoEl.innerHTML = corto ? (m.delivery ? ICONO_MOTO : ICONO_LOCAL) : '';
+      if (detalle) {
+        modEl.title = detalle.charAt(0).toUpperCase() + detalle.slice(1);
+        modEl.setAttribute('aria-label', modEl.title);
+      } else {
+        modEl.removeAttribute('title');
+        modEl.removeAttribute('aria-label');
+      }
+      modEl.hidden = !corto;
     }
   });
   try { actualizarVistaEstadoCarta(); } catch (error) {}

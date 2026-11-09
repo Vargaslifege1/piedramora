@@ -36,6 +36,7 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 
 ## Últimos cambios
 
+- 2026-11-09: sitio: "Llamar" de Oeste usa su WhatsApp (383 446-4777); el cartel de modalidades de las tarjetas pasa a pastilla corta sobre la foto (detalle en title/aria-label).
 - 2026-11-09: WhatsApp reales verificados (Maestro Quiroga 383 453-4444, Oeste 383 446-4777; links 549 + 10 dígitos); el aviso de privacidad muestra el número legible.
 - 2026-11-09: checkout: el ejemplo de teléfono de mensajes, ayuda y placeholders es ficticio y se elige al azar una vez por carga (main.js).
 - 2026-11-09: checkout: teléfono con un solo mensaje (la ayuda se oculta cuando hay error), texto unificado en MSG_TELEFONO_AR y aria-live en el contenedor.
