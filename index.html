@@ -474,8 +474,10 @@
         <div class="form-grupo">
           <label for="cliente-telefono">Teléfono / WhatsApp</label>
           <input type="tel" id="cliente-telefono" required minlength="10" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="Ej: 383 481 8271" aria-describedby="cliente-telefono-ayuda cliente-telefono-error">
-          <span id="cliente-telefono-ayuda" class="form-ayuda">Código de área y número, sin 0 ni 15 (ej. 3834818271).</span>
-          <span id="cliente-telefono-error" class="form-error" role="alert" hidden></span>
+          <div class="form-mensaje" aria-live="polite" aria-atomic="true">
+            <span id="cliente-telefono-ayuda" class="form-ayuda">Código de área y número, sin 0 ni 15 (ej. 3834818271).</span>
+            <span id="cliente-telefono-error" class="form-error" hidden></span>
+          </div>
         </div>
 
         <!-- Tipo de Entrega -->

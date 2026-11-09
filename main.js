@@ -452,7 +452,7 @@ function normalizarTextoMensaje(texto, unaLinea = false) {
 }
 
 // Teléfono argentino a 10 dígitos (área + número). Misma regla que el servidor (023). null si no es válido.
-const MSG_TELEFONO_AR = 'Ingresá código de área y número, sin 0 ni 15 (ej. 3834818271).';
+const MSG_TELEFONO_AR = 'Revisá tu teléfono: código de área y número, sin 0 ni 15 (ej. 3834818271).';
 function normalizarTelefonoAR(valor) {
   return PM.normalizarTelefonoAR(valor);
 }
@@ -3289,7 +3289,7 @@ async function validarCuponActual(codigoForzado) {
     const vacio = !String(telRaw ?? '').replace(/\D/g, '');
     if (vacio) mostrarEstadoCupon('Completá tu teléfono primero.', 'error');
     else {
-      mostrarEstadoCupon('Revisá tu teléfono: código de área y número, sin 0 ni 15 (ej. 3834818271)', 'error');
+      mostrarEstadoCupon(MSG_TELEFONO_AR, 'error');
       evaluarTelefonoCampo({ enfocar: true });
     }
     actualizarResumenPago(obtenerSubtotalCarrito());
@@ -3694,6 +3694,9 @@ function mostrarErrorCampo(input, error, mensaje) {
   if (error) {
     error.textContent = mensaje;
     error.hidden = false;
+    // Un solo mensaje a la vez: el error reemplaza a la ayuda fija del campo.
+    const ayuda = input && input.id ? document.getElementById(input.id + '-ayuda') : null;
+    if (ayuda) ayuda.hidden = true;
   }
 }
 
@@ -3705,6 +3708,8 @@ function limpiarErrorCampo(input, error) {
   if (error) {
     error.textContent = '';
     error.hidden = true;
+    const ayuda = input && input.id ? document.getElementById(input.id + '-ayuda') : null;
+    if (ayuda) ayuda.hidden = false;
   }
 }
 

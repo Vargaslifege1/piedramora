@@ -36,6 +36,7 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 
 ## Últimos cambios
 
+- 2026-11-09: checkout: teléfono con un solo mensaje (la ayuda se oculta cuando hay error), texto unificado en MSG_TELEFONO_AR y aria-live en el contenedor.
 - 2026-11-09: checkout: el teléfono se valida con una sola regla (10 dígitos AR) en campo (blur/input), cupón, premios y envío; el cupón ya no dice "Completá tu teléfono" si está mal escrito.
 - 2026-11-09: admin: Agotados pasa de Pedidos a su propia pestaña "Disponibilidad" (dueño y encargado, junto a Horarios). Solo estructura; misma lógica, RPC y permisos.
 - 2026-11-09: confirmaciones y avisos propios (solo UX): `confirmarAccion` en admin reemplaza todos los `window.confirm` (cupón con usos solo se pausa) y `alert` de main.js pasa a aviso propio. Sin cambios de SQL.

@@ -5241,3 +5241,5 @@ body.confirmacion-abierta {
 .pm-avisos { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 10000; display: grid; gap: 8px; width: min(420px, calc(100vw - 32px)); }
 .pm-aviso { background: #1a1a1a; color: #fff; border: 1px solid rgba(255, 255, 255, 0.18); border-left: 4px solid #d9a441; border-radius: 12px; padding: 12px 16px; box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.8); line-height: 1.4; }
 .confirmacion-panel p { white-space: pre-line; }
+
+.form-ayuda[hidden] { display: none; }
