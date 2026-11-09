@@ -1766,7 +1766,8 @@ p {
   flex: 1 1 0;
   flex-direction: column;
   gap: 12px;
-  min-width: 180px;
+  box-sizing: border-box;
+  min-width: 150px;
   transition: flex-basis 0.2s ease, min-width 0.2s ease;
   height: 100%;
   padding: 14px;
@@ -1846,8 +1847,20 @@ p {
 
 /* Cancelados: tira angosta (cerrada) o columna de 280px (abierta); las otras se achican */
 .admin-pedidos-columna.columna-cancelado {
-  flex: 0 0 280px;
-  min-width: 280px;
+  flex: 0 0 240px;
+  min-width: 240px;
+}
+
+/* Con Cancelados abierto, las demás columnas se achican para no necesitar scroll horizontal en escritorio */
+@media (min-width: 1024px) {
+  .admin-pedidos-tablero:has(.columna-cancelado:not(.colapsada)) .admin-pedidos-columna:not(.columna-cancelado) {
+    min-width: 120px;
+    padding: 12px 8px;
+  }
+
+  .admin-pedidos-tablero:has(.columna-cancelado:not(.colapsada)) .admin-pedido-tarjeta {
+    padding: 10px;
+  }
 }
 
 .admin-pedidos-columna.columna-cancelado .admin-pedido-tarjeta {
