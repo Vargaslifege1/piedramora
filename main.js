@@ -37,6 +37,9 @@ const ICONO_RELOJ = `<svg class="icono-info" viewBox="0 0 24 24" fill="none" str
     <path d="M12 7v5l3.5 2" />
   </svg>`;
 
+// Íconos del cartel de modalidades (SVG de trazo; heredan el color del texto).
+const ICONO_MOTO = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="5" cy="17" r="2.6"/><circle cx="19" cy="17" r="2.6"/><path d="M5 17h5l3-6.5h3.5M13 10.5 15.5 17M16.5 10.5 15 7h-2.5M7 10.5h3"/></svg>`;
+const ICONO_LOCAL = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 10h16l-1.2-5H5.2zM5 10v9h14v-9M10 19v-5h4v5"/></svg>`;
 const ICONO_PUNTO = `<svg class="icono-punto" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" /></svg>`;
 
 const ICONOS_EXTRAS = {
@@ -809,11 +812,14 @@ function crearTarjetaSucursal(sucursal) {
             ${ICONO_PUNTO}
             <span data-estado-texto>...</span>
           </span>
-          <span class="sucursal-modalidad" data-modalidad-hoy hidden></span>
         </div>
       </div>
 
       <div class="sucursal-info">
+        <p class="sucursal-modalidad" data-modalidad-hoy role="status" hidden>
+          <span class="sucursal-modalidad-icono" data-modalidad-icono aria-hidden="true"></span>
+          <span data-modalidad-texto></span>
+        </p>
         <p class="sucursal-direccion">
           ${ICONO_UBICACION}
           ${direccion}
@@ -1092,6 +1098,20 @@ function prefijoDiaEstado(e) {
   return `El ${diaMesAR(prox)}`;
 }
 
+// Cartel de la tarjeta de sucursal. Abierto: "Hoy solo delivery (sin retiro en el local)".
+// Cerrado con próxima apertura: "Desde las 20:30: solo delivery" (con "Mañana"/"El DD/MM" si no es hoy).
+function textoCartelModalidadTarjeta(e, m) {
+  if (m.delivery && m.retiro) return '';
+  const solo = m.delivery ? 'solo delivery' : 'solo retiro';
+  if (e && !e.abierto && e.proxima) {
+    const prefijo = prefijoDiaEstado(e);
+    const desde = `desde las ${horaAR(e.proxima)}`;
+    return prefijo === 'Hoy' ? `${desde.charAt(0).toUpperCase()}${desde.slice(1)}: ${solo}` : `${prefijo} ${desde}: ${solo}`;
+  }
+  const aclaracion = m.delivery ? ' (sin retiro en el local)' : ' (sin delivery)';
+  return `${prefijoDiaEstado(e)} ${solo}${aclaracion}`;
+}
+
 function textoSoloModalidad(m) {
   if (m.delivery && m.retiro) return '';
   return m.delivery ? 'solo delivery' : 'solo retiro';
@@ -1135,9 +1155,13 @@ function actualizarEstados() {
 
     const modEl = tarjeta.querySelector('[data-modalidad-hoy]');
     if (modEl) {
-      const solo = textoSoloModalidad(modalidadesDeEstado(e));
-      modEl.textContent = solo ? `${prefijoDiaEstado(e)} ${solo}` : '';
-      modEl.hidden = !solo;
+      const m = modalidadesDeEstado(e);
+      const texto = textoCartelModalidadTarjeta(e, m);
+      const textoEl = modEl.querySelector('[data-modalidad-texto]');
+      const iconoEl = modEl.querySelector('[data-modalidad-icono]');
+      if (textoEl) textoEl.textContent = texto;
+      if (iconoEl) iconoEl.innerHTML = texto ? (m.delivery ? ICONO_MOTO : ICONO_LOCAL) : '';
+      modEl.hidden = !texto;
     }
   });
   try { actualizarVistaEstadoCarta(); } catch (error) {}
