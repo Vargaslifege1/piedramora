@@ -71,6 +71,7 @@
         <button type="button" class="admin-tab" data-admin-vista="estadisticas" hidden>Estadísticas</button>
         <button type="button" class="admin-tab" data-admin-vista="clientes" hidden>Clientes</button>
         <button type="button" class="admin-tab" data-admin-vista="horarios" hidden>Horarios</button>
+        <button type="button" class="admin-tab" data-admin-vista="disponibilidad" hidden>Disponibilidad</button>
       </nav>
 
       <div id="admin-vista-carta" class="admin-vista">
@@ -246,37 +247,6 @@
 
         <p id="pedidos-estado" class="admin-estado" aria-live="polite"></p>
         <div id="pedidos-aviso" class="admin-aviso" hidden></div>
-
-        <section id="admin-agotados" class="admin-card admin-agotados">
-          <div class="admin-seccion-head">
-            <div>
-              <p class="admin-eyebrow">Disponibilidad</p>
-              <h3>Agotados (hasta que los reactives)</h3>
-              <p class="admin-ayuda">Marcá los productos que no tienen stock en esta sucursal. Se ocultan como agotados en la carta pública.</p>
-            </div>
-            <label id="agotados-sucursal-campo" class="admin-campo admin-agotados-sucursal" hidden>
-              <span>Sucursal</span>
-              <select id="agotados-sucursal"></select>
-            </label>
-          </div>
-          <p id="agotados-estado" class="admin-estado" aria-live="polite"></p>
-          <div id="agotados-aviso" class="admin-aviso" hidden></div>
-          <div class="admin-agotados-barra">
-            <div class="admin-agotados-resumen">
-              <strong id="agotados-resumen" aria-live="polite">0 agotados</strong>
-            </div>
-            <div class="admin-agotados-filtros">
-              <select id="agotados-filtro-estado" aria-label="Filtrar por estado">
-                <option value="no-disponibles">No disponibles</option>
-                <option value="disponibles">Disponibles</option>
-                <option value="todos">Todos</option>
-              </select>
-              <input id="agotados-buscar" type="search" placeholder="Buscar producto..." autocomplete="off" aria-label="Buscar producto">
-              <select id="agotados-categoria" aria-label="Filtrar por categoría"></select>
-            </div>
-          </div>
-          <div id="agotados-lista" class="admin-agotados-lista"></div>
-        </section>
 
         <div class="admin-pedidos-toolbar">
           <div class="admin-pedidos-periodo">
@@ -617,6 +587,41 @@
             <div id="crm-ficha-cuerpo" class="crm-ficha-cuerpo"></div>
           </aside>
         </div>
+      </section>
+
+      <section id="admin-vista-disponibilidad" class="admin-vista disp-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Disponibilidad</p>
+            <h2 class="hor-editando">Editando: <span id="agotados-editando-nombre"></span></h2>
+            <p class="admin-ayuda">Marcá los productos que no tienen stock en esta sucursal. Se ocultan como agotados en la carta pública.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <label id="agotados-sucursal-campo" class="admin-campo admin-agotados-sucursal hor-sucursal" hidden>
+              <span>Sucursal</span>
+              <select id="agotados-sucursal"></select>
+            </label>
+          </div>
+        </div>
+        <section id="admin-agotados" class="admin-card admin-agotados">
+          <p id="agotados-estado" class="admin-estado" aria-live="polite"></p>
+          <div id="agotados-aviso" class="admin-aviso" hidden></div>
+          <div class="admin-agotados-barra">
+            <div class="admin-agotados-resumen">
+              <strong id="agotados-resumen" aria-live="polite">0 agotados</strong>
+            </div>
+            <div class="admin-agotados-filtros">
+              <select id="agotados-filtro-estado" aria-label="Filtrar por estado">
+                <option value="no-disponibles">No disponibles</option>
+                <option value="disponibles">Disponibles</option>
+                <option value="todos">Todos</option>
+              </select>
+              <input id="agotados-buscar" type="search" placeholder="Buscar producto..." autocomplete="off" aria-label="Buscar producto">
+              <select id="agotados-categoria" aria-label="Filtrar por categoría"></select>
+            </div>
+          </div>
+          <div id="agotados-lista" class="admin-agotados-lista"></div>
+        </section>
       </section>
 
       <section id="admin-vista-horarios" class="admin-vista hor-vista" hidden>

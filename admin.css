@@ -3486,3 +3486,8 @@ body.adm-confirm-abierto { overflow: hidden; }
 .adm-toast { background: var(--admin-panel-3); color: var(--admin-texto); border: 1px solid var(--admin-borde-fuerte); border-left: 4px solid var(--admin-dorado); border-radius: 10px; padding: 10px 14px; box-shadow: var(--admin-sombra); }
 .adm-toast[data-tipo="error"] { border-left-color: var(--admin-rojo-claro); }
 .adm-toast[data-tipo="ok"] { border-left-color: var(--admin-verde); }
+
+/* Pestaña Disponibilidad (antes dentro de Pedidos) */
+.disp-vista { min-width: 0; }
+.disp-vista .admin-agotados { margin-top: 0; min-width: 0; }
+.disp-vista .admin-agotados-sucursal { min-width: 0; width: 100%; }

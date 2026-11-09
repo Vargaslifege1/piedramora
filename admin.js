@@ -163,6 +163,8 @@
     btnPedidosActualizar: document.getElementById('btn-pedidos-actualizar'),
     pedidosEstado: document.getElementById('pedidos-estado'),
     pedidosAviso: document.getElementById('pedidos-aviso'),
+    agotadosEditando: document.getElementById('agotados-editando-nombre'),
+    vistaDisponibilidad: document.getElementById('admin-vista-disponibilidad'),
     agotadosSucursalCampo: document.getElementById('agotados-sucursal-campo'),
     agotadosSucursal: document.getElementById('agotados-sucursal'),
     agotadosEstado: document.getElementById('agotados-estado'),
@@ -779,6 +781,7 @@
       if (tab.dataset.adminVista === 'estadisticas') tab.hidden = !puedeVerCupones();
       if (tab.dataset.adminVista === 'clientes') tab.hidden = !puedeVerCupones();
       if (tab.dataset.adminVista === 'horarios') tab.hidden = !puedeVerHorarios();
+      if (tab.dataset.adminVista === 'disponibilidad') tab.hidden = !puedeVerHorarios();
     });
 
     poblarFiltroSucursalesPedidos();
@@ -807,6 +810,9 @@
     }
     const vistaHorPerm = document.getElementById('admin-vista-horarios');
     if (!puedeVerHorarios() && vistaHorPerm && !vistaHorPerm.hidden) {
+      mostrarVistaAdmin('pedidos');
+    }
+    if (!puedeVerHorarios() && el.vistaDisponibilidad && !el.vistaDisponibilidad.hidden) {
       mostrarVistaAdmin('pedidos');
     }
     const vistaCrmPerm = document.getElementById('admin-vista-clientes');
@@ -3630,6 +3636,7 @@
     if (!el.agotadosLista) return;
     const scrollPrevio = el.agotadosLista.scrollTop;
     const sucursalId = sucursalAgotadosSeleccionada();
+    if (el.agotadosEditando) el.agotadosEditando.textContent = sucursalId ? (SUCURSALES_NOMBRES[sucursalId] || sucursalId) : '—';
     if (!sucursalId) {
       el.agotadosLista.innerHTML = '<p class="admin-envios-vacio">Sin sucursal asignada. Recargá la página o pedile al dueño que asigne una sucursal.</p>';
       return;
@@ -6604,6 +6611,13 @@
   function mostrarVistaAdmin(vista) {
     if (vista === 'clientes' && !puedeVerCupones()) vista = 'pedidos';
     if (vista === 'horarios' && !puedeVerHorarios()) vista = 'pedidos';
+    if (vista === 'disponibilidad' && !puedeVerHorarios()) vista = 'pedidos';
+    const esDisp = vista === 'disponibilidad';
+    if (el.vistaDisponibilidad) el.vistaDisponibilidad.hidden = !esDisp;
+    if (esDisp && cliente) {
+      if (!agotadosCargados) cargarAgotados();
+      else renderAgotados();
+    }
     const esHorarios = vista === 'horarios';
     const vistaHorarios = document.getElementById('admin-vista-horarios');
     if (vistaHorarios) vistaHorarios.hidden = !esHorarios;
@@ -6629,7 +6643,7 @@
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats || esCrm || esHorarios;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats || esCrm || esHorarios || esDisp;
     if (el.vistaFidelidad) el.vistaFidelidad.hidden = !esFidelidad;
     if (esFidelidad && cliente) {
       if (!fidelidadCargada) cargarFidelidad();
@@ -6645,8 +6659,6 @@
     if (esPedidos && cliente) {
       if (!pedidosCargados) cargarPedidos();
       else renderPedidos();
-      if (!agotadosCargados) cargarAgotados();
-      else renderAgotados();
     }
     if (esEnvios && cliente) {
       if (!enviosCargados) cargarEnvios();
