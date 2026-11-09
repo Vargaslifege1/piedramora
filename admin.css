@@ -3297,8 +3297,6 @@ p {
 .hor-cierre:hover { border-color: var(--admin-dorado); }
 .hor-cierre span, .hor-cierre small { color: var(--admin-texto-suave); }
 .hor-cierre.pasado { opacity: 0.55; }
-.hor-switch { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; font-size: 0.82rem; color: var(--admin-texto-suave); cursor: pointer; }
-.hor-switch input { width: 18px; height: 18px; accent-color: var(--admin-rojo); margin: 0; }
 .hor-badge { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: var(--admin-dorado); border: 1px solid var(--admin-borde-fuerte); vertical-align: middle; }
 .hor-modal .hor-campo-ancho { grid-column: 1 / -1; }
 .admin-pedido-programado { display: inline-block; align-self: flex-start; margin: 2px 0; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; color: var(--admin-ambar); border: 1px solid rgba(255, 183, 3, 0.5); background: rgba(255, 183, 3, 0.1); }
@@ -3400,4 +3398,42 @@ p {
   .admin-orden-fila {
     transition: none;
   }
+}
+
+/* ===== Horarios: título, banner forzado, turnos compactos y barra de cambios ===== */
+.hor-editando { font-size: clamp(1.5rem, 5vw, 2.2rem); line-height: 1.15; overflow-wrap: anywhere; }
+.hor-editando span { color: var(--admin-dorado); }
+.hor-forzado { margin-bottom: 12px; padding: 12px 14px; border-width: 2px; font-size: 0.95rem; }
+.hor-forzado strong { flex: 1 1 100%; font-size: 1.05rem; letter-spacing: .02em; }
+.hor-forzado[data-modo="forzar_cerrado"] { border-color: var(--admin-rojo); background: rgba(227, 30, 36, 0.14); color: var(--admin-rojo-claro); }
+.hor-forzado .btn-secundario { min-height: 40px; }
+.hor-copiar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.hor-copiar select { min-width: 0; max-width: 100%; min-height: 36px; }
+.hor-copiar .btn-secundario { min-height: 36px; padding: 4px 10px; font-size: 0.82rem; }
+.hor-turno { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.hor-horas { display: flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; }
+.hor-horas input[type="time"] { flex: 1 1 84px; min-width: 0; }
+.hor-flecha { color: var(--admin-dorado); font-weight: 700; }
+.hor-quitar { order: 2; }
+.hor-cruza { order: 3; flex: 1 1 100%; }
+.hor-chips { order: 4; display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
+.hor-chip { position: relative; display: inline-flex; }
+.hor-chip input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.hor-chip span { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; border: 1px solid var(--admin-borde-fuerte); border-radius: 999px; color: var(--admin-texto-tenue); font-size: 0.82rem; font-weight: 600; transition: background .15s, border-color .15s, color .15s; }
+.hor-chip input:checked + span { border-color: var(--admin-dorado); background: rgba(217, 164, 65, 0.16); color: var(--admin-dorado); }
+.hor-chip input:focus-visible + span { outline: 2px solid var(--admin-dorado); outline-offset: 2px; }
+.hor-barra { position: sticky; bottom: 0; z-index: 40; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 12px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); border: 1px solid var(--admin-dorado); border-radius: var(--admin-radio-chico); background: var(--admin-panel); box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5); }
+.hor-barra[hidden] { display: none; }
+.hor-barra-texto { color: var(--admin-dorado); font-weight: 700; font-size: 0.9rem; }
+.hor-barra-botones { display: flex; gap: 8px; margin-left: auto; }
+.hor-barra-botones .btn-primario, .hor-barra-botones .btn-secundario { min-height: 40px; }
+@media (min-width: 640px) {
+  .hor-turno { flex-wrap: nowrap; }
+  .hor-horas { flex: 0 1 230px; }
+  .hor-quitar { order: 5; margin-left: auto; }
+  .hor-cruza { order: 2; flex: 0 0 auto; }
+  .hor-chips { order: 3; flex: 0 0 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hor-chip span { transition: none; }
 }

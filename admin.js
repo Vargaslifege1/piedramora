@@ -5710,6 +5710,17 @@
 
   function horEl(id) { return document.getElementById(id); }
 
+  // Cambia el estado "sin guardar" y muestra u oculta la barra inferior.
+  function marcarHorSucio(valor) {
+    horSucio = !!valor;
+    const barra = horEl('hor-barra-cambios');
+    if (barra) barra.hidden = !horSucio;
+  }
+
+  // Íconos de los chips de modalidad (SVG de trazo, heredan el color).
+  const HOR_ICONO_RETIRO = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg>';
+  const HOR_ICONO_DELIVERY = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="17" r="2.6"/><circle cx="19" cy="17" r="2.6"/><path d="M5 17h5l3-6.5h3.5M13 10.5 15.5 17M16.5 10.5 15 7h-2.5M7 10.5h3"/></svg>';
+
   function puedeVerHorarios() {
     if (adminRolError) return false;
     if (adminRol === 'dueno') return true;
@@ -5777,6 +5788,8 @@
       wrap.hidden = true;
       horSucursal = adminSucursalId || '';
     }
+    const nombreEdit = horEl('hor-editando-nombre');
+    if (nombreEdit) nombreEdit.textContent = SUCURSALES_NOMBRES[horSucursal] || horSucursal || '';
     const cierresCard = horEl('hor-cierres-card');
     if (cierresCard) cierresCard.hidden = !esDuenoHorarios();
     const excSucursal = horEl('exc-sucursal-wrap');
@@ -5822,7 +5835,7 @@
       horCierres = rCierres ? (rCierres.data || []) : [];
       horExcepciones = rExc.data || [];
       horCargado = true;
-      horSucio = false;
+      marcarHorSucio(false);
       renderModoHorarios();
       renderDiasHorarios();
       renderCierres();
@@ -5886,7 +5899,14 @@
       radio.checked = radio.value === horModo;
     });
     const forzado = horEl('hor-forzado');
-    if (forzado) forzado.hidden = horModo === 'automatico';
+    if (forzado) {
+      forzado.hidden = horModo === 'automatico';
+      forzado.dataset.modo = horModo;
+    }
+    const tituloForzado = horEl('hor-forzado-titulo');
+    if (tituloForzado) {
+      tituloForzado.textContent = horModo === 'forzar_abierto' ? 'Modo forzado: ABIERTO' : (horModo === 'forzar_cerrado' ? 'Modo forzado: CERRADO' : '');
+    }
     const texto = horEl('hor-forzado-texto');
     if (texto) {
       texto.textContent = horModo === 'forzar_abierto'
@@ -5927,13 +5947,17 @@
     const hasta = PM.escaparHtml(turno.hasta);
     const nombre = PM.escaparHtml(DIAS_SEMANA[dia]);
     return `<div class="hor-turno" data-dia="${dia}" data-indice="${indice}">
-      <input type="time" value="${desde}" data-hor-campo="desde" aria-label="Desde, ${nombre}">
-      <span aria-hidden="true">a</span>
-      <input type="time" value="${hasta}" data-hor-campo="hasta" aria-label="Hasta, ${nombre}">
-      <button type="button" class="btn-icono" data-hor-accion="quitar" aria-label="Quitar turno">✕</button>
-      <label class="hor-switch"><input type="checkbox" data-hor-campo="acepta_retiro"${turno.acepta_retiro !== false ? ' checked' : ''} aria-label="Retiro, ${nombre}"><span>Retiro</span></label>
-      <label class="hor-switch"><input type="checkbox" data-hor-campo="acepta_delivery"${turno.acepta_delivery !== false ? ' checked' : ''} aria-label="Delivery, ${nombre}"><span>Delivery</span></label>
+      <div class="hor-horas">
+        <input type="time" value="${desde}" data-hor-campo="desde" aria-label="Desde, ${nombre}">
+        <span class="hor-flecha" aria-hidden="true">\u2192</span>
+        <input type="time" value="${hasta}" data-hor-campo="hasta" aria-label="Hasta, ${nombre}">
+      </div>
+      <button type="button" class="btn-icono hor-quitar" data-hor-accion="quitar" aria-label="Quitar turno de ${nombre}">\u2715</button>
       ${turnoCruzaMedianoche(turno) ? '<small class="hor-cruza">Termina al día siguiente</small>' : ''}
+      <div class="hor-chips" role="group" aria-label="Modalidades, ${nombre}">
+        <label class="hor-chip"><input type="checkbox" data-hor-campo="acepta_retiro"${turno.acepta_retiro !== false ? ' checked' : ''}><span>${HOR_ICONO_RETIRO} Retiro</span></label>
+        <label class="hor-chip"><input type="checkbox" data-hor-campo="acepta_delivery"${turno.acepta_delivery !== false ? ' checked' : ''}><span>${HOR_ICONO_DELIVERY} Delivery</span></label>
+      </div>
     </div>`;
   }
 
@@ -5962,7 +5986,6 @@
         <div class="hor-dia-turnos">${filas}</div>
         <div class="hor-dia-acciones">
           <button type="button" class="btn-secundario" data-hor-accion="agregar" data-dia="${dia}">+ Turno</button>
-          <button type="button" class="btn-secundario" data-hor-accion="copiar" data-dia="${dia}" title="Copiar este día a todos los demás">Copiar a todos</button>
         </div>
       </div>`;
     }).join('');
@@ -5979,16 +6002,47 @@
     } else if (accion === 'quitar') {
       const fila = boton.closest('.hor-turno');
       horTurnos[Number(fila.dataset.dia)].splice(Number(fila.dataset.indice), 1);
-    } else if (accion === 'copiar') {
-      const dia = Number(boton.dataset.dia);
-      if (!window.confirm(`¿Copiar los turnos y modalidades de ${DIAS_SEMANA[dia]} a todos los días? Reemplaza lo que hay en los otros.`)) return;
-      const origen = (horTurnos[dia] || []).map(t => ({ ...t }));
-      for (let d = 0; d < 7; d++) horTurnos[d] = origen.map(t => ({ ...t }));
     } else {
       return;
     }
-    horSucio = true;
+    marcarHorSucio(true);
     renderDiasHorarios();
+  }
+
+  // Control único de la cabecera: copia los turnos y modalidades de un día a los 7 días.
+  function textoBotonCopiar() {
+    const sel = horEl('hor-copiar-dia');
+    const btn = horEl('btn-hor-copiar');
+    if (!sel || !btn) return;
+    const dia = Number(sel.value);
+    btn.textContent = `Copiar ${(DIAS_SEMANA[dia] || '').toLowerCase()} a todos los días`;
+  }
+
+  function prepararControlCopiar() {
+    const sel = horEl('hor-copiar-dia');
+    if (!sel) return;
+    if (!sel.options.length) {
+      sel.innerHTML = ORDEN_DIAS.map(d => `<option value="${d}">${PM.escaparHtml(DIAS_SEMANA[d])}</option>`).join('');
+    }
+    textoBotonCopiar();
+  }
+
+  function copiarDiaATodos() {
+    const sel = horEl('hor-copiar-dia');
+    if (!sel) return;
+    const dia = Number(sel.value);
+    if (!window.confirm(`¿Copiar los turnos y modalidades de ${DIAS_SEMANA[dia]} a todos los días? Reemplaza lo que hay en los otros.`)) return;
+    const origen = (horTurnos[dia] || []).map(t => ({ ...t }));
+    for (let d = 0; d < 7; d++) horTurnos[d] = origen.map(t => ({ ...t }));
+    marcarHorSucio(true);
+    renderDiasHorarios();
+  }
+
+  function descartarCambiosHorarios() {
+    if (!horSucio) return;
+    if (!window.confirm('¿Descartar los cambios de horarios sin guardar?')) return;
+    marcarHorSucio(false);
+    cargarHorarios();
   }
 
   function manejarInputDias(evento) {
@@ -5999,8 +6053,17 @@
     if (!turno) return;
     const nombreCampo = campo.dataset.horCampo;
     if (campo.type === 'checkbox') {
+      // Nunca ambas modalidades apagadas: si se apaga la última, vuelve a quedar activa.
+      const otro = nombreCampo === 'acepta_retiro' ? 'acepta_delivery' : 'acepta_retiro';
+      if (!campo.checked && turno[otro] === false) {
+        campo.checked = true;
+        const msg = 'Cada turno tiene que aceptar retiro o delivery (al menos uno).';
+        mostrarAvisoHorarios(msg, 'info');
+        setTimeout(() => { const av = horEl('hor-aviso'); if (av && av.textContent === msg) mostrarAvisoHorarios(''); }, 4000);
+        return;
+      }
       turno[nombreCampo] = campo.checked;
-      horSucio = true;
+      marcarHorSucio(true);
       // Refresca el badge resumen del dia sin redibujar (no pierde el foco).
       const diaEl = campo.closest('.hor-dia');
       const badge = diaEl && diaEl.querySelector('.hor-badge');
@@ -6008,7 +6071,7 @@
       return;
     }
     turno[nombreCampo] = campo.value;
-    horSucio = true;
+    marcarHorSucio(true);
     let nota = fila.querySelector('.hor-cruza');
     if (turnoCruzaMedianoche(turno) && !nota) {
       nota = document.createElement('small');
@@ -6079,7 +6142,7 @@
         const { error } = await cliente.from('sucursal_horarios').delete().in('id', sobrantes);
         if (error) throw error;
       }
-      horSucio = false;
+      marcarHorSucio(false);
       await cargarHorarios();
       mostrarEstado(horEl('hor-estado'), 'Horarios guardados.', 'ok');
     } catch (error) {
@@ -6345,6 +6408,13 @@
     if (auto) auto.addEventListener('click', () => cambiarModoHorario('automatico'));
     const guardar = horEl('btn-hor-guardar');
     if (guardar) guardar.addEventListener('click', guardarHorarios);
+    const descartar = horEl('btn-hor-descartar');
+    if (descartar) descartar.addEventListener('click', descartarCambiosHorarios);
+    prepararControlCopiar();
+    const selCopiar = horEl('hor-copiar-dia');
+    if (selCopiar) selCopiar.addEventListener('change', textoBotonCopiar);
+    const btnCopiar = horEl('btn-hor-copiar');
+    if (btnCopiar) btnCopiar.addEventListener('click', copiarDiaATodos);
     const recargar = horEl('btn-hor-recargar');
     if (recargar) {
       recargar.addEventListener('click', () => {
@@ -6477,7 +6547,14 @@
     conectarEventosHorarios();
 
     el.tabsVista.forEach(tab => {
-      tab.addEventListener('click', () => mostrarVistaAdmin(tab.dataset.adminVista));
+      tab.addEventListener('click', () => {
+        const destino = tab.dataset.adminVista;
+        if (horSucio && destino !== 'horarios') {
+          if (!window.confirm('Hay cambios de horarios sin guardar. Si cambiás de pestaña se pierden. ¿Salir igual?')) return;
+          marcarHorSucio(false);
+        }
+        mostrarVistaAdmin(destino);
+      });
     });
 
     if (el.btnPedidosActualizar) {
@@ -6859,7 +6936,7 @@
     });
 
     window.addEventListener('beforeunload', (evento) => {
-      if (!cambiosPendientes) return;
+      if (!cambiosPendientes && !horSucio) return;
       evento.preventDefault();
       evento.returnValue = '';
     });
