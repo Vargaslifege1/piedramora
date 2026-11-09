@@ -1,0 +1,8 @@
+{
+  // Cloudflare Workers Static Assets: sirve lo que genera tools/preparar-dist.mjs
+  "name": "piedramora",
+  "compatibility_date": "2026-11-09",
+  "assets": {
+    "directory": "./dist"
+  }
+}
