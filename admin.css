@@ -3108,6 +3108,17 @@ p {
 
 
 /* Estadísticas */
+/* Calificaciones (031) */
+.admin-cal-subtitulo { margin: 16px 0 8px; font-size: 1rem; }
+.admin-cal-lista { display: grid; gap: 10px; }
+.admin-cal-item { background: var(--admin-panel-2); border: 1px solid var(--admin-borde); border-radius: var(--admin-radio-chico); padding: 10px 12px; display: grid; gap: 4px; min-width: 0; }
+.admin-cal-notas { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.92rem; }
+.admin-cal-estrellas { letter-spacing: 1px; color: var(--admin-dorado, #d9a441); }
+.admin-cal-meta { margin: 0; font-size: 0.8rem; opacity: 0.75; overflow-wrap: anywhere; }
+.admin-cal-comentario { margin: 0; font-size: 0.92rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-cal-sin-comentario { margin: 0; font-size: 0.85rem; opacity: 0.6; font-style: italic; }
+.admin-cal-mas { display: flex; justify-content: center; margin-top: 12px; }
+.admin-cal-mas .btn-secundario { min-height: 44px; }
 .admin-stats-filtros { display: grid; gap: 12px; margin-bottom: 12px; }
 .admin-stats-periodos { display: flex; flex-wrap: wrap; gap: 8px; }
 .admin-stats-periodos .btn-secundario.activa { background: var(--admin-rojo); border-color: var(--admin-rojo); color: #fff; }

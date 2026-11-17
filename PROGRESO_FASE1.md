@@ -11,7 +11,7 @@ Historial completo de todas las tareas y análisis: [docs/HISTORIAL.md](docs/HIS
 
 ## Migraciones (`supabase/migrations/`)
 
-Aplicadas en la base real: 000 a 030 (todas las que hay en la carpeta; no existen 004 a 009).
+Aplicadas en la base real: 000 a 032 (todas las que hay en la carpeta; no existen 004 a 009).
 
 - 000 respaldo de la carta · 001 RLS y storage · 002 ids estables y `agotado` · 003 verificación de fase 0 (solo lectura)
 - 010 tablas de pedidos, clientes, config y envío · 011 RLS/permisos/realtime de pedidos
@@ -23,9 +23,10 @@ Aplicadas en la base real: 000 a 030 (todas las que hay en la carpeta; no existe
 - 025 modalidades por turno y excepciones por fecha · 026 `crm_clientes` busca por teléfono normalizado
 - 027 cupones no acumulables: base sin promo, sin medio de pago con descuento ni premio; `valida_cupon` nueva con `p_items` y `crear_pedido` actualizada · 028 elimina la `valida_cupon` vieja
 - 029 13 medias pizzas como productos `pizza_media_<x>` ("1/2 NOMBRE", categoría pizza, sin oferta; precio de mesa PROVISORIO = delivery) · 030 campo `media_de` en cada media (id de su entera)
+- 031 calificaciones de pedidos (tabla `calificaciones`, `pedido_para_calificar`, `calificar_pedido`, `stats_calificaciones`) y medios puntos de fidelidad (`clientes.fidelidad_calificaciones`, premios por cruce de umbral, `pm_fidelidad_acreditar` y `mi_progreso_fidelidad` reescritas) · 032 la entrega es opcional en delivery
 - 099 rollback opcional de la carta (no se ejecuta salvo emergencia)
 
-Vigentes: `crear_pedido` = 027 (16 parámetros, con cupón no acumulable); `valida_cupon` = 027 (con `p_items`); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026.
+Vigentes: `crear_pedido` = 027 (16 parámetros, con cupón no acumulable); `valida_cupon` = 027 (con `p_items`); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026; `calificar_pedido` = 032; `pm_fidelidad_acreditar` y `mi_progreso_fidelidad` = 031.
 
 ## Pendientes
 
@@ -38,6 +39,7 @@ Vigentes: `crear_pedido` = 027 (16 parámetros, con cupón no acumulable); `vali
 
 ## Últimos cambios
 
+- 2026-11-17: calificaciones de pedidos (rama `feature/calificaciones`, migraciones 031/032 aplicadas). Sitio: tarjeta de fidelidad con medio círculo y textos con coma decimal (usa `medios_en_ciclo`/`faltan_medios` del servidor), id del pedido en localStorage, cartel "Calificá tu pedido" (7 días, solo si está entregado y sin calificar) y pantalla de calificación (`?calificar=<id>`; comida obligatoria, entrega opcional solo en delivery, comentario hasta 500; el texto del medio punto solo si `suma_fidelidad`, y al enviar muestra lo que devolvió `calificar_pedido`). Admin: botón "Pedir calificación" en pedidos entregados (WhatsApp con link `location.origin`) y pestaña Calificaciones (`stats_calificaciones` en el servidor, filtros de sucursal y fechas, lista de 50 en 50 con `textContent`). Pendiente: publicar el frontend (correr `tools/preparar-dist.mjs`) y probar en celular a 360 px.
 - 2026-11-17: fix del rótulo cortado ("E"/"M") en las filas de carrito de la tarjeta Entera/Media (rama `feature/media-pizza`). Causa: en celular el bloque de acciones ocupa solo la columna junto a la foto (~200 px). Ahora la tarjeta con media (`carta-producto-con-media`) usa todo el ancho en ≤480 px, el rótulo tiene ancho propio (56 px, sin cortarse) y la fila hace wrap (rótulo arriba, controles abajo) si no entra. Botones de 44 px. Medido en Edge headless con iframes a 320, 360 y 390 px, con dos filas y cantidades de dos dígitos: sin scroll horizontal y rótulos completos. Solo `main.js` y `style.css`; sin SQL.
 - 2026-11-17: ajuste visual de la tarjeta con selector Entera/Media (rama `feature/media-pizza`): un solo componente de fila de carrito (`crearLineaCarrito(linea, rotulo)`) para las dos opciones, con rótulo "Entera"/"Media" a la izquierda, −/cantidad/+ y tacho a la derecha, mismas medidas (52px de alto, botones de 44px). Orden fijo Entera arriba, Media abajo; "+ Agregar" debajo si la opción elegida no está en el carrito. Las tarjetas sin media quedan igual. Solo `main.js` y `style.css`; sin SQL.
 - 2026-11-17: medias como opción "Entera | Media" en la tarjeta de la entera (rama `feature/media-pizza`). Migración 030 (aplicada): agrega `media_de` a las 13 medias (+ `data/cartas.json`). `main.js`: los productos con `media_de` no tienen tarjeta propia; el selector cambia precio y producto agregado (el pedido envía el id de la media); la tarjeta es "agotada" solo si entera y media lo están, la opción agotada se deshabilita; las líneas de carrito de la media se ven en la tarjeta de la entera con rótulo "Media". `style.css`: selector (44px, sin glow). Admin y RPC sin cambios. La 029 (ya aplicada) no se tocó.

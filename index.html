@@ -109,6 +109,13 @@
 
   <div id="toast-ubicacion" class="toast-ubicacion" role="status" aria-live="polite" hidden></div>
 
+  <!-- Cartel "Calificá tu pedido" (lo maneja main.js; solo si hay un pedido entregado sin calificar) -->
+  <aside id="calificar-cartel" class="calificar-cartel" role="region" aria-label="Calificá tu pedido" hidden>
+    <p class="calificar-cartel-texto">¿Cómo estuvo tu pedido?</p>
+    <button type="button" id="calificar-cartel-abrir" class="calificar-cartel-boton">Calificá tu pedido</button>
+    <button type="button" id="calificar-cartel-cerrar" class="calificar-cartel-cerrar" aria-label="Cerrar aviso">&times;</button>
+  </aside>
+
   <nav class="navbar">
     <img src="assets/logo.webp" alt="Logo Piedra Mora" class="logo-chico" data-marca-alt="Logo">
     <a href="https://www.instagram.com/piedramora.cta/" class="btn-instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Piedra Mora" data-instagram="navbar">
@@ -704,6 +711,50 @@
     <p id="pedido-recibido-premio" class="pedido-recibido-premio" hidden></p>
     <p id="pedido-recibido-aviso" class="pedido-recibido-aviso"></p>
     <button type="button" id="pedido-recibido-cerrar" class="btn-confirmar-whatsapp pedido-recibido-boton">Volver a la carta</button>
+  </div>
+
+  <!-- MODAL DE CALIFICACIÓN DE PEDIDO -->
+  <div id="calificar-overlay" class="carta-overlay" hidden></div>
+  <div id="calificar-panel" class="calificar-panel" role="dialog" aria-modal="true" aria-labelledby="calificar-titulo" hidden tabindex="-1">
+    <button type="button" id="calificar-cerrar" class="calificar-x" aria-label="Cerrar">&times;</button>
+
+    <!-- Vista: formulario -->
+    <form id="calificar-form" class="calificar-form" novalidate>
+      <h3 id="calificar-titulo" class="calificar-titulo">Calificá tu pedido</h3>
+      <p id="calificar-numero" class="calificar-numero" hidden></p>
+
+      <div class="calificar-grupo">
+        <p id="calificar-comida-label" class="calificar-label">La comida <span class="calificar-req">(obligatorio)</span></p>
+        <div id="calificar-comida" class="calificar-estrellas" role="radiogroup" aria-labelledby="calificar-comida-label"></div>
+      </div>
+
+      <div id="calificar-entrega-grupo" class="calificar-grupo" hidden>
+        <p id="calificar-entrega-label" class="calificar-label">La entrega <span class="calificar-opc">(opcional)</span></p>
+        <div id="calificar-entrega" class="calificar-estrellas" role="radiogroup" aria-labelledby="calificar-entrega-label"></div>
+        <p class="calificar-ayuda">Tocá de nuevo la estrella elegida para quitarla.</p>
+      </div>
+
+      <div class="calificar-grupo">
+        <label for="calificar-comentario" class="calificar-label">Comentario <span class="calificar-opc">(opcional)</span></label>
+        <textarea id="calificar-comentario" class="calificar-comentario" rows="3" maxlength="500" placeholder="Contanos qué te pareció"></textarea>
+        <p id="calificar-contador" class="calificar-ayuda calificar-contador" aria-live="off">0/500</p>
+      </div>
+
+      <p id="calificar-fidelidad" class="calificar-fidelidad" hidden>Al calificar sumás medio punto de fidelidad.</p>
+      <p class="calificar-ayuda">Tu opinión es privada: solo la ve el equipo de Piedra Mora.</p>
+      <p id="calificar-error" class="calificar-error" role="alert" hidden></p>
+
+      <button type="submit" id="calificar-enviar" class="btn-confirmar-whatsapp calificar-enviar">Enviar calificación</button>
+    </form>
+
+    <!-- Vista: mensaje (gracias o estado del pedido) -->
+    <div id="calificar-mensaje" class="calificar-mensaje" hidden>
+      <div id="calificar-mensaje-icono" class="calificar-mensaje-icono" aria-hidden="true"></div>
+      <h3 id="calificar-mensaje-titulo" class="calificar-titulo"></h3>
+      <p id="calificar-mensaje-texto" class="calificar-mensaje-texto" role="status"></p>
+      <p id="calificar-mensaje-premio" class="calificar-mensaje-texto calificar-mensaje-destacado" hidden></p>
+      <button type="button" id="calificar-mensaje-cerrar" class="btn-confirmar-whatsapp calificar-enviar">Cerrar</button>
+    </div>
   </div>
 
 

@@ -4824,6 +4824,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
 
     if (pedidoGuardado) {
       try { fidelidadTrasPedido(); } catch (e) {}
+      try { calificarRecordarPedido(pedidoGuardado.id); } catch (e) {}
       vaciarCarrito({ resetDireccion: true });
       cerrarModalCheckout();
       actualizarVistaCarrito();
@@ -5420,6 +5421,34 @@ function fidelidadDescribirProximo(proximo) {
   return `${Number(proximo.valor) || 0}% de descuento`;
 }
 
+// Medios puntos (031): el servidor manda medios_en_ciclo y faltan_medios (enteros).
+// Acá solo se leen y se formatean; el cálculo de puntos es del servidor.
+function fidelidadMedios(progreso) {
+  const m = Number(progreso && progreso.medios_en_ciclo);
+  if (Number.isFinite(m)) return m;
+  return Math.round((Number(progreso && progreso.pedidos_en_ciclo) || 0) * 2); // caché vieja
+}
+
+function fidelidadFaltanMedios(progreso) {
+  const m = Number(progreso && progreso.faltan_medios);
+  if (Number.isFinite(m)) return m;
+  const f = Number(progreso && progreso.faltan_para_proximo);
+  return Number.isFinite(f) ? Math.round(f * 2) : NaN; // caché vieja
+}
+
+// 9 medios -> "4,5"; 8 medios -> "4".
+function fidelidadTextoPuntos(medios) {
+  const n = (Number(medios) || 0) / 2;
+  return Number.isInteger(n) ? String(n) : String(n).replace('.', ',');
+}
+
+// Frase de lo que falta para el próximo premio, en medios puntos.
+function fidelidadFraseFaltan(faltanMedios, premio) {
+  if (faltanMedios === 1) return `¡Te falta medio punto para tu ${premio}!`;
+  if (faltanMedios === 2) return `¡Tu próximo pedido te da ${premio}!`;
+  return `¡Estás a solo ${fidelidadTextoPuntos(faltanMedios)} pedidos de tu ${premio}!`;
+}
+
 function fidelidadTextoNiveles(config) {
   const partes = config.niveles.map((nivel) => (
     nivel.tipo === 'producto_gratis'
@@ -5500,15 +5529,15 @@ function fidelidadTextoBarra() {
   }
   const progreso = cache.progreso;
   if (progreso.activo === false) return '⭐ Mi tarjeta de fidelidad';
-  const pos = Number(progreso.pedidos_en_ciclo) || 0;
-  const nFaltan = Number(progreso.faltan_para_proximo);
+  const medios = fidelidadMedios(progreso);
+  const faltanMedios = fidelidadFaltanMedios(progreso);
   const premio = fidelidadDescribirProximo(progreso.proximo_premio);
   const ciclo = fidelidadConfig ? fidelidadConfig.ciclo : null;
-  if (Number.isFinite(nFaltan) && nFaltan >= 1 && premio) {
-    if (nFaltan === 1) return `⭐ ¡Tu próximo pedido te da ${premio}!`;
-    return `⭐ ${pos}${ciclo ? `/${ciclo}` : ''} · Te faltan ${nFaltan} para tu ${premio}`;
+  if (Number.isFinite(faltanMedios) && faltanMedios >= 1 && premio) {
+    if (faltanMedios <= 2) return `⭐ ${fidelidadFraseFaltan(faltanMedios, premio)}`;
+    return `⭐ ${fidelidadTextoPuntos(medios)}${ciclo ? `/${ciclo}` : ''} · Te faltan ${fidelidadTextoPuntos(faltanMedios)} para tu ${premio}`;
   }
-  return `⭐ Llevás ${pos} ${pos === 1 ? 'pedido' : 'pedidos'}`;
+  return `⭐ Llevás ${fidelidadTextoPuntos(medios)} ${medios === 2 ? 'pedido' : 'pedidos'}`;
 }
 
 function fidelidadActualizarBarra() {
@@ -5742,10 +5771,11 @@ function fidelidadDibujarProgreso(cliente, datos) {
   const faltan = fidelidadEl('fidelidad-faltan');
   const premiosEl = fidelidadEl('fidelidad-premios');
   const progreso = datos.progreso || {};
-  const pos = Number(progreso.pedidos_en_ciclo) || 0;
-  const nFaltan = Number(progreso.faltan_para_proximo);
+  const medios = fidelidadMedios(progreso);
+  const faltanMedios = fidelidadFaltanMedios(progreso);
+  const posTxt = fidelidadTextoPuntos(medios);
   const proximo = progreso.proximo_premio
-    ? Object.assign({}, progreso.proximo_premio, { enPedido: pos + nFaltan })
+    ? Object.assign({}, progreso.proximo_premio, { enPedido: (medios + faltanMedios) / 2 })
     : null;
 
   if (saludo) saludo.textContent = cliente.nombre ? `¡Hola, ${cliente.nombre}!` : '¡Hola!';
@@ -5764,10 +5794,12 @@ function fidelidadDibujarProgreso(cliente, datos) {
       sellos.style.setProperty('--fid-cols', String(fidelidadColumnas(config.ciclo)));
       for (let i = 1; i <= config.ciclo; i++) {
         const sello = document.createElement('span');
-        const hecho = i <= pos;
+        const hecho = 2 * i <= medios;
+        const mitad = !hecho && medios === 2 * i - 1; // medio círculo
         const nivel = porEn.get(i);
         sello.className = 'fidelidad-sello';
         if (hecho) sello.classList.add('lleno');
+        if (mitad) sello.classList.add('medio');
         if (nivel) {
           sello.classList.add('hito');
           sello.appendChild(fidelidadIconoHito(nivel.tipo, hecho));
@@ -5781,9 +5813,9 @@ function fidelidadDibujarProgreso(cliente, datos) {
       const hitos = config.niveles
         .map((n) => `Pedido ${n.en}: ${fidelidadTextoNivelAria(n, proximo)}.`)
         .join(' ');
-      sellos.setAttribute('aria-label', `Llevás ${pos} de ${config.ciclo} pedidos. ${hitos}`);
+      sellos.setAttribute('aria-label', `Llevás ${posTxt} de ${config.ciclo} pedidos. ${hitos}`);
     } else {
-      sellos.setAttribute('aria-label', `Llevás ${pos} pedidos en el ciclo.`);
+      sellos.setAttribute('aria-label', `Llevás ${posTxt} pedidos en el ciclo.`);
     }
   }
 
@@ -5817,12 +5849,10 @@ function fidelidadDibujarProgreso(cliente, datos) {
       faltan.classList.add('secundario');
     } else {
       const premio = fidelidadDescribirProximo(progreso.proximo_premio);
-      if (Number.isFinite(nFaltan) && nFaltan >= 1 && premio) {
-        faltan.textContent = nFaltan === 1
-          ? `¡Tu próximo pedido te da ${premio}!`
-          : `¡Estás a solo ${nFaltan} pedidos de tu ${premio}!`;
+      if (Number.isFinite(faltanMedios) && faltanMedios >= 1 && premio) {
+        faltan.textContent = fidelidadFraseFaltan(faltanMedios, premio);
       } else {
-        faltan.textContent = `Llevás ${pos} ${pos === 1 ? 'pedido' : 'pedidos'}.`;
+        faltan.textContent = `Llevás ${posTxt} ${medios === 2 ? 'pedido' : 'pedidos'}.`;
         faltan.classList.add('secundario');
       }
     }
@@ -6163,6 +6193,391 @@ function fidelidadIniciar() {
   }
 }
 fidelidadIniciar();
+
+/* ===== Calificación de pedidos (031/032) ===== */
+// El servidor decide todo: estado, plazo, puntos y premios. Acá solo se guarda
+// el id del pedido, se consulta pedido_para_calificar y se muestra lo que
+// responden pedido_para_calificar / calificar_pedido. Los textos del cliente
+// siempre van con textContent.
+const CALIFICAR_CLAVE_LOCAL = 'pm_calificar_pedidos';
+const CALIFICAR_CLAVE_CERRADO = 'pm_calificar_cartel_cerrado';
+const CALIFICAR_RETENCION_MS = 10 * 24 * 60 * 60 * 1000; // el plazo real (7 días) lo valida el servidor
+const CALIFICAR_MAX_GUARDADOS = 5;
+const CALIFICAR_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CALIFICAR_ESTADOS_FINALES = ['ya_calificado', 'vencido', 'cancelado', 'no_encontrado'];
+const CALIFICAR_MENSAJES = {
+  no_entregado: ['Todavía no lo recibiste', 'Tu pedido todavía no fue entregado. Calificalo cuando lo recibas.'],
+  ya_calificado: ['Ya lo calificaste', 'Este pedido ya fue calificado. ¡Gracias!'],
+  vencido: ['Pasó el plazo', 'Pasó el plazo de 7 días para calificar este pedido.'],
+  cancelado: ['Pedido cancelado', 'Este pedido no se puede calificar.'],
+  limite: ['Demasiados intentos', 'Probá de nuevo en unos minutos.'],
+  no_encontrado: ['No encontramos el pedido', 'Revisá que el link esté completo.'],
+  error: ['Algo salió mal', 'No pudimos cargar tu pedido. Probá de nuevo en unos minutos.']
+};
+
+const calificarEstado = {
+  pedidoId: null, info: null, comida: 0, entrega: 0, ocupado: false, origenFoco: null,
+  cartelId: null, cartelInfo: null
+};
+
+function calificarEl(id) {
+  return document.getElementById(id);
+}
+
+function calificarLeerGuardados() {
+  try {
+    const lista = JSON.parse(window.localStorage.getItem(CALIFICAR_CLAVE_LOCAL) || '[]');
+    if (!Array.isArray(lista)) return [];
+    const limite = Date.now() - CALIFICAR_RETENCION_MS;
+    return lista
+      .filter((x) => x && CALIFICAR_UUID.test(String(x.id)) && Number(x.ts) > limite)
+      .map((x) => ({ id: String(x.id).toLowerCase(), ts: Number(x.ts) }));
+  } catch (e) {
+    return [];
+  }
+}
+
+function calificarGuardarLista(lista) {
+  try {
+    window.localStorage.setItem(CALIFICAR_CLAVE_LOCAL, JSON.stringify(lista.slice(0, CALIFICAR_MAX_GUARDADOS)));
+  } catch (e) { /* sin storage: queda el link por WhatsApp */ }
+}
+
+// Se llama al crear el pedido: guarda su id para ofrecer la calificación más tarde.
+function calificarRecordarPedido(id) {
+  const limpio = String(id || '').toLowerCase();
+  if (!CALIFICAR_UUID.test(limpio)) return;
+  const lista = calificarLeerGuardados().filter((x) => x.id !== limpio);
+  lista.unshift({ id: limpio, ts: Date.now() });
+  calificarGuardarLista(lista);
+  try { window.sessionStorage.removeItem(CALIFICAR_CLAVE_CERRADO); } catch (e) {}
+}
+
+function calificarOlvidarPedido(id) {
+  calificarGuardarLista(calificarLeerGuardados().filter((x) => x.id !== String(id || '').toLowerCase()));
+}
+
+async function calificarConsultar(id) {
+  const data = await fidelidadRpc('pedido_para_calificar', { p_pedido_id: id });
+  return data && typeof data === 'object' ? data : { ok: false, estado: 'error' };
+}
+
+/* --- Cartel --- */
+function calificarOcultarCartel() {
+  const cartel = calificarEl('calificar-cartel');
+  if (cartel) cartel.hidden = true;
+}
+
+async function calificarRevisarCartel() {
+  try {
+    try { if (window.sessionStorage.getItem(CALIFICAR_CLAVE_CERRADO) === '1') return; } catch (e) {}
+    const lista = calificarLeerGuardados().slice(0, 3);
+    for (const item of lista) {
+      let info;
+      try { info = await calificarConsultar(item.id); } catch (e) { continue; }
+      const estado = info && info.estado;
+      if (estado === 'ok') {
+        calificarEstado.cartelId = item.id;
+        calificarEstado.cartelInfo = info;
+        const cartel = calificarEl('calificar-cartel');
+        if (cartel) cartel.hidden = false;
+        return;
+      }
+      if (CALIFICAR_ESTADOS_FINALES.includes(estado)) calificarOlvidarPedido(item.id);
+    }
+  } catch (error) {
+    console.warn('Calificación: no se pudo revisar el cartel.', error);
+  }
+}
+
+/* --- Estrellas --- */
+function calificarPintarEstrellas(contenedor, valor) {
+  if (!contenedor) return;
+  contenedor.querySelectorAll('.calificar-estrella').forEach((boton, idx) => {
+    const n = idx + 1;
+    boton.classList.toggle('activa', n <= valor);
+    boton.setAttribute('aria-checked', n === valor ? 'true' : 'false');
+  });
+}
+
+function calificarElegirEstrellas(clave, valor) {
+  calificarEstado[clave] = valor;
+  calificarPintarEstrellas(calificarEl(clave === 'comida' ? 'calificar-comida' : 'calificar-entrega'), valor);
+}
+
+// opcional = tocar de nuevo la estrella elegida la quita (entrega).
+function calificarCrearEstrellas(contenedor, clave, opcional) {
+  if (!contenedor) return;
+  contenedor.textContent = '';
+  for (let n = 1; n <= 5; n++) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'calificar-estrella';
+    boton.setAttribute('role', 'radio');
+    boton.setAttribute('aria-checked', 'false');
+    boton.setAttribute('aria-label', `${n} de 5 estrellas`);
+    boton.textContent = '★';
+    boton.addEventListener('click', () => {
+      calificarElegirEstrellas(clave, opcional && calificarEstado[clave] === n ? 0 : n);
+    });
+    boton.addEventListener('keydown', (e) => {
+      let delta = 0;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') delta = 1;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') delta = -1;
+      if (!delta) return;
+      e.preventDefault();
+      const destino = Math.min(5, Math.max(1, n + delta));
+      calificarElegirEstrellas(clave, destino);
+      const botones = contenedor.querySelectorAll('.calificar-estrella');
+      if (botones[destino - 1]) botones[destino - 1].focus();
+    });
+    contenedor.appendChild(boton);
+  }
+}
+
+/* --- Panel --- */
+function calificarMostrarError(texto) {
+  const el = calificarEl('calificar-error');
+  if (!el) return;
+  el.textContent = texto || '';
+  el.hidden = !texto;
+}
+
+function calificarMostrarVista(vista) {
+  const form = calificarEl('calificar-form');
+  const mensaje = calificarEl('calificar-mensaje');
+  if (form) form.hidden = vista !== 'form';
+  if (mensaje) mensaje.hidden = vista !== 'mensaje';
+}
+
+function calificarMostrarMensaje(icono, titulo, texto, premio) {
+  const set = (id, valor) => { const el = calificarEl(id); if (el) el.textContent = valor || ''; };
+  set('calificar-mensaje-icono', icono);
+  set('calificar-mensaje-titulo', titulo);
+  set('calificar-mensaje-texto', texto);
+  const premioEl = calificarEl('calificar-mensaje-premio');
+  if (premioEl) {
+    premioEl.textContent = premio || '';
+    premioEl.hidden = !premio;
+  }
+  calificarMostrarVista('mensaje');
+}
+
+function calificarMostrarEstado(estado, mensajeServidor) {
+  const par = CALIFICAR_MENSAJES[estado] || CALIFICAR_MENSAJES.error;
+  calificarMostrarMensaje('!', par[0], par[1] || mensajeServidor || '', '');
+}
+
+function calificarPrepararForm(info) {
+  calificarEstado.comida = 0;
+  calificarEstado.entrega = 0;
+  calificarPintarEstrellas(calificarEl('calificar-comida'), 0);
+  calificarPintarEstrellas(calificarEl('calificar-entrega'), 0);
+  const comentario = calificarEl('calificar-comentario');
+  if (comentario) comentario.value = '';
+  const contador = calificarEl('calificar-contador');
+  if (contador) contador.textContent = '0/500';
+  calificarMostrarError('');
+  const numero = calificarEl('calificar-numero');
+  if (numero) {
+    numero.textContent = info.numero_orden ? `Pedido ${String(info.numero_orden)}` : '';
+    numero.hidden = !info.numero_orden;
+  }
+  const grupoEntrega = calificarEl('calificar-entrega-grupo');
+  if (grupoEntrega) grupoEntrega.hidden = info.modalidad !== 'delivery';
+  // El texto del medio punto solo se muestra si el servidor confirma que suma.
+  const fid = calificarEl('calificar-fidelidad');
+  if (fid) fid.hidden = info.suma_fidelidad !== true;
+  const boton = calificarEl('calificar-enviar');
+  if (boton) boton.disabled = false;
+  calificarMostrarVista('form');
+}
+
+function calificarAbrirPanel(id, info) {
+  const overlay = calificarEl('calificar-overlay');
+  const panel = calificarEl('calificar-panel');
+  if (!overlay || !panel) return;
+  calificarEstado.pedidoId = id;
+  calificarEstado.info = info || null;
+  if (info && info.estado === 'ok') calificarPrepararForm(info);
+  else calificarMostrarEstado(info && info.estado, info && info.mensaje);
+
+  if (!panel.classList.contains('abierto')) {
+    calificarEstado.origenFoco = document.activeElement && document.activeElement !== document.body
+      ? document.activeElement : null;
+  }
+  overlay.hidden = false;
+  panel.hidden = false;
+  void panel.offsetWidth;
+  overlay.classList.add('visible');
+  panel.classList.add('abierto');
+  try { panel.focus({ preventScroll: true }); } catch (e) {}
+}
+
+function calificarCerrarPanel() {
+  const overlay = calificarEl('calificar-overlay');
+  const panel = calificarEl('calificar-panel');
+  if (!overlay || !panel || panel.hidden) return;
+  const origen = calificarEstado.origenFoco;
+  calificarEstado.origenFoco = null;
+  panel.classList.remove('abierto');
+  overlay.classList.remove('visible');
+  setTimeout(() => {
+    overlay.hidden = true;
+    panel.hidden = true;
+    if (elementoEnfocableVisible(origen)) {
+      try { origen.focus({ preventScroll: true }); } catch (e) {}
+    }
+  }, 250);
+}
+
+function calificarTextoPuntos(puntos) {
+  const n = Number(puntos);
+  if (n === 0.5) return 'medio punto';
+  return `${String(n).replace('.', ',')} ${n === 1 ? 'punto' : 'puntos'}`;
+}
+
+function calificarProcesarRespuesta(data) {
+  const id = calificarEstado.pedidoId;
+  if (data && data.ok === true && data.estado === 'ok') {
+    const puntos = Number(data.puntos_ganados) || 0;
+    calificarOlvidarPedido(id);
+    calificarOcultarCartel();
+    try { fidelidadInvalidarCache(); fidelidadActualizarBarra(); } catch (e) {}
+    calificarMostrarMensaje(
+      '✓',
+      '¡Gracias por tu calificación!',
+      puntos > 0
+        ? `Ganaste ${calificarTextoPuntos(puntos)} de fidelidad.`
+        : 'Tu opinión nos ayuda a mejorar.',
+      data.premio_generado === true
+        ? '\u{1F381} ¡Desbloqueaste un premio! Lo ves en tu tarjeta de fidelidad.'
+        : ''
+    );
+    return;
+  }
+  const estado = data && data.estado;
+  if (estado === 'invalido' || estado === 'error' || !estado) {
+    // Se queda en el formulario para poder corregir y reintentar.
+    calificarMostrarError((data && data.mensaje) || 'No pudimos enviar tu calificación. Probá de nuevo en unos minutos.');
+    return;
+  }
+  if (CALIFICAR_ESTADOS_FINALES.includes(estado)) {
+    calificarOlvidarPedido(id);
+    calificarOcultarCartel();
+  }
+  calificarMostrarEstado(estado, data && data.mensaje);
+}
+
+async function calificarEnviar(evento) {
+  evento.preventDefault();
+  if (calificarEstado.ocupado || !calificarEstado.pedidoId) return;
+  if (!calificarEstado.comida) {
+    calificarMostrarError('Elegí de 1 a 5 estrellas para la comida.');
+    const primera = calificarEl('calificar-comida')?.querySelector('.calificar-estrella');
+    if (primera) primera.focus();
+    return;
+  }
+  const comentario = String(calificarEl('calificar-comentario')?.value || '').trim();
+  if (comentario.length > 500) {
+    calificarMostrarError('El comentario puede tener hasta 500 caracteres.');
+    return;
+  }
+  const esDelivery = !!(calificarEstado.info && calificarEstado.info.modalidad === 'delivery');
+  calificarMostrarError('');
+  calificarEstado.ocupado = true;
+  const boton = calificarEl('calificar-enviar');
+  if (boton) boton.disabled = true;
+  try {
+    const data = await fidelidadRpc('calificar_pedido', {
+      p_pedido_id: calificarEstado.pedidoId,
+      p_comida: calificarEstado.comida,
+      p_entrega: esDelivery && calificarEstado.entrega ? calificarEstado.entrega : null,
+      p_comentario: comentario || null
+    });
+    calificarProcesarRespuesta(data);
+  } catch (error) {
+    console.warn('Calificación: no se pudo enviar.', error);
+    calificarMostrarError('No pudimos enviar tu calificación. Probá de nuevo en unos minutos.');
+  } finally {
+    calificarEstado.ocupado = false;
+    if (boton) boton.disabled = false;
+  }
+}
+
+// Link personal ?calificar=<id>. Devuelve true si el parámetro estaba presente.
+async function calificarAbrirDesdeUrl() {
+  let crudo = null;
+  try {
+    const url = new URL(window.location.href);
+    crudo = url.searchParams.get('calificar');
+    if (crudo === null) return false;
+    url.searchParams.delete('calificar');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  } catch (e) {
+    return false;
+  }
+  const id = String(crudo || '').trim().toLowerCase();
+  if (!CALIFICAR_UUID.test(id)) {
+    calificarAbrirPanel(null, { estado: 'no_encontrado' });
+    return true;
+  }
+  let info;
+  try { info = await calificarConsultar(id); } catch (e) { info = { ok: false, estado: 'error' }; }
+  calificarAbrirPanel(id, info);
+  return true;
+}
+
+function calificarIniciar() {
+  try {
+    calificarCrearEstrellas(calificarEl('calificar-comida'), 'comida', false);
+    calificarCrearEstrellas(calificarEl('calificar-entrega'), 'entrega', true);
+    calificarEl('calificar-form')?.addEventListener('submit', calificarEnviar);
+    calificarEl('calificar-cerrar')?.addEventListener('click', calificarCerrarPanel);
+    calificarEl('calificar-mensaje-cerrar')?.addEventListener('click', calificarCerrarPanel);
+    calificarEl('calificar-overlay')?.addEventListener('click', calificarCerrarPanel);
+    calificarEl('calificar-comentario')?.addEventListener('input', (e) => {
+      const contador = calificarEl('calificar-contador');
+      if (contador) contador.textContent = `${e.target.value.length}/500`;
+    });
+    calificarEl('calificar-cartel-abrir')?.addEventListener('click', () => {
+      if (calificarEstado.cartelId) calificarAbrirPanel(calificarEstado.cartelId, calificarEstado.cartelInfo);
+    });
+    calificarEl('calificar-cartel-cerrar')?.addEventListener('click', () => {
+      calificarOcultarCartel();
+      try { window.sessionStorage.setItem(CALIFICAR_CLAVE_CERRADO, '1'); } catch (e) {}
+    });
+    document.addEventListener('keydown', (e) => {
+      const panel = calificarEl('calificar-panel');
+      if (!panel || panel.hidden) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        calificarCerrarPanel();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const enfocables = Array.from(panel.querySelectorAll('button, textarea, input, [href]'))
+        .filter((el) => !el.disabled && el.getClientRects().length);
+      if (!enfocables.length) return;
+      const primero = enfocables[0];
+      const ultimo = enfocables[enfocables.length - 1];
+      if (e.shiftKey && (document.activeElement === primero || document.activeElement === panel)) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      }
+    }, true);
+    calificarAbrirDesdeUrl().then((abierto) => {
+      if (!abierto) setTimeout(calificarRevisarCartel, 1500);
+    }).catch(() => {});
+  } catch (error) {
+    console.warn('Calificación: no se pudo iniciar.', error);
+  }
+}
+calificarIniciar();
 
 /* ===== Inicio ===== */
 aplicarConfiguracionMarca();
