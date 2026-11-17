@@ -6546,8 +6546,8 @@ async function calificarAbrirDesdeUrl() {
 
 /* ===== Calificación de visita en mesa (033) ===== */
 // QR por sucursal: ?mesa=maestro-quiroga | ?mesa=intendente-lascano. Se identifica
-// con el teléfono. El servidor decide si suma el medio punto (1 por semana por
-// teléfono) y devuelve el progreso; acá solo se muestra lo que responde.
+// con el teléfono. El servidor decide si suma el medio punto (1 cada 2 días por
+// fecha, 034) y devuelve el progreso; acá solo se muestra lo que responde.
 const MESA_SUCURSALES = {
   'maestro-quiroga': 'Maestro Quiroga',
   'intendente-lascano': 'Oeste (Intendente Lascano)'
@@ -6599,6 +6599,18 @@ function mesaTextoPremio(prox) {
   return 'tu próximo premio';
 }
 
+const MESA_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+  'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+// Texto cuando esta calificación no sumó punto. desde = 'yyyy-mm-dd' que manda el servidor
+// (se arma a mano, sin Date, para que la zona horaria del celular no corra el día).
+function mesaTextoSinPunto(desde) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(desde || ''));
+  const mes = m ? MESA_MESES[Number(m[2]) - 1] : '';
+  if (!mes) return 'Ya sumaste un punto hace poco. Tu opinión igual nos sirve.';
+  return `Ya sumaste un punto hace poco. Podés volver a sumar desde el ${Number(m[3])} de ${mes}. Tu opinión igual nos sirve.`;
+}
+
 function mesaProcesarRespuesta(data) {
   if (data && data.ok === true && data.estado === 'ok') {
     try { fidelidadInvalidarCache(); fidelidadActualizarBarra(); } catch (e) {}
@@ -6615,7 +6627,7 @@ function mesaProcesarRespuesta(data) {
       '¡Gracias por tu calificación!',
       suma
         ? 'Sumaste medio punto de fidelidad.'
-        : 'Ya sumaste un punto esta semana, tu opinión igual nos sirve.',
+        : mesaTextoSinPunto(data.proximo_punto_desde),
       data.premio_generado === true
         ? '\u{1F381} ¡Desbloqueaste un premio! Lo ves en tu tarjeta de fidelidad.'
         : '',
