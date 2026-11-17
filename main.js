@@ -6574,7 +6574,7 @@ function mesaPrepararForm(sucursalId, clave) {
   if (aviso) {
     aviso.textContent = mesaEstado.clave
       ? 'Calificá y sumá medio punto de fidelidad \u{2B50}'
-      : 'Si ya hiciste un pedido con nosotros, sumás medio punto de fidelidad';
+      : 'Si ya hiciste un pedido desde la página, calificar suma medio punto de fidelidad.';
   }
   calificarEl('calificar-panel')?.setAttribute('aria-labelledby', 'mesa-titulo');
   mesaEstado.comida = 0;
@@ -6626,7 +6626,9 @@ function mesaTextoSinPunto(desde) {
 // Mensaje cuando la calificación se guardó pero no sumó punto, según el motivo del servidor.
 function mesaTextoMotivo(data) {
   const motivo = data && data.motivo;
-  if (motivo === 'sin_pedido') return 'Gracias por tu opinión. Los puntos son para clientes que ya hicieron un pedido.';
+  if (motivo === 'sin_pedido') {
+    return '¡Gracias por tu opinión! No sumaste medio punto porque todavía no hiciste ningún pedido desde la página. Cuando hagas uno, tus próximas calificaciones van a sumar.';
+  }
   if (motivo === 'ventana') return mesaTextoSinPunto(data.proximo_punto_desde);
   return 'Gracias por tu opinión.';
 }
