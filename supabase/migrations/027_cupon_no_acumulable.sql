@@ -28,6 +28,11 @@
 -- de publicar el frontend. Postgres las trata como funciones distintas.
 -- La columna cupones.acumulable_con_pago queda sin efecto (no se borra).
 --
+-- Verificado contra pm_calcular_pedido (021): devuelve 'porcentaje_pago' y
+-- 'descuento'; cada item trae 'categoria', 'en_oferta' y 'subtotal'; el precio
+-- (y en_oferta) NO depende de la modalidad, por eso valida_cupon calcula como
+-- 'retiro' y da lo mismo que crear_pedido en delivery.
+--
 -- Idempotente: se puede volver a correr (create or replace).
 -- ============================================================================
 
@@ -167,7 +172,7 @@ begin
 
   -- Regla 3: con descuento por medio de pago no hay cupon.
   v_pct_pago := coalesce((v_calc ->> 'porcentaje_pago')::numeric, 0);
-  if v_pct_pago > 0 then
+  if v_pct_pago > 0 or coalesce((v_calc ->> 'descuento')::numeric, 0) > 0 then
     return jsonb_build_object(
       'ok', false, 'descuento', 0,
       'mensaje', 'El cupón no se puede usar con un medio de pago que tiene descuento. Elegí otro medio de pago.');
@@ -468,7 +473,8 @@ begin
 
   if v_codigo <> '' then
     -- 027: el cupon no se acumula con descuento por medio de pago.
-    if coalesce((v_calc ->> 'porcentaje_pago')::numeric, 0) > 0 then
+    if coalesce((v_calc ->> 'porcentaje_pago')::numeric, 0) > 0
+       or coalesce((v_calc ->> 'descuento')::numeric, 0) > 0 then
       raise exception 'El cupón no se puede usar con un medio de pago que tiene descuento. Elegí otro medio de pago.';
     end if;
 
