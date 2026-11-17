@@ -749,12 +749,47 @@
       <button type="submit" id="calificar-enviar" class="btn-confirmar-whatsapp calificar-enviar">Enviar calificación</button>
     </form>
 
+    <!-- Vista: formulario de visita en mesa (QR ?mesa=<sucursal>) -->
+    <form id="mesa-form" class="calificar-form" novalidate hidden>
+      <h3 id="mesa-titulo" class="calificar-titulo">Calificá tu visita</h3>
+      <p id="mesa-sucursal" class="calificar-numero"></p>
+      <p class="calificar-fidelidad">Calificá y sumá medio punto de fidelidad &#11088;</p>
+
+      <div class="calificar-grupo">
+        <label for="mesa-telefono" class="calificar-label">Tu teléfono <span class="calificar-req">(obligatorio)</span></label>
+        <input id="mesa-telefono" class="calificar-input" type="tel" inputmode="tel" autocomplete="tel" maxlength="25">
+        <p class="calificar-ayuda">Es para sumarte el punto. No lo usamos para nada más.</p>
+      </div>
+
+      <div class="calificar-grupo">
+        <p id="mesa-comida-label" class="calificar-label">La comida <span class="calificar-req">(obligatorio)</span></p>
+        <div id="mesa-comida" class="calificar-estrellas" role="radiogroup" aria-labelledby="mesa-comida-label"></div>
+      </div>
+
+      <div class="calificar-grupo">
+        <p id="mesa-atencion-label" class="calificar-label">La atención <span class="calificar-req">(obligatorio)</span></p>
+        <div id="mesa-atencion" class="calificar-estrellas" role="radiogroup" aria-labelledby="mesa-atencion-label"></div>
+      </div>
+
+      <div class="calificar-grupo">
+        <label for="mesa-comentario" class="calificar-label">Comentario <span class="calificar-opc">(opcional)</span></label>
+        <textarea id="mesa-comentario" class="calificar-comentario" rows="3" maxlength="500" placeholder="Contanos qué te pareció"></textarea>
+        <p id="mesa-contador" class="calificar-ayuda calificar-contador" aria-live="off">0/500</p>
+      </div>
+
+      <p class="calificar-ayuda">Tu opinión es privada: solo la ve el equipo de Piedra Mora.</p>
+      <p id="mesa-error" class="calificar-error" role="alert" hidden></p>
+
+      <button type="submit" id="mesa-enviar" class="btn-confirmar-whatsapp calificar-enviar">Enviar calificación</button>
+    </form>
+
     <!-- Vista: mensaje (gracias o estado del pedido) -->
     <div id="calificar-mensaje" class="calificar-mensaje" hidden>
       <div id="calificar-mensaje-icono" class="calificar-mensaje-icono" aria-hidden="true"></div>
       <h3 id="calificar-mensaje-titulo" class="calificar-titulo"></h3>
       <p id="calificar-mensaje-texto" class="calificar-mensaje-texto" role="status"></p>
       <p id="calificar-mensaje-premio" class="calificar-mensaje-texto calificar-mensaje-destacado" hidden></p>
+      <p id="calificar-mensaje-progreso" class="calificar-mensaje-texto" hidden></p>
       <button type="button" id="calificar-mensaje-cerrar" class="btn-confirmar-whatsapp calificar-enviar">Cerrar</button>
     </div>
   </div>

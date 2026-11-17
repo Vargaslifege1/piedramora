@@ -5549,6 +5549,21 @@ body.confirmacion-abierta {
   resize: vertical;
 }
 .calificar-comentario:focus-visible { outline: 2px solid var(--color-dorado); outline-offset: 1px; }
+.calificar-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 46px;
+  padding: 10px 12px;
+  background: var(--color-card);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: var(--color-texto);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+}
+.calificar-input:focus-visible { outline: 2px solid var(--color-dorado); outline-offset: 1px; }
+.calificar-input.con-error { border-color: #ff6b6b; }
+#mesa-form[hidden], #calificar-mensaje-progreso[hidden] { display: none; }
 .calificar-contador { text-align: right; }
 
 .calificar-fidelidad {

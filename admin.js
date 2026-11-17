@@ -5641,7 +5641,7 @@
             <span class="crm-avatar" aria-hidden="true">${PM.escaparHtml(crmIniciales(c))}</span>
             <span class="crm-cliente">
               <strong>${PM.escaparHtml(crmNombre(c))}</strong>
-              <small>${PM.escaparHtml(PM.formatearTelefonoAR(tel))} ${crmInsignia(c.segmento)}</small>
+              <small>${PM.escaparHtml(PM.formatearTelefonoAR(tel))} ${crmInsignia(c.segmento)}${String(c.nombre || '').trim() === 'Cliente de mesa' ? ' <span class="crm-seg" title="Se anotó al calificar en mesa; todavía no dejó su nombre">Solo mesa</span>' : ''}</small>
             </span>
             <span class="crm-stats">
               <span class="crm-num" data-etq="Ped.">${statsNum(c.pedidos)}</span>
@@ -6724,7 +6724,12 @@
   // el filtro. Solo la lista de comentarios se pagina (50 en 50), y se arma con
   // nodos DOM + textContent (los comentarios son texto del cliente).
   const CAL_PAGINA = 50;
-  const calificacionesEstado = { periodo: '30', seq: 0, filas: [], hayMas: false, filtro: null, cargandoMas: false };
+  // origen: 'todas' | 'pedidos' | 'mesa' (033). Pedidos y mesa se paginan por separado
+  // y se mezclan por fecha en la lista.
+  const calificacionesEstado = {
+    periodo: '30', origen: 'todas', seq: 0, filtro: null, cargandoMas: false,
+    filasPedidos: [], filasMesa: [], hayMasPedidos: false, hayMasMesa: false
+  };
 
   function calEl(id) { return document.getElementById(id); }
 
@@ -6814,24 +6819,117 @@
     return caja;
   }
 
-  function renderTarjetasCalificaciones(stats) {
+  // Promedio ponderado de dos fuentes (los promedios ya vienen redondeados del servidor).
+  function promedioCombinado(pares) {
+    let suma = 0;
+    let n = 0;
+    pares.forEach(([prom, cant]) => {
+      const c = Number(cant) || 0;
+      if (c > 0 && prom !== null && prom !== undefined) { suma += Number(prom) * c; n += c; }
+    });
+    return n ? suma / n : null;
+  }
+
+  function renderTarjetasCalificaciones(statsP, statsM) {
     const cont = calEl('cal-tarjetas');
     if (!cont) return;
-    const total = Number(stats.total) || 0;
-    const totalEntrega = Number(stats.total_entrega) || 0;
-    const prom = (valor) => (valor === null || valor === undefined ? '-' : `${textoNotaCalificacion(Number(valor))} / 5`);
+    const origen = calificacionesEstado.origen;
+    const totalP = statsP ? Number(statsP.total) || 0 : 0;
+    const totalM = statsM ? Number(statsM.total) || 0 : 0;
+    const totalEntrega = statsP ? Number(statsP.total_entrega) || 0 : 0;
+    const total = totalP + totalM;
+    const conCom = (statsP ? Number(statsP.con_comentario) || 0 : 0) + (statsM ? Number(statsM.con_comentario) || 0 : 0);
+    const fmt = (valor) => (valor === null || valor === undefined ? '-' : `${textoNotaCalificacion(Number(valor))} / 5`);
+    const promComida = promedioCombinado([
+      [statsP && statsP.promedio_comida, totalP],
+      [statsM && statsM.promedio_comida, totalM]
+    ]);
     cont.textContent = '';
+    cont.append(crearTarjetaCalificacion('Comida (promedio)', total ? fmt(promComida) : '-', `${total} ${total === 1 ? 'calificación' : 'calificaciones'}`));
+    if (origen !== 'mesa') {
+      cont.append(crearTarjetaCalificacion('Entrega (promedio)', totalEntrega ? fmt(statsP.promedio_entrega) : '-', `${totalEntrega} con nota de entrega`));
+    }
+    if (origen !== 'pedidos') {
+      cont.append(crearTarjetaCalificacion('Atención en mesa (promedio)', totalM ? fmt(statsM.promedio_atencion) : '-', `${totalM} en mesa`));
+    }
     cont.append(
-      crearTarjetaCalificacion('Comida (promedio)', total ? prom(stats.promedio_comida) : '-', `${total} ${total === 1 ? 'calificación' : 'calificaciones'}`),
-      crearTarjetaCalificacion('Entrega (promedio)', totalEntrega ? prom(stats.promedio_entrega) : '-', `${totalEntrega} con nota de entrega`),
       crearTarjetaCalificacion('Calificaciones', String(total)),
-      crearTarjetaCalificacion('Con comentario', String(Number(stats.con_comentario) || 0))
+      crearTarjetaCalificacion('Con comentario', String(conCom))
     );
   }
 
   function estrellasTexto(n) {
     const v = Math.max(0, Math.min(5, Number(n) || 0));
     return '★'.repeat(v) + '☆'.repeat(5 - v);
+  }
+
+  // Calificación de visita en mesa (033): sin pedido asociado, se identifica por teléfono.
+  function crearItemCalificacionMesa(fila) {
+    const item = document.createElement('article');
+    item.className = 'admin-cal-item';
+
+    const notas = document.createElement('div');
+    notas.className = 'admin-cal-notas';
+    [['Comida ', fila.comida], ['Atención ', fila.atencion]].forEach(([titulo, nota]) => {
+      const caja = document.createElement('span');
+      caja.append(titulo);
+      const est = document.createElement('span');
+      est.className = 'admin-cal-estrellas';
+      est.textContent = estrellasTexto(nota);
+      est.setAttribute('aria-label', `${nota} de 5`);
+      caja.appendChild(est);
+      notas.appendChild(caja);
+    });
+    item.appendChild(notas);
+
+    const p = document.createElement('p');
+    if (fila.comentario) {
+      p.className = 'admin-cal-comentario';
+      p.textContent = fila.comentario; // textContent: nunca innerHTML con texto del cliente
+    } else {
+      p.className = 'admin-cal-sin-comentario';
+      p.textContent = 'Sin comentario';
+    }
+    item.appendChild(p);
+
+    const telFormateado = PM.formatearTelefonoAR(fila.telefono) || String(fila.telefono || '');
+    const urlChat = PM.urlWhatsappCliente(fila.telefono);
+    const fila2 = document.createElement('div');
+    fila2.className = 'admin-cal-cliente';
+    const quien = document.createElement('p');
+    quien.className = 'admin-cal-quien';
+    quien.textContent = telFormateado;
+    fila2.appendChild(quien);
+    if (urlChat) {
+      const texto = 'Hola, te escribimos de Piedra Mora por tu calificación de la visita. \u{1F64F}';
+      const enlace = document.createElement('a');
+      enlace.className = 'btn-secundario admin-cal-whatsapp';
+      enlace.href = `${urlChat}?text=${encodeURIComponent(texto)}`;
+      enlace.target = '_blank';
+      enlace.rel = 'noopener';
+      enlace.textContent = 'WhatsApp';
+      fila2.appendChild(enlace);
+    }
+    item.appendChild(fila2);
+
+    // Nota baja (3 o menos en comida o atención), igual que en pedidos.
+    if (Number(fila.comida) <= 3 || Number(fila.atencion) <= 3) {
+      item.classList.add('nota-baja');
+      const rotulo = document.createElement('span');
+      rotulo.className = 'admin-cal-rotulo-baja';
+      rotulo.textContent = 'Nota baja';
+      notas.appendChild(rotulo);
+    }
+
+    const cuando = new Date(fila.creado_en);
+    const fecha = Number.isNaN(cuando.getTime()) ? '' : cuando.toLocaleString('es-AR', {
+      timeZone: ZONA_AR, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+    }).replace(',', '');
+    const meta = document.createElement('p');
+    meta.className = 'admin-cal-meta';
+    meta.textContent = ['Mesa', nombreSucursalPedido(fila.sucursal), fecha].filter(Boolean).join(' · ');
+    item.appendChild(meta);
+    return item;
   }
 
   function crearItemCalificacion(fila) {
@@ -6931,11 +7029,16 @@
     const mas = calEl('btn-cal-mas');
     if (!lista) return;
     lista.textContent = '';
-    calificacionesEstado.filas.forEach(fila => lista.appendChild(crearItemCalificacion(fila)));
-    if (vacio) vacio.hidden = calificacionesEstado.filas.length > 0;
+    const est = calificacionesEstado;
+    const items = [
+      ...est.filasPedidos.map(fila => ({ fecha: new Date(fila.created_at).getTime() || 0, fila, mesa: false })),
+      ...est.filasMesa.map(fila => ({ fecha: new Date(fila.creado_en).getTime() || 0, fila, mesa: true }))
+    ].sort((a, b) => b.fecha - a.fecha);
+    items.forEach(it => lista.appendChild(it.mesa ? crearItemCalificacionMesa(it.fila) : crearItemCalificacion(it.fila)));
+    if (vacio) vacio.hidden = items.length > 0;
     if (mas) {
-      mas.hidden = !calificacionesEstado.hayMas;
-      mas.disabled = calificacionesEstado.cargandoMas;
+      mas.hidden = !(est.hayMasPedidos || est.hayMasMesa);
+      mas.disabled = est.cargandoMas;
     }
   }
 
@@ -6969,18 +7072,23 @@
     const mi = ++calificacionesEstado.seq; // descarta respuestas viejas
     mostrarEstado(estado, 'Cargando calificaciones...');
     try {
-      const [rs, rl] = await Promise.all([
-        cliente.rpc('stats_calificaciones', filtro),
-        consultarPaginaCalificaciones(filtro, 0)
+      const origen = calificacionesEstado.origen;
+      const [rs, rl, rm] = await Promise.all([
+        origen === 'mesa' ? null : cliente.rpc('stats_calificaciones', filtro),
+        origen === 'mesa' ? null : consultarPaginaCalificaciones(filtro, 0),
+        origen === 'pedidos' ? null : cliente.rpc('stats_calificaciones_mesa', { ...filtro, p_limite: CAL_PAGINA, p_offset: 0 })
       ]);
       if (mi !== calificacionesEstado.seq) return;
-      if (rs.error) throw rs.error;
-      if (rl.error) throw rl.error;
-      const filas = Array.isArray(rl.data) ? rl.data : [];
+      [rs, rl, rm].forEach(r => { if (r && r.error) throw r.error; });
+      const filasP = rl && Array.isArray(rl.data) ? rl.data : [];
+      const statsM = rm ? (rm.data || {}) : null;
+      const filasM = statsM && Array.isArray(statsM.filas) ? statsM.filas : [];
       calificacionesEstado.filtro = filtro;
-      calificacionesEstado.filas = filas;
-      calificacionesEstado.hayMas = filas.length === CAL_PAGINA;
-      renderTarjetasCalificaciones(rs.data || {});
+      calificacionesEstado.filasPedidos = filasP;
+      calificacionesEstado.filasMesa = filasM;
+      calificacionesEstado.hayMasPedidos = filasP.length === CAL_PAGINA;
+      calificacionesEstado.hayMasMesa = filasM.length === CAL_PAGINA;
+      renderTarjetasCalificaciones(rs ? (rs.data || {}) : null, statsM);
       renderListaCalificaciones();
       mostrarEstado(estado, '');
       if (contenido) contenido.hidden = false;
@@ -6995,17 +7103,29 @@
 
   async function cargarMasCalificaciones() {
     const est = calificacionesEstado;
-    if (!cliente || est.cargandoMas || !est.hayMas || !est.filtro) return;
+    if (!cliente || est.cargandoMas || !(est.hayMasPedidos || est.hayMasMesa) || !est.filtro) return;
     const mi = est.seq;
     est.cargandoMas = true;
     renderListaCalificaciones();
     try {
-      const { data, error } = await consultarPaginaCalificaciones(est.filtro, est.filas.length);
+      const [rp, rm] = await Promise.all([
+        est.hayMasPedidos ? consultarPaginaCalificaciones(est.filtro, est.filasPedidos.length) : null,
+        est.hayMasMesa
+          ? cliente.rpc('stats_calificaciones_mesa', { ...est.filtro, p_limite: CAL_PAGINA, p_offset: est.filasMesa.length })
+          : null
+      ]);
       if (mi !== est.seq) return;
-      if (error) throw error;
-      const filas = Array.isArray(data) ? data : [];
-      est.filas = est.filas.concat(filas);
-      est.hayMas = filas.length === CAL_PAGINA;
+      [rp, rm].forEach(r => { if (r && r.error) throw r.error; });
+      if (rp) {
+        const filas = Array.isArray(rp.data) ? rp.data : [];
+        est.filasPedidos = est.filasPedidos.concat(filas);
+        est.hayMasPedidos = filas.length === CAL_PAGINA;
+      }
+      if (rm) {
+        const filas = rm.data && Array.isArray(rm.data.filas) ? rm.data.filas : [];
+        est.filasMesa = est.filasMesa.concat(filas);
+        est.hayMasMesa = filas.length === CAL_PAGINA;
+      }
     } catch (error) {
       console.warn('No se pudieron cargar más calificaciones:', error);
       avisoCalificaciones(mensajeErrorCalificaciones(error));
@@ -7029,6 +7149,13 @@
           if (d && !d.value) d.value = sumarDiasISO(hoy, -29);
           if (h && !h.value) h.value = hoy;
         }
+        cargarCalificaciones();
+      });
+    });
+    document.querySelectorAll('[data-cal-origen]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        calificacionesEstado.origen = boton.dataset.calOrigen;
+        document.querySelectorAll('[data-cal-origen]').forEach(b => b.classList.toggle('activa', b === boton));
         cargarCalificaciones();
       });
     });
