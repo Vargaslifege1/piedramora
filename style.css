@@ -1821,6 +1821,65 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
   transform: scale(1.03);
 }
 
+/* Selector "Entera | Media" de la tarjeta de pizza */
+.carta-media-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 200px;
+}
+
+.carta-media-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 44px;
+  padding: 4px 8px;
+  background: #222;
+  color: var(--color-texto);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-premium), border-color 0.2s var(--ease-premium);
+}
+
+.carta-media-opcion-nombre {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.carta-media-opcion-precio {
+  font-size: 0.74rem;
+  font-weight: 600;
+  opacity: 0.85;
+  line-height: 1.1;
+}
+
+.carta-media-opcion--activa {
+  background: var(--color-rojo);
+  border-color: var(--color-rojo);
+}
+
+.carta-media-opcion--activa .carta-media-opcion-precio {
+  opacity: 1;
+}
+
+.carta-media-opcion:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.carta-media-opcion:focus-visible {
+  outline: 2px solid var(--color-dorado);
+  outline-offset: 2px;
+}
+
 .selector-cantidad {
   display: flex;
   align-items: center;
@@ -3586,6 +3645,54 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
   justify-content: flex-end;
 }
 
+/* Fila con rótulo (tarjetas con Entera/Media): mismas medidas y alineación en ambas filas */
+.carta-producto-lineas-carrito .linea-config-carrito.linea-config-con-rotulo {
+  box-sizing: border-box;
+  flex-wrap: wrap; /* si no entra todo, el rótulo queda arriba y los controles abajo */
+  min-height: 52px;
+  padding: 4px 6px 4px 10px;
+  gap: 2px 6px;
+}
+
+/* El rótulo tiene ancho propio: nunca se corta ni lo tapan los controles */
+.linea-config-con-rotulo .linea-config-info {
+  flex: 0 0 auto;
+  min-width: 56px;
+}
+
+.linea-config-rotulo {
+  display: block;
+  color: #f5f5f0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Los controles ocupan solo el espacio restante y se alinean a la derecha */
+.linea-config-con-rotulo .linea-config-acciones {
+  flex: 0 1 auto;
+  max-width: 100%;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.linea-config-con-rotulo .mini-selector-cantidad {
+  padding: 0 2px;
+  gap: 0;
+}
+
+/* Áreas táctiles de 44px dentro de la fila con rótulo */
+.linea-config-con-rotulo .mini-cantidad-btn,
+.linea-config-con-rotulo .btn-eliminar-linea {
+  width: 44px;
+  height: 44px;
+}
+
+.linea-config-con-rotulo .mini-cantidad-valor {
+  min-width: 28px;
+}
+
 /* Mini selector de cantidad */
 .mini-selector-cantidad {
   display: inline-flex;
@@ -5285,5 +5392,14 @@ body.confirmacion-abierta {
 @media (max-width: 480px) {
   .badge-cercana:not([hidden]) ~ .sucursal-foto-wrap .sucursal-modalidad {
     top: 46px;
+  }
+}
+
+/* Tarjeta con selector Entera/Media en celular: el bloque de acciones usa todo el ancho de la tarjeta */
+@media (max-width: 480px) {
+  .carta-producto-card-nuevo.carta-producto-con-media {
+    grid-template-areas:
+      "foto info"
+      "acciones acciones" !important;
   }
 }

@@ -2047,7 +2047,8 @@ function obtenerCategoriasYSusProductosPorSucursal(sucursalId) {
   const categoriasValidas = [];
 
   CARTAS_UNIFICADAS.categorias.forEach(cat => {
-    const prodsDeEstaCat = productosSucursal.filter(p => p.categoria === cat.id);
+    // Las medias (media_de) no tienen tarjeta propia: van como opción en la tarjeta de su entera.
+    const prodsDeEstaCat = productosSucursal.filter(p => p.categoria === cat.id && !p.media_de);
     if (prodsDeEstaCat.length > 0) {
       categoriasValidas.push({
         ...cat,
@@ -2732,14 +2733,24 @@ function crearBotonEliminarLinea(linea, clase = 'btn-eliminar-linea') {
   return btn;
 }
 
-function crearLineaCarrito(linea) {
+// rotulo (opcional): en tarjetas con selector Entera/Media, todas las filas llevan rótulo y comparten estructura.
+function crearLineaCarrito(linea, rotulo) {
   const wrap = document.createElement('div');
   wrap.className = 'linea-config-carrito';
   if (linea.noDisponible) wrap.classList.add('linea-config-no-disponible');
   wrap.dataset.lineaId = linea.id;
 
   const especificaciones = obtenerEspecificacionesLinea(linea);
-  if (especificaciones.length > 0) {
+  if (rotulo) {
+    wrap.classList.add('linea-config-con-rotulo');
+    const info = document.createElement('div');
+    info.className = 'linea-config-info';
+    const textoRotulo = document.createElement('span');
+    textoRotulo.className = 'linea-config-rotulo';
+    textoRotulo.textContent = rotulo;
+    info.appendChild(textoRotulo);
+    wrap.appendChild(info);
+  } else if (especificaciones.length > 0) {
     const info = document.createElement('div');
     info.className = 'linea-config-info';
 
@@ -2761,6 +2772,27 @@ function crearLineaCarrito(linea) {
   return wrap;
 }
 
+/* ===== Media pizza: opción "Entera | Media" dentro de la tarjeta de la entera ===== */
+
+// Opción elegida por tarjeta (id de la entera -> 'entera' | 'media'). Solo vive en memoria.
+const SELECCION_MEDIA = {};
+
+// Media de una entera disponible en la sucursal actual (producto con media_de = id de la entera).
+function obtenerMediaDeProducto(prod) {
+  if (!prod || !CARTAS_UNIFICADAS || !Array.isArray(CARTAS_UNIFICADAS.productos)) return null;
+  return CARTAS_UNIFICADAS.productos.find(p =>
+    p && p.media_de === prod.id &&
+    Array.isArray(p.sucursales) && p.sucursales.includes(cartaActualSucursalId)
+  ) || null;
+}
+
+// La tarjeta es "agotada" solo si la entera y su media (si existe) están agotadas.
+function tarjetaProductoAgotada(prod) {
+  if (!PM.productoEstaAgotado(prod)) return false;
+  const media = obtenerMediaDeProducto(prod);
+  return !media || PM.productoEstaAgotado(media);
+}
+
 function renderProductosCategoria(categoria) {
   if (!cartaProductosLista) return;
   cartaProductosLista.innerHTML = '';
@@ -2771,10 +2803,19 @@ function renderProductosCategoria(categoria) {
 
   // Agotados (globales o por sucursal) al final; Array.sort es estable y el resto conserva su orden.
   const productos = [...(categoria.productos || [])]
-    .sort((a, b) => Number(PM.productoEstaAgotado(a)) - Number(PM.productoEstaAgotado(b)));
+    .sort((a, b) => Number(tarjetaProductoAgotada(a)) - Number(tarjetaProductoAgotada(b)));
   const sucursalId = cartaActualSucursalId;
 
-  productos.forEach(prod => {
+  productos.forEach(prodEntera => {
+    // Con media: el producto "activo" (el que se muestra, cuesta y se agrega) depende del selector.
+    const media = obtenerMediaDeProducto(prodEntera);
+    const enteraAgotada = PM.productoEstaAgotado(prodEntera);
+    const mediaAgotada = media ? PM.productoEstaAgotado(media) : true;
+    let eleccion = SELECCION_MEDIA[prodEntera.id] === 'media' ? 'media' : 'entera';
+    if (eleccion === 'media' && (!media || mediaAgotada)) eleccion = 'entera';
+    if (eleccion === 'entera' && enteraAgotada && media && !mediaAgotada) eleccion = 'media';
+    const prod = eleccion === 'media' ? media : prodEntera;
+
     const esOferta = productoTieneOferta(prod);
     const tipoOferta = obtenerTipoOfertaVisual(prod);
     const agotado = PM.productoEstaAgotado(prod);
@@ -2785,13 +2826,14 @@ function renderProductosCategoria(categoria) {
       if (tipoOferta) card.classList.add(`carta-oferta-${tipoOferta}`);
     }
     if (agotado) card.classList.add('carta-producto-agotado');
+    if (media) card.classList.add('carta-producto-con-media');
 
     const fotoWrap = document.createElement('div');
     fotoWrap.className = 'carta-producto-foto-wrap-nuevo';
     const img = document.createElement('img');
     img.className = 'carta-producto-foto-nuevo';
-    img.src = obtenerRutaImagenProducto(prod);
-    img.alt = prod.nombre || 'Producto';
+    img.src = obtenerRutaImagenProducto(prodEntera);
+    img.alt = prodEntera.nombre || 'Producto';
     img.loading = 'lazy';
     img.decoding = 'async';
     img.addEventListener('error', () => {
@@ -2806,15 +2848,51 @@ function renderProductosCategoria(categoria) {
     info.className = 'carta-producto-info-nuevo';
     const nombre = document.createElement('div');
     nombre.className = 'carta-producto-nombre-nuevo';
-    nombre.textContent = prod.nombre;
+    nombre.textContent = prodEntera.nombre;
     const desc = document.createElement('div');
     desc.className = 'carta-producto-desc-nuevo';
-    desc.textContent = prod.descripcion || '';
+    desc.textContent = prodEntera.descripcion || '';
     info.appendChild(nombre);
     info.appendChild(desc);
 
     const precioYAcciones = document.createElement('div');
     precioYAcciones.className = 'carta-producto-precio-y-acciones';
+
+    // Selector "Entera | Media" (solo si la entera tiene media en esta sucursal).
+    if (media) {
+      const selector = document.createElement('div');
+      selector.className = 'carta-media-selector';
+      selector.setAttribute('role', 'group');
+      selector.setAttribute('aria-label', `Tamaño de ${prodEntera.nombre}`);
+      [
+        { clave: 'entera', etiqueta: 'Entera', opcion: prodEntera, sinStock: enteraAgotada },
+        { clave: 'media', etiqueta: 'Media', opcion: media, sinStock: mediaAgotada }
+      ].forEach(({ clave, etiqueta, opcion, sinStock }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'carta-media-opcion';
+        const activa = clave === eleccion;
+        if (activa) btn.classList.add('carta-media-opcion--activa');
+        btn.setAttribute('aria-pressed', activa ? 'true' : 'false');
+        const textoEtiqueta = document.createElement('span');
+        textoEtiqueta.className = 'carta-media-opcion-nombre';
+        textoEtiqueta.textContent = etiqueta;
+        const textoPrecio = document.createElement('span');
+        textoPrecio.className = 'carta-media-opcion-precio';
+        textoPrecio.textContent = sinStock ? 'Agotada' : formatearPrecioAR(obtenerPrecioProducto(opcion, sucursalId));
+        btn.append(textoEtiqueta, textoPrecio);
+        if (sinStock) {
+          btn.disabled = true;
+        } else {
+          btn.addEventListener('click', () => {
+            SELECCION_MEDIA[prodEntera.id] = clave;
+            renderProductosCategoria(categoria);
+          });
+        }
+        selector.appendChild(btn);
+      });
+      precioYAcciones.appendChild(selector);
+    }
 
     const precioVal = obtenerPrecioProducto(prod, sucursalId);
     const precio = document.createElement('div');
@@ -2849,11 +2927,38 @@ function renderProductosCategoria(categoria) {
     }
 
     if (!esCartaSoloLectura()) {
-      const lineasEnCarrito = obtenerItemsDeProductoEnCarrito(prod.id);
+      // Líneas de la entera y de su media: se muestran juntas en la tarjeta de la entera.
+      // Orden fijo: Entera arriba, Media abajo. Con media, cada fila lleva su rótulo.
+      const lineasEnCarrito = [
+        ...obtenerItemsDeProductoEnCarrito(prodEntera.id).map(l => ({ linea: l, rotulo: media ? 'Entera' : '' })),
+        ...(media ? obtenerItemsDeProductoEnCarrito(media.id).map(l => ({ linea: l, rotulo: 'Media' })) : [])
+      ];
       const cantidadTotal = obtenerCantidadTotalEnCarrito(prod.id);
       const contenedorControles = document.createElement('div');
       contenedorControles.className = 'carta-producto-controles';
 
+      if (lineasEnCarrito.length > 0) {
+        const lineasWrap = document.createElement('div');
+        lineasWrap.className = 'lineas-desglosadas-wrap';
+        lineasWrap.classList.add('carta-producto-lineas-carrito');
+
+        lineasEnCarrito.forEach(({ linea, rotulo }) => {
+          lineasWrap.appendChild(crearLineaCarrito(linea, rotulo));
+        });
+
+        if (productoPermitePersonalizacion(prod) && !agotado) {
+          const btnOtra = document.createElement('button');
+          btnOtra.type = 'button';
+          btnOtra.className = 'btn-otra-combinacion';
+          btnOtra.textContent = '+ Otra combinación';
+          btnOtra.addEventListener('click', () => alHacerClicAgregar(prod.id));
+          lineasWrap.appendChild(btnOtra);
+        }
+
+        contenedorControles.appendChild(lineasWrap);
+      }
+
+      // Agregar: solo si la opción elegida todavía no está en el carrito (si ya está, se usan sus +/-).
       if (cantidadTotal === 0) {
         const btnAgregar = document.createElement('button');
         btnAgregar.type = 'button';
@@ -2867,25 +2972,6 @@ function renderProductosCategoria(categoria) {
           btnAgregar.addEventListener('click', () => { alHacerClicAgregar(prod.id); mostrarAccesoCarrito(); pulsoAccesoCarrito(); });
         }
         contenedorControles.appendChild(btnAgregar);
-      } else {
-        const lineasWrap = document.createElement('div');
-        lineasWrap.className = 'lineas-desglosadas-wrap';
-        lineasWrap.classList.add('carta-producto-lineas-carrito');
-
-        lineasEnCarrito.forEach(linea => {
-          lineasWrap.appendChild(crearLineaCarrito(linea));
-        });
-
-        if (productoPermitePersonalizacion(prod) && !agotado) {
-          const btnOtra = document.createElement('button');
-          btnOtra.type = 'button';
-          btnOtra.className = 'btn-otra-combinacion';
-          btnOtra.textContent = '+ Otra combinación';
-          btnOtra.addEventListener('click', () => alHacerClicAgregar(prod.id));
-          lineasWrap.appendChild(btnOtra);
-        }
-
-        contenedorControles.appendChild(lineasWrap);
       }
 
       precioYAcciones.appendChild(contenedorControles);
