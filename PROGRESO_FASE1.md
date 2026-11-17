@@ -2,16 +2,16 @@
 
 Historial completo de todas las tareas y análisis: [docs/HISTORIAL.md](docs/HISTORIAL.md). Al terminar una tarea, agregar una línea en "Últimos cambios" (y pasar lo viejo al historial).
 
-## Estado actual (2026-11-09)
+## Estado actual (2026-11-17)
 
-- Rama `feature/fase-2-horarios` (74+ commits sobre `main`, sin conflictos); merge a `main` pendiente.
-- Sitio: carta por sucursal, carrito, checkout con `crear_pedido`, cupones, fidelidad/premios, pedidos programados, estado Abierto/Cerrado, modalidades por día, mensaje de WhatsApp estilo Pedix.
+- Todo está en `main` (fase 2 de horarios, cupones no acumulables, medias pizzas, Instagram en el header). No hay ramas de trabajo abiertas con cambios pendientes de merge.
+- Sitio: carta por sucursal, carrito, checkout con `crear_pedido`, cupones (no acumulables con promos, medio de pago con descuento ni premios), fidelidad/premios, pedidos programados, estado Abierto/Cerrado, modalidades por día, mensaje de WhatsApp estilo Pedix, medias pizzas como opción "Entera | Media" en la tarjeta de la pizza, ícono de Instagram en la navbar de la portada.
 - Admin: carta (con orden de categorías/productos), pedidos Kanban con sonido, agotados por sucursal, envíos por tramos, horarios y excepciones, cupones, fidelidad, estadísticas y CRM (dueño). Roles: dueño y encargado por sucursal.
 - Seguridad: precios, descuentos, cupones, premios y estados se resuelven en el servidor (RPC + RLS); el navegador nunca decide dinero ni estados.
 
 ## Migraciones (`supabase/migrations/`)
 
-Aplicadas en la base real: 000 a 026.
+Aplicadas en la base real: 000 a 030 (todas las que hay en la carpeta; no existen 004 a 009).
 
 - 000 respaldo de la carta · 001 RLS y storage · 002 ids estables y `agotado` · 003 verificación de fase 0 (solo lectura)
 - 010 tablas de pedidos, clientes, config y envío · 011 RLS/permisos/realtime de pedidos
@@ -21,14 +21,16 @@ Aplicadas en la base real: 000 a 026.
 - 021 seguridad de envío (coordenadas) y trigger de estados · 022 estadísticas y CRM (solo lectura)
 - 023 teléfonos a 10 dígitos y fusión de clientes · 024 horarios en servidor y pedidos programados (`crear_pedido` de 16 parámetros)
 - 025 modalidades por turno y excepciones por fecha · 026 `crm_clientes` busca por teléfono normalizado
-- 027 cupones no acumulables (no aplicada): base sin promo, sin medio de pago con descuento ni premio; `valida_cupon` nueva con `p_items` · 028 elimina la `valida_cupon` vieja (no aplicada; aplicar DESPUÉS de publicar el main.js nuevo)
+- 027 cupones no acumulables: base sin promo, sin medio de pago con descuento ni premio; `valida_cupon` nueva con `p_items` y `crear_pedido` actualizada · 028 elimina la `valida_cupon` vieja
+- 029 13 medias pizzas como productos `pizza_media_<x>` ("1/2 NOMBRE", categoría pizza, sin oferta; precio de mesa PROVISORIO = delivery) · 030 campo `media_de` en cada media (id de su entera)
 - 099 rollback opcional de la carta (no se ejecuta salvo emergencia)
 
-Vigentes (027 pendiente de aplicar: `crear_pedido` y `valida_cupon` nuevas): `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026.
+Vigentes: `crear_pedido` = 027 (16 parámetros, con cupón no acumulable); `valida_cupon` = 027 (con `p_items`); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026.
 
 ## Pendientes
 
 - Dueño: revisar en pantalla horarios/excepciones (B), Cancelados (C), orden de la carta (E), cartel de modalidades en tarjetas y mensaje de WhatsApp (A).
+- Dueño: pasar los precios de mesa reales de las 13 medias pizzas (hoy provisorios = delivery); se cambian desde el admin o con una migración nueva (la 029 no se edita).
 - Opcional: cargar `alias`, `cbu` y `titular` en `data/config.json` (`pagos.transferencia`) para que salgan en el WhatsApp.
 - H: estilos compactos (Cupones, Fidelidad y Envíos, Horarios en dos columnas), solo layout.
 - Despliegue del frontend (el merge a `main` ya está hecho).
@@ -38,12 +40,12 @@ Vigentes (027 pendiente de aplicar: `crear_pedido` y `valida_cupon` nuevas): `cr
 
 - 2026-11-17: fix del rótulo cortado ("E"/"M") en las filas de carrito de la tarjeta Entera/Media (rama `feature/media-pizza`). Causa: en celular el bloque de acciones ocupa solo la columna junto a la foto (~200 px). Ahora la tarjeta con media (`carta-producto-con-media`) usa todo el ancho en ≤480 px, el rótulo tiene ancho propio (56 px, sin cortarse) y la fila hace wrap (rótulo arriba, controles abajo) si no entra. Botones de 44 px. Medido en Edge headless con iframes a 320, 360 y 390 px, con dos filas y cantidades de dos dígitos: sin scroll horizontal y rótulos completos. Solo `main.js` y `style.css`; sin SQL.
 - 2026-11-17: ajuste visual de la tarjeta con selector Entera/Media (rama `feature/media-pizza`): un solo componente de fila de carrito (`crearLineaCarrito(linea, rotulo)`) para las dos opciones, con rótulo "Entera"/"Media" a la izquierda, −/cantidad/+ y tacho a la derecha, mismas medidas (52px de alto, botones de 44px). Orden fijo Entera arriba, Media abajo; "+ Agregar" debajo si la opción elegida no está en el carrito. Las tarjetas sin media quedan igual. Solo `main.js` y `style.css`; sin SQL.
-- 2026-11-17: medias como opción "Entera | Media" en la tarjeta de la entera (rama `feature/media-pizza`). Migración 030 (NO aplicada; aplicar antes o junto con el main.js nuevo, sin nadie editando la carta, y recargar el admin): agrega `media_de` a las 13 medias (+ `data/cartas.json`). `main.js`: los productos con `media_de` no tienen tarjeta propia; el selector cambia precio y producto agregado (el pedido envía el id de la media); la tarjeta es "agotada" solo si entera y media lo están, la opción agotada se deshabilita; las líneas de carrito de la media se ven en la tarjeta de la entera con rótulo "Media". `style.css`: selector (44px, sin glow). Admin y RPC sin cambios. La 029 (ya aplicada) no se tocó.
-- 2026-11-17: medias pizzas (rama `feature/media-pizza`): 13 productos `pizza_media_<x>` ("1/2 <NOMBRE>", categoría pizza, sin oferta, así que reciben el cupón) con sucursales/foto/descripción copiadas de su entera. Migración 029 (NO aplicada; aplicar sin nadie editando la carta y recargar el admin después) + `data/cartas.json`. **Precio de mesa PROVISORIO = delivery** (el dueño pasa los reales). Agotado por sucursal sin cambios (`agotados_sucursal`).
+- 2026-11-17: medias como opción "Entera | Media" en la tarjeta de la entera (rama `feature/media-pizza`). Migración 030 (aplicada): agrega `media_de` a las 13 medias (+ `data/cartas.json`). `main.js`: los productos con `media_de` no tienen tarjeta propia; el selector cambia precio y producto agregado (el pedido envía el id de la media); la tarjeta es "agotada" solo si entera y media lo están, la opción agotada se deshabilita; las líneas de carrito de la media se ven en la tarjeta de la entera con rótulo "Media". `style.css`: selector (44px, sin glow). Admin y RPC sin cambios. La 029 (ya aplicada) no se tocó.
+- 2026-11-17: medias pizzas (rama `feature/media-pizza`): 13 productos `pizza_media_<x>` ("1/2 <NOMBRE>", categoría pizza, sin oferta, así que reciben el cupón) con sucursales/foto/descripción copiadas de su entera. Migración 029 (aplicada) + `data/cartas.json`. **Precio de mesa PROVISORIO = delivery** (el dueño pasa los reales). Agotado por sucursal sin cambios (`agotados_sucursal`).
 - 2026-11-17: ícono de Instagram en el header (rama `feature/instagram-header`): navbar de la portada y header de la carta, link a instagram.com/piedramora.cta, SVG inline, 44x44, evento GA `click_instagram` (param `ubicacion`). Sin cambios en `_headers` (no hay CSP que bloquee el link). Sin SQL.
 - 2026-11-17: ajustes de diseño del ícono de Instagram: más separación respecto de la × en la carta (gap 14px, ambos 44px, ícono 20px ahí), hover/focus solo cambia color (180 ms) sin glow. Se quitó el resplandor (`text-shadow`/`drop-shadow`) de "PIEDRA MORA" del hero, del logo grande del hero, del logo de la navbar y del logo del header de la carta. Solo CSS.
 - 2026-11-17: ícono de Instagram blanco (#fff), hover/focus solo opacidad 1 a .75; queda solo en la navbar de la home (se quitó del header de la carta junto con su wrapper y el gap; la × volvió a su tamaño original). Solo HTML/CSS.
-- 2026-11-17: cupones no acumulables (rama `feature/cupon-no-acumulable`): migraciones 027/028 (NO aplicadas). El cupón descuenta solo sobre productos sin promo (`categoria promo` o `en_oferta`) y se rechaza con promos solas, medio de pago con descuento o premio. `valida_cupon` recibe items y calcula en el servidor; main.js muestra la etiqueta del servidor y bloquea premios con cupón; admin sin la casilla "acumulable con pago" (la columna queda).
+- 2026-11-17: cupones no acumulables (rama `feature/cupon-no-acumulable`): migraciones 027/028 (aplicadas). El cupón descuenta solo sobre productos sin promo (`categoria promo` o `en_oferta`) y se rechaza con promos solas, medio de pago con descuento o premio. `valida_cupon` recibe items y calcula en el servidor; main.js muestra la etiqueta del servidor y bloquea premios con cupón; admin sin la casilla "acumulable con pago" (la columna queda).
 
 - 2026-11-09: auditoría pre-publicación: rutas relativas OK, SEO (og:image absoluta, robots sin admin, sitemap), `_headers` sin CSP. Pendiente del dueño: dominio/URLs (TODO en index.html, robots, sitemap) y URL Configuration de Supabase.
 - 2026-11-09: sitio: la pastilla de modalidad indica cuándo aplica ("Hoy/Mañana/El DD/MM solo delivery|retiro"); en pantallas angostas baja de línea si está "Más cerca de vos".
