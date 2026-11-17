@@ -36,6 +36,7 @@ Vigentes (027 pendiente de aplicar: `crear_pedido` y `valida_cupon` nuevas): `cr
 
 ## Últimos cambios
 
+- 2026-11-17: ícono de Instagram en el header (rama `feature/instagram-header`): navbar de la portada y header de la carta, link a instagram.com/piedramora.cta, SVG inline, 44x44, evento GA `click_instagram` (param `ubicacion`). Sin cambios en `_headers` (no hay CSP que bloquee el link). Sin SQL.
 - 2026-11-17: cupones no acumulables (rama `feature/cupon-no-acumulable`): migraciones 027/028 (NO aplicadas). El cupón descuenta solo sobre productos sin promo (`categoria promo` o `en_oferta`) y se rechaza con promos solas, medio de pago con descuento o premio. `valida_cupon` recibe items y calcula en el servidor; main.js muestra la etiqueta del servidor y bloquea premios con cupón; admin sin la casilla "acumulable con pago" (la columna queda).
 
 - 2026-11-09: auditoría pre-publicación: rutas relativas OK, SEO (og:image absoluta, robots sin admin, sitemap), `_headers` sin CSP. Pendiente del dueño: dominio/URLs (TODO en index.html, robots, sitemap) y URL Configuration de Supabase.

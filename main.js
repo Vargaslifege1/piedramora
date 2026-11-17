@@ -161,6 +161,14 @@ function trackearClicCarta(tipoBoton, sucursalId, sucursalNombre, extra = {}) {
   }
 }
 
+// Clic en el ícono de Instagram (navbar o header de la carta)
+document.addEventListener('click', (e) => {
+  const link = e.target.closest && e.target.closest('a[data-instagram]');
+  if (link && typeof gtag === 'function') {
+    gtag('event', 'click_instagram', { ubicacion: link.dataset.instagram });
+  }
+});
+
 function atributoTracking(tipoBoton, sucursal) {
   const tipo = PM.escaparHtml(JSON.stringify(String(tipoBoton)));
   const id = PM.escaparHtml(JSON.stringify(String(sucursal.id)));

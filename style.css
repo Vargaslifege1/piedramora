@@ -83,6 +83,44 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(227, 30, 36, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Ícono de Instagram (navbar y header de la carta): área táctil 44x44 */
+.btn-instagram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  color: var(--color-dorado);
+  border-radius: 50%;
+  transition: color 0.25s var(--ease-premium), background-color 0.25s var(--ease-premium);
+}
+
+.btn-instagram svg {
+  width: 24px;
+  height: 24px;
+}
+
+.btn-instagram:hover {
+  color: var(--color-texto);
+  background-color: var(--color-rojo);
+}
+
+.btn-instagram:focus-visible {
+  outline: 2px solid var(--color-dorado);
+  outline-offset: 2px;
+}
+
+.carta-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
 }
 
 .logo-chico {
