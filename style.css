@@ -5405,11 +5405,15 @@ body.confirmacion-abierta {
 }
 
 /* ===== Fidelidad: medio círculo (medios puntos, 031) ===== */
+/* Mitad izquierda roja (corte duro al 50%) y mitad derecha vacía, con borde rojo completo. */
 .fidelidad-sello.medio {
   border-color: var(--color-rojo);
-  background: linear-gradient(90deg, var(--color-rojo) 50%, transparent 50%);
+  background-color: transparent;
+  background-image: linear-gradient(90deg, var(--color-rojo) 0, var(--color-rojo) 50%, transparent 50%, transparent 100%);
   color: var(--color-texto);
 }
+/* En los hitos (5 y 10) el borde sigue dorado. */
+.fidelidad-sello.hito.medio { border-color: var(--color-dorado); }
 
 /* ===== Calificación de pedidos (031) ===== */
 .calificar-cartel {
