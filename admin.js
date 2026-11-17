@@ -1403,8 +1403,32 @@
       return;
     } else if (campo === 'delivery_oferta' || campo === 'mesa_oferta') {
       const valor = Number(control.value);
-      if (control.value === '' || !Number.isFinite(valor) || valor <= 0) delete producto[campo];
-      else producto[campo] = valor;
+      const precioRegular = Number(producto.precios && producto.precios[campo === 'mesa_oferta' ? 'mesa' : 'delivery']);
+      const vacio = control.value === '' || !Number.isFinite(valor) || valor <= 0;
+      let aviso = '';
+
+      if (vacio) {
+        delete producto[campo];
+      } else if (campo === 'mesa_oferta' && producto.delivery_oferta === undefined) {
+        aviso = 'Primero cargá "Delivery oferta": la oferta de mesa no puede ir sola.';
+      } else if (Number.isFinite(precioRegular) && valor >= precioRegular) {
+        aviso = 'El precio de oferta debe ser menor al precio original.';
+      } else {
+        producto[campo] = valor;
+      }
+
+      if (aviso) {
+        delete producto[campo];
+        control.value = '';
+        mostrarEstado(el.estado, aviso, 'error');
+      }
+
+      // Sin oferta de delivery no puede quedar oferta de mesa.
+      if (campo === 'delivery_oferta' && producto.delivery_oferta === undefined && producto.mesa_oferta !== undefined) {
+        delete producto.mesa_oferta;
+        const inputMesa = contenedor.querySelector('[data-campo-producto="mesa_oferta"]');
+        if (inputMesa) inputMesa.value = '';
+      }
       actualizarResumenOferta(contenedor, producto);
     } else if (campo === 'agotado') {
       const activo = !!control.checked;
@@ -1755,14 +1779,20 @@
 
     if (hayPrecioOferta) {
       const deliveryOferta = Number(ofertaDeliveryTexto);
+      const hayMesaOferta = ofertaMesaTexto !== '';
       const mesaOferta = Number(ofertaMesaTexto);
 
-      if (!Number.isFinite(deliveryOferta) || deliveryOferta <= 0 || !Number.isFinite(mesaOferta) || mesaOferta <= 0) {
-        mostrarEstado(el.productoEstado, 'Completá ambos precios de oferta o dejá los dos vacíos.', 'error');
+      if (ofertaDeliveryTexto === '') {
+        mostrarEstado(el.productoEstado, 'Para cargar una oferta completá "Delivery oferta" (la de mesa es opcional).', 'error');
         return;
       }
 
-      if (deliveryOferta >= delivery || mesaOferta >= mesa) {
+      if (!Number.isFinite(deliveryOferta) || deliveryOferta <= 0 || (hayMesaOferta && (!Number.isFinite(mesaOferta) || mesaOferta <= 0))) {
+        mostrarEstado(el.productoEstado, 'Los precios de oferta deben ser números mayores a cero.', 'error');
+        return;
+      }
+
+      if (deliveryOferta >= delivery || (hayMesaOferta && mesaOferta >= mesa)) {
         mostrarEstado(el.productoEstado, 'Los precios de oferta deben ser menores a los originales.', 'error');
         return;
       }
@@ -1773,7 +1803,7 @@
       }
 
       producto.delivery_oferta = deliveryOferta;
-      producto.mesa_oferta = mesaOferta;
+      if (hayMesaOferta) producto.mesa_oferta = mesaOferta;
       producto.tipoOferta = tipoOfertaNueva;
       if (tipoOfertaNueva === 'fecha') producto.oferta_hasta = ofertaHasta;
     }
@@ -2031,10 +2061,15 @@
         const mesaOferta = Number(producto.mesa_oferta);
         const delivery = producto.precios.delivery;
         const mesa = producto.precios.mesa;
-        if (Number.isFinite(deliveryOferta) && deliveryOferta > 0 && deliveryOferta < delivery &&
-            Number.isFinite(mesaOferta) && mesaOferta > 0 && mesaOferta < mesa) {
+        // Delivery manda: sin delivery_oferta válido no hay oferta. Mesa es opcional.
+        if (Number.isFinite(deliveryOferta) && deliveryOferta > 0 && deliveryOferta < delivery) {
           producto.delivery_oferta = deliveryOferta;
-          producto.mesa_oferta = mesaOferta;
+          if (producto.mesa_oferta !== undefined &&
+              Number.isFinite(mesaOferta) && mesaOferta > 0 && mesaOferta < mesa) {
+            producto.mesa_oferta = mesaOferta;
+          } else {
+            delete producto.mesa_oferta;
+          }
           producto.tipoOferta = tipoOfertaProducto(producto);
         } else {
           delete producto.delivery_oferta;

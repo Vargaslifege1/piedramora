@@ -2078,18 +2078,9 @@ function obtenerPrecioOfertaProducto(prod) {
   const clave = cartaModalidadSeleccionada === 'mesa' ? 'mesa' : 'delivery';
   let valor = prod[`${clave}_oferta`];
 
-  if (valor === undefined || valor === null) {
-    const claveAlterna = clave === 'mesa' ? 'delivery_oferta' : 'mesa_oferta';
-    valor = prod[claveAlterna];
-  }
-
+  // Cada modalidad usa solo su propia oferta (retiro = delivery, como el servidor).
   if ((valor === undefined || valor === null) && prod.preciosOferta) {
     valor = prod.preciosOferta[clave];
-    if (valor === undefined || valor === null) {
-      valor = prod.preciosOferta.delivery !== undefined
-        ? prod.preciosOferta.delivery
-        : prod.preciosOferta.mesa;
-    }
   }
 
   if (valor === undefined || valor === null) return null;
