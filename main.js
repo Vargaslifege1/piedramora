@@ -3235,11 +3235,10 @@ function actualizarResumenPago(subtotal) {
   const envio = actualizarLineaEnvio();
   let totalFinal = Math.max(0, totales.total + (envio.costo || 0));
 
-  // Vista previa únicamente: valida_cupon ya compara server-side el descuento
-  // del cupón contra el de medio de pago (gana el mayor, salvo acumulable), pero
-  // no nos dice cuál ganó. Por eso en pantalla el cupón reemplaza la línea de
-  // descuento por pago en vez de sumarse. El total real y definitivo siempre lo
-  // decide crear_pedido en el servidor al confirmar el pedido.
+  // Vista previa únicamente: el monto del cupón lo calcula el servidor
+  // (valida_cupon, solo sobre productos sin promo y sin medio de pago con
+  // descuento). Acá solo se resta lo que devolvió. El total real y definitivo
+  // siempre lo decide crear_pedido en el servidor al confirmar el pedido.
   if (cuponAplicado) {
     totalFinal = Math.max(0, totales.subtotal - cuponAplicado.descuento + (envio.costo || 0));
   }
@@ -3266,16 +3265,54 @@ function mostrarEstadoCupon(texto, tipo = '') {
   estado.classList.toggle('pedix-estado-ok', tipo === 'ok');
 }
 
-function mostrarLineaCupon(visible, montoDescuento, codigo) {
+// Items del carrito en el formato que esperan las RPC (el servidor calcula precios).
+function itemsCarritoParaServidor() {
+  return CARRITO.map((item) => ({
+    producto_id: item.productoBaseId,
+    variacion_id: item.variacion ? item.variacion.id : null,
+    adicionales_ids: (item.adicionalesLista || []).map(adicional => adicional.id),
+    cantidad: item.cantidad
+  }));
+}
+
+function mostrarLineaCupon(visible, montoDescuento, codigo, detalle) {
   const linea = document.getElementById('linea-cupon');
   const elMonto = document.getElementById('checkout-cupon');
   const elCodigo = document.getElementById('checkout-cupon-codigo');
+  const elDetalle = document.getElementById('checkout-cupon-detalle');
   if (!linea) return;
   linea.hidden = !visible;
   linea.style.display = visible ? 'flex' : 'none';
   if (visible) {
     if (elCodigo) elCodigo.textContent = codigo;
     if (elMonto) elMonto.textContent = `- ${formatearPrecioAR(montoDescuento)}`;
+    // Texto armado por el servidor ("Cupón X 20% sobre productos sin promo").
+    if (elDetalle) elDetalle.textContent = detalle || '';
+  } else if (elDetalle) {
+    elDetalle.textContent = '';
+  }
+}
+
+// Un cupón y un premio de fidelidad no se combinan: con cupón aplicado los
+// premios quedan deshabilitados hasta quitarlo.
+function sincronizarBloqueoPremiosPorCupon() {
+  const contenedor = document.getElementById('checkout-premios');
+  if (!contenedor) return;
+  const hayCupon = !!cuponAplicado;
+  contenedor.querySelectorAll('input[name="checkout-premio"]').forEach((radio) => {
+    if (radio.value !== '') radio.disabled = hayCupon;
+  });
+  let aviso = document.getElementById('checkout-premios-aviso-cupon');
+  if (hayCupon) {
+    if (!aviso) {
+      aviso = document.createElement('p');
+      aviso.id = 'checkout-premios-aviso-cupon';
+      aviso.className = 'pedix-ayuda-texto';
+      contenedor.appendChild(aviso);
+    }
+    aviso.textContent = 'Con un cupón aplicado no podés usar un premio. Quitá el cupón para elegirlo.';
+  } else if (aviso) {
+    aviso.remove();
   }
 }
 
@@ -3284,6 +3321,7 @@ function quitarCuponAplicado() {
   const input = document.getElementById('cliente-cupon');
   if (input) input.value = '';
   mostrarLineaCupon(false);
+  sincronizarBloqueoPremiosPorCupon();
   actualizarResumenPago(obtenerSubtotalCarrito());
 }
 
@@ -3300,7 +3338,7 @@ async function validarCuponActual(codigoForzado) {
   if (premioElegido) {
     cuponAplicado = null;
     mostrarLineaCupon(false);
-    mostrarEstadoCupon('Con un premio no se puede usar un cupón.', 'error');
+    mostrarEstadoCupon('No podés usar un cupón junto con un premio de fidelidad.', 'error');
     return;
   }
 
@@ -3353,23 +3391,29 @@ async function validarCuponActual(codigoForzado) {
     const tipoEntregaActivo = document.querySelector('[data-tipo-entrega].activa');
     const modalidad = tipoEntregaActivo?.dataset.tipoEntrega === 'delivery' ? 'delivery' : 'retiro';
     const pago = obtenerPagoSeleccionado();
-    const subtotal = obtenerSubtotalCarrito();
 
+    // El servidor calcula todo desde los items (no se manda ningún monto).
     const { data, error } = await conTiempoLimite(clienteNube.rpc('valida_cupon', {
       p_codigo: codigo,
       p_telefono: telefonoDigitos,
-      p_subtotal: subtotal,
+      p_items: itemsCarritoParaServidor(),
       p_sucursal_id: cartaActualSucursalId,
       p_modalidad: modalidad,
-      p_metodo_pago: pago.tipo
+      p_metodo_pago: pago.tipo,
+      p_premio_id: null
     }), 10000);
 
     if (error) throw error;
 
     if (data && data.ok) {
-      cuponAplicado = { codigo, descuento: Number(data.descuento) || 0, mensaje: data.mensaje || 'Cupón aplicado.' };
+      cuponAplicado = {
+        codigo,
+        descuento: Number(data.descuento) || 0,
+        etiqueta: data.etiqueta || '',
+        mensaje: data.mensaje || 'Cupón aplicado.'
+      };
       mostrarEstadoCupon(data.mensaje || 'Cupón aplicado.', 'ok');
-      mostrarLineaCupon(true, cuponAplicado.descuento, codigo);
+      mostrarLineaCupon(true, cuponAplicado.descuento, codigo, cuponAplicado.etiqueta);
     } else {
       cuponAplicado = null;
       mostrarLineaCupon(false);
@@ -3383,6 +3427,7 @@ async function validarCuponActual(codigoForzado) {
   } finally {
     cuponValidandoEnCurso = false;
     if (boton) boton.disabled = false;
+    sincronizarBloqueoPremiosPorCupon();
     actualizarResumenPago(obtenerSubtotalCarrito());
   }
 }
@@ -4525,12 +4570,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
         p_metodo_pago: pago.tipo,
         p_zona_envio: null,
         p_notas: notas || null,
-        p_items: CARRITO.map((item) => ({
-          producto_id: item.productoBaseId,
-          variacion_id: item.variacion ? item.variacion.id : null,
-          adicionales_ids: (item.adicionalesLista || []).map(adicional => adicional.id),
-          cantidad: item.cantidad
-        })),
+        p_items: itemsCarritoParaServidor(),
         p_idempotency_key: idempotencyKey,
         p_cupon: premioUsado ? null : codigoCuponConfirmado,
         p_premio_id: premioUsado ? premioUsado.id : null,
@@ -5936,6 +5976,7 @@ function fidelidadDibujarPremiosCheckout(premios) {
     agregar(String(premio.id), `${fidelidadDescribirPremio(premio)}${venc ? ` (vence el ${venc})` : ''}`, premio);
   });
   contenedor.hidden = false;
+  sincronizarBloqueoPremiosPorCupon();
 }
 
 function fidelidadResetCheckout() {

@@ -21,9 +21,10 @@ Aplicadas en la base real: 000 a 026.
 - 021 seguridad de envío (coordenadas) y trigger de estados · 022 estadísticas y CRM (solo lectura)
 - 023 teléfonos a 10 dígitos y fusión de clientes · 024 horarios en servidor y pedidos programados (`crear_pedido` de 16 parámetros)
 - 025 modalidades por turno y excepciones por fecha · 026 `crm_clientes` busca por teléfono normalizado
+- 027 cupones no acumulables (no aplicada): base sin promo, sin medio de pago con descuento ni premio; `valida_cupon` nueva con `p_items` · 028 elimina la `valida_cupon` vieja (no aplicada; aplicar DESPUÉS de publicar el main.js nuevo)
 - 099 rollback opcional de la carta (no se ejecuta salvo emergencia)
 
-Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026.
+Vigentes (027 pendiente de aplicar: `crear_pedido` y `valida_cupon` nuevas): `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026.
 
 ## Pendientes
 
