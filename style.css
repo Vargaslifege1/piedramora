@@ -98,7 +98,7 @@ body {
   height: 44px;
   color: var(--color-dorado);
   border-radius: 50%;
-  transition: color 0.25s var(--ease-premium), background-color 0.25s var(--ease-premium);
+  transition: color 0.18s ease;
 }
 
 .btn-instagram svg {
@@ -106,27 +106,38 @@ body {
   height: 24px;
 }
 
-.btn-instagram:hover {
+.btn-instagram:hover,
+.btn-instagram:focus-visible {
   color: var(--color-texto);
-  background-color: var(--color-rojo);
 }
 
 .btn-instagram:focus-visible {
   outline: 2px solid var(--color-dorado);
-  outline-offset: 2px;
+  outline-offset: 0;
 }
 
+/* Header de la carta: ícono y × separados, ambos con área táctil de 44px */
 .carta-header-acciones {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 14px;
+  flex: 0 0 auto;
+}
+
+.carta-header-acciones .btn-instagram svg {
+  width: 20px;
+  height: 20px;
+}
+
+.carta-header-acciones .carta-cerrar {
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
 }
 
 .logo-chico {
   height: 48px;
   width: auto;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
 }
 
 .hero {
@@ -168,7 +179,6 @@ body {
   width: 220px;
   max-width: 55vw;
   height: auto;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.45));
   margin-bottom: 10px;
 }
 
@@ -177,7 +187,6 @@ body {
   font-size: clamp(2.8rem, 10vw, 5.5rem);
   letter-spacing: 3px;
   color: var(--color-texto);
-  text-shadow: 0 0 25px var(--color-rojo-glow);
 }
 
 .hero-subtitle {
@@ -962,7 +971,6 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
 .carta-header-logo {
   height: 42px;
   width: auto;
-  filter: drop-shadow(0 0 8px rgba(255,255,255,0.25));
 }
 
 .carta-header-text {
