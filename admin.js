@@ -3074,7 +3074,7 @@
     }
 
     try {
-      const camposBase = 'id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas,programado_para,entregado_en';
+      const camposBase = 'id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas,programado_para,entregado_en,fidelidad_contado';
       let respuesta = await cliente
         .from('pedidos')
         .select(`${camposBase},pagado,pagado_en`)
@@ -3233,11 +3233,24 @@
       textoCancelar: 'Volver'
     })) return;
     const link = `${base.origin}${base.pathname}?calificar=${encodeURIComponent(String(pedido.id))}`;
-    const nombre = String(pedido.cliente_nombre || '').trim().split(/\s+/)[0] || '';
-    const texto = `Hola${nombre ? ` ${nombre}` : ''}, ¡gracias por tu pedido en Piedra Mora! \u{1F64C} `
-      + `¿Nos contás cómo estuvo? Calificalo en un minuto acá: ${link}`;
+    const texto = armarMensajeCalificacion(pedido, link);
     const url = `${PM.urlWhatsappCliente(pedido.cliente_telefono)}?text=${encodeURIComponent(texto)}`;
     window.open(url, '_blank', 'noopener');
+  }
+
+  // Mensaje de WhatsApp para pedir la calificación. El párrafo del medio punto
+  // solo va si el pedido contó para fidelidad. El link queda en una línea propia.
+  function armarMensajeCalificacion(pedido, link) {
+    const parrafos = [
+      '¡Hola! Esperamos que hayas disfrutado muchísimo tu pedido de Piedra Mora. \u{1F355}\u{2764}\u{FE0F}',
+      'Queremos seguir mejorando para vos. ¿Te tomarías 10 segundos para calificarnos? ¡Cada reseña nos ayuda a crecer!'
+    ];
+    if (pedido && pedido.fidelidad_contado === true) {
+      parrafos.push('Al dejar tu calificación, sumás medio punto extra en tu programa de fidelidad para tu próxima compra. \u{1F31F}');
+    }
+    parrafos.push(`Podés calificar tu experiencia acá:\n${link}`);
+    parrafos.push('¡Gracias por elegirnos!');
+    return parrafos.join('\n\n');
   }
 
   async function marcarPedidoPagado(id, boton) {
