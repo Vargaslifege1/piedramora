@@ -83,12 +83,43 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(227, 30, 36, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Ícono de Instagram (navbar y header de la carta): área táctil 44x44 */
+.btn-instagram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  color: #fff;
+  border-radius: 50%;
+  opacity: 1;
+  transition: opacity 0.18s ease;
+}
+
+.btn-instagram svg {
+  width: 24px;
+  height: 24px;
+}
+
+.btn-instagram:hover,
+.btn-instagram:focus-visible {
+  opacity: 0.75;
+}
+
+.btn-instagram:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 0;
 }
 
 .logo-chico {
   height: 48px;
   width: auto;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
 }
 
 .hero {
@@ -130,7 +161,6 @@ body {
   width: 220px;
   max-width: 55vw;
   height: auto;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.45));
   margin-bottom: 10px;
 }
 
@@ -139,7 +169,6 @@ body {
   font-size: clamp(2.8rem, 10vw, 5.5rem);
   letter-spacing: 3px;
   color: var(--color-texto);
-  text-shadow: 0 0 25px var(--color-rojo-glow);
 }
 
 .hero-subtitle {
@@ -924,7 +953,6 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
 .carta-header-logo {
   height: 42px;
   width: auto;
-  filter: drop-shadow(0 0 8px rgba(255,255,255,0.25));
 }
 
 .carta-header-text {
