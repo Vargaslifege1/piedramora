@@ -118,8 +118,8 @@ if (Array.isArray(carta.productos)) {
     if (tieneDelivery || tieneMesa) {
       totalOfertas += 1;
 
-      if (!tieneDelivery || !tieneMesa) {
-        error(`Producto "${id}": si hay oferta deben estar los dos precios (delivery_oferta y mesa_oferta).`);
+      if (!tieneDelivery) {
+        error(`Producto "${id}": mesa_oferta requiere delivery_oferta (la oferta solo de mesa no se permite).`);
       } else {
         const deliveryOferta = Number(producto.delivery_oferta);
         const mesaOferta = Number(producto.mesa_oferta);
@@ -132,7 +132,9 @@ if (Array.isArray(carta.productos)) {
           error(`Producto "${id}": delivery_oferta debe ser menor al precio delivery regular.`);
         }
 
-        if (!Number.isFinite(mesaOferta) || mesaOferta <= 0) {
+        if (!tieneMesa) {
+          // mesa_oferta es opcional
+        } else if (!Number.isFinite(mesaOferta) || mesaOferta <= 0) {
           error(`Producto "${id}": mesa_oferta debe ser un número mayor a cero.`);
         } else if (mesaOferta >= mesa) {
           error(`Producto "${id}": mesa_oferta debe ser menor al precio mesa regular.`);
