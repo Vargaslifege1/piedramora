@@ -39,6 +39,7 @@ Vigentes: `crear_pedido` = 027 (16 parámetros, con cupón no acumulable); `vali
 
 ## Últimos cambios
 
+- 2026-11-17: admin: nuevo mensaje de WhatsApp en "Pedir calificación" (`armarMensajeCalificacion`): saludo, pedido de reseña, párrafo del medio punto solo si `pedido.fidelidad_contado` es true (ahora se lee en la carga de pedidos), link `?calificar=<id>` en línea propia y cierre. Emojis con escapes `\u{...}`; URL con `encodeURIComponent` sobre el texto completo. Sin SQL.
 - 2026-11-17: tarjeta de fidelidad: el botón de opciones (⚙) pasa a ícono de basurero (SVG inline, mismo tamaño y color que ↻, 44 px), con `aria-label` y `title` "Borrar mis datos". Sigue abriendo el menú y pidiendo confirmación antes de borrar (`index.html`).
 - 2026-11-17: fidelidad: el medio círculo usa corte duro al 50% y los hitos mantienen el borde dorado (`style.css`). Verificado con simulación en node que con `medios_en_ciclo = 3` el círculo 2 lleva la clase `medio` y los textos salen con coma. Si no se ve, es caché o `dist/` viejo: regenerar con `node tools/preparar-dist.mjs`.
 - 2026-11-17: admin Calificaciones: cada tarjeta muestra nombre y teléfono formateado del cliente (join con el pedido, respeta RLS), botón "WhatsApp" y rótulo/borde "Nota baja" cuando comida o entrega son 3 o menos. Todo con `textContent`; sin SQL.
