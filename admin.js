@@ -6927,7 +6927,7 @@
     }).replace(',', '');
     const meta = document.createElement('p');
     meta.className = 'admin-cal-meta';
-    meta.textContent = ['Mesa', nombreSucursalPedido(fila.sucursal), fecha].filter(Boolean).join(' · ');
+    meta.textContent = [`Mesa (${fila.origen === 'web' ? 'Web' : 'QR'})`, nombreSucursalPedido(fila.sucursal), fecha].filter(Boolean).join(' · ');
     item.appendChild(meta);
     return item;
   }

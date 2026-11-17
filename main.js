@@ -6348,6 +6348,8 @@ function calificarMostrarVista(vista) {
   const form = calificarEl('calificar-form');
   const mensaje = calificarEl('calificar-mensaje');
   const mesa = calificarEl('mesa-form');
+  const menu = calificarEl('calificanos-menu');
+  if (menu) menu.hidden = vista !== 'menu';
   if (form) form.hidden = vista !== 'form';
   if (mesa) mesa.hidden = vista !== 'mesa';
   if (mensaje) mensaje.hidden = vista !== 'mensaje';
@@ -6552,7 +6554,7 @@ const MESA_SUCURSALES = {
   'maestro-quiroga': 'Maestro Quiroga',
   'intendente-lascano': 'Oeste (Intendente Lascano)'
 };
-const mesaEstado = { sucursal: null, comida: 0, atencion: 0, ocupado: false };
+const mesaEstado = { sucursal: null, clave: null, comida: 0, atencion: 0, ocupado: false };
 
 function mesaMostrarError(texto, campoTelefono) {
   const el = calificarEl('mesa-error');
@@ -6563,8 +6565,18 @@ function mesaMostrarError(texto, campoTelefono) {
   calificarEl('mesa-telefono')?.classList.toggle('con-error', !!campoTelefono);
 }
 
-function mesaPrepararForm(sucursalId) {
+// clave = clave del QR (solo en memoria, nunca en la URL ni en storage). Sin clave el
+// formulario es el del botón "Calificanos" y el aviso del punto es otro.
+function mesaPrepararForm(sucursalId, clave) {
   mesaEstado.sucursal = sucursalId;
+  mesaEstado.clave = clave || null;
+  const aviso = calificarEl('mesa-aviso');
+  if (aviso) {
+    aviso.textContent = mesaEstado.clave
+      ? 'Calificá y sumá medio punto de fidelidad \u{2B50}'
+      : 'Si ya hiciste un pedido con nosotros, sumás medio punto de fidelidad';
+  }
+  calificarEl('calificar-panel')?.setAttribute('aria-labelledby', 'mesa-titulo');
   mesaEstado.comida = 0;
   mesaEstado.atencion = 0;
   calificarPintarEstrellas(calificarEl('mesa-comida'), 0);
@@ -6607,8 +6619,16 @@ const MESA_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'juli
 function mesaTextoSinPunto(desde) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(desde || ''));
   const mes = m ? MESA_MESES[Number(m[2]) - 1] : '';
-  if (!mes) return 'Ya sumaste un punto hace poco. Tu opinión igual nos sirve.';
-  return `Ya sumaste un punto hace poco. Podés volver a sumar desde el ${Number(m[3])} de ${mes}. Tu opinión igual nos sirve.`;
+  if (!mes) return 'Ya sumaste un punto hace poco.';
+  return `Ya sumaste un punto hace poco. Podés volver a sumar desde el ${Number(m[3])} de ${mes}.`;
+}
+
+// Mensaje cuando la calificación se guardó pero no sumó punto, según el motivo del servidor.
+function mesaTextoMotivo(data) {
+  const motivo = data && data.motivo;
+  if (motivo === 'sin_pedido') return 'Gracias por tu opinión. Los puntos son para clientes que ya hicieron un pedido.';
+  if (motivo === 'ventana') return mesaTextoSinPunto(data.proximo_punto_desde);
+  return 'Gracias por tu opinión.';
 }
 
 function mesaProcesarRespuesta(data) {
@@ -6627,7 +6647,7 @@ function mesaProcesarRespuesta(data) {
       '¡Gracias por tu calificación!',
       suma
         ? 'Sumaste medio punto de fidelidad.'
-        : mesaTextoSinPunto(data.proximo_punto_desde),
+        : mesaTextoMotivo(data),
       data.premio_generado === true
         ? '\u{1F381} ¡Desbloqueaste un premio! Lo ves en tu tarjeta de fidelidad.'
         : '',
@@ -6674,7 +6694,8 @@ async function mesaEnviar(evento) {
       p_telefono: tel,
       p_comida: mesaEstado.comida,
       p_atencion: mesaEstado.atencion,
-      p_comentario: comentario || null
+      p_comentario: comentario || null,
+      p_clave: mesaEstado.clave || null
     });
     mesaProcesarRespuesta(data);
   } catch (error) {
@@ -6689,11 +6710,15 @@ async function mesaEnviar(evento) {
 // Link ?mesa=<sucursal>. Devuelve true si el parámetro estaba presente.
 function mesaAbrirDesdeUrl() {
   let crudo = null;
+  let clave = null;
   try {
     const url = new URL(window.location.href);
     crudo = url.searchParams.get('mesa');
     if (crudo === null) return false;
+    // La clave del QR (&k=) se guarda solo en memoria y se saca de la URL.
+    clave = String(url.searchParams.get('k') || '').trim().slice(0, 100) || null;
     url.searchParams.delete('mesa');
+    url.searchParams.delete('k');
     window.history.replaceState(null, '', url.pathname + url.search + url.hash);
   } catch (e) {
     return false;
@@ -6701,8 +6726,7 @@ function mesaAbrirDesdeUrl() {
   const panel = calificarEl('calificar-panel');
   const id = String(crudo || '').trim().toLowerCase();
   if (Object.prototype.hasOwnProperty.call(MESA_SUCURSALES, id)) {
-    mesaPrepararForm(id);
-    panel?.setAttribute('aria-labelledby', 'mesa-titulo');
+    mesaPrepararForm(id, clave);
   } else {
     calificarMostrarMensaje(
       '!',
@@ -6717,8 +6741,72 @@ function mesaAbrirDesdeUrl() {
   return true;
 }
 
+/* --- Botón "Calificanos" del header (035) --- */
+function calificanosPaso(paso) {
+  const origen = calificarEl('calificanos-paso-origen');
+  const sucursal = calificarEl('calificanos-paso-sucursal');
+  if (origen) origen.hidden = paso !== 'origen';
+  if (sucursal) sucursal.hidden = paso !== 'sucursal';
+}
+
+function calificanosAbrir() {
+  const boton = calificarEl('calificanos-pedido');
+  if (boton) boton.disabled = false;
+  calificanosPaso('origen');
+  calificarMostrarVista('menu');
+  calificarEl('calificar-panel')?.setAttribute('aria-labelledby', 'calificanos-titulo');
+  calificarMostrarPanel();
+}
+
+// "Hice un pedido": abre la calificación del primer pedido de este celular que ya
+// está entregado y sin calificar (lo decide el servidor); si no hay, avisa.
+async function calificanosBuscarPedido() {
+  const boton = calificarEl('calificanos-pedido');
+  if (boton) boton.disabled = true;
+  try {
+    for (const item of calificarLeerGuardados().slice(0, 3)) {
+      let info;
+      try { info = await calificarConsultar(item.id); } catch (e) { continue; }
+      const estado = info && info.estado;
+      if (estado === 'ok') {
+        calificarAbrirPanel(item.id, info);
+        return;
+      }
+      if (CALIFICAR_ESTADOS_FINALES.includes(estado)) calificarOlvidarPedido(item.id);
+    }
+    calificarMostrarMensaje(
+      'i',
+      'Todavía no hay nada para calificar',
+      'Cuando te entreguemos tu pedido te avisamos para que lo califiques.',
+      '',
+      ''
+    );
+    calificarEl('calificar-panel')?.setAttribute('aria-labelledby', 'calificar-mensaje-titulo');
+  } finally {
+    if (boton) boton.disabled = false;
+  }
+}
+
+function calificanosIniciar() {
+  calificarEl('btn-calificanos')?.addEventListener('click', calificanosAbrir);
+  calificarEl('calificanos-local')?.addEventListener('click', () => calificanosPaso('sucursal'));
+  calificarEl('calificanos-volver')?.addEventListener('click', () => calificanosPaso('origen'));
+  calificarEl('calificanos-pedido')?.addEventListener('click', () => {
+    calificanosBuscarPedido().catch(() => {
+      calificarMostrarEstado('error');
+    });
+  });
+  document.querySelectorAll('[data-calificanos-sucursal]').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      const id = boton.dataset.calificanosSucursal;
+      if (Object.prototype.hasOwnProperty.call(MESA_SUCURSALES, id)) mesaPrepararForm(id, null);
+    });
+  });
+}
+
 function calificarIniciar() {
   try {
+    calificanosIniciar();
     calificarCrearEstrellas(calificarEl('mesa-comida'), 'comida', false, mesaEstado);
     calificarCrearEstrellas(calificarEl('mesa-atencion'), 'atencion', false, mesaEstado);
     calificarEl('mesa-form')?.addEventListener('submit', mesaEnviar);

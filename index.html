@@ -118,13 +118,16 @@
 
   <nav class="navbar">
     <img src="assets/logo.webp" alt="Logo Piedra Mora" class="logo-chico" data-marca-alt="Logo">
-    <a href="https://www.instagram.com/piedramora.cta/" class="btn-instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Piedra Mora" data-instagram="navbar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-        <rect x="3" y="3" width="18" height="18" rx="5"></rect>
-        <circle cx="12" cy="12" r="4"></circle>
-        <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor"></circle>
-      </svg>
-    </a>
+    <div class="navbar-acciones">
+      <button type="button" id="btn-calificanos" class="btn-calificanos" aria-haspopup="dialog">Calificanos</button>
+      <a href="https://www.instagram.com/piedramora.cta/" class="btn-instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Piedra Mora" data-instagram="navbar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <rect x="3" y="3" width="18" height="18" rx="5"></rect>
+          <circle cx="12" cy="12" r="4"></circle>
+          <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor"></circle>
+        </svg>
+      </a>
+    </div>
   </nav>
 
   <header class="hero">
@@ -720,6 +723,33 @@
   <div id="calificar-panel" class="calificar-panel" role="dialog" aria-modal="true" aria-labelledby="calificar-titulo" hidden tabindex="-1">
     <button type="button" id="calificar-cerrar" class="calificar-x" aria-label="Cerrar">&times;</button>
 
+    <!-- Vista: menu del boton "Calificanos" del header -->
+    <div id="calificanos-menu" class="calificanos-menu" hidden>
+      <h3 id="calificanos-titulo" class="calificar-titulo">Calificanos</h3>
+      <div id="calificanos-paso-origen">
+        <p class="calificar-ayuda calificanos-intro">Contanos cómo te fue. ¿Qué querés calificar?</p>
+        <button type="button" id="calificanos-local" class="calificanos-opcion">
+          <strong>Comí en el local</strong>
+          <span>Calificá tu visita</span>
+        </button>
+        <button type="button" id="calificanos-pedido" class="calificanos-opcion">
+          <strong>Hice un pedido</strong>
+          <span>Calificá un pedido que ya te entregamos</span>
+        </button>
+      </div>
+      <div id="calificanos-paso-sucursal" hidden>
+        <p class="calificar-ayuda calificanos-intro">¿En qué sucursal comiste?</p>
+        <button type="button" class="calificanos-opcion" data-calificanos-sucursal="maestro-quiroga">
+          <strong>Maestro Quiroga</strong>
+        </button>
+        <button type="button" class="calificanos-opcion" data-calificanos-sucursal="intendente-lascano">
+          <strong>Oeste</strong>
+          <span>Intendente Lascano</span>
+        </button>
+        <button type="button" id="calificanos-volver" class="calificanos-volver">&larr; Volver</button>
+      </div>
+    </div>
+
     <!-- Vista: formulario -->
     <form id="calificar-form" class="calificar-form" novalidate>
       <h3 id="calificar-titulo" class="calificar-titulo">Calificá tu pedido</h3>
@@ -753,7 +783,7 @@
     <form id="mesa-form" class="calificar-form" novalidate hidden>
       <h3 id="mesa-titulo" class="calificar-titulo">Calificá tu visita</h3>
       <p id="mesa-sucursal" class="calificar-numero"></p>
-      <p class="calificar-fidelidad">Calificá y sumá medio punto de fidelidad &#11088;</p>
+      <p id="mesa-aviso" class="calificar-fidelidad">Calificá y sumá medio punto de fidelidad &#11088;</p>
 
       <div class="calificar-grupo">
         <label for="mesa-telefono" class="calificar-label">Tu teléfono <span class="calificar-req">(obligatorio)</span></label>

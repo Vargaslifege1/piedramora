@@ -117,6 +117,47 @@ body {
   outline-offset: 0;
 }
 
+/* Acciones de la derecha del navbar: botón "Calificanos" + Instagram */
+.navbar-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-calificanos {
+  min-height: 44px;
+  padding: 0 16px;
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.18s ease, border-color 0.18s ease;
+}
+
+.btn-calificanos:hover {
+  opacity: 0.75;
+  border-color: #fff;
+}
+
+.btn-calificanos:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 380px) {
+  .btn-calificanos {
+    padding: 0 12px;
+    font-size: 0.82rem;
+  }
+  .navbar-acciones { gap: 4px; }
+}
+
 .logo-chico {
   height: 48px;
   width: auto;
@@ -5563,7 +5604,45 @@ body.confirmacion-abierta {
 }
 .calificar-input:focus-visible { outline: 2px solid var(--color-dorado); outline-offset: 1px; }
 .calificar-input.con-error { border-color: #ff6b6b; }
-#mesa-form[hidden], #calificar-mensaje-progreso[hidden] { display: none; }
+#mesa-form[hidden], #calificar-mensaje-progreso[hidden],
+.calificanos-menu[hidden], .calificanos-menu [hidden] { display: none; }
+
+/* Menú del botón "Calificanos" */
+.calificanos-intro { margin: 0 0 12px; font-size: 0.92rem; }
+.calificanos-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 56px;
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  background: var(--color-card);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: var(--color-texto);
+  font-family: 'Inter', sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.calificanos-opcion strong { font-size: 1rem; font-weight: 700; }
+.calificanos-opcion span { color: var(--color-texto-suave); font-size: 0.82rem; }
+.calificanos-opcion:hover { border-color: var(--color-dorado); }
+.calificanos-opcion:focus-visible { outline: 2px solid var(--color-dorado); outline-offset: 2px; }
+.calificanos-opcion:disabled { opacity: 0.6; cursor: wait; }
+.calificanos-volver {
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  color: var(--color-texto-suave);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.calificanos-volver:hover { color: var(--color-texto); }
+.calificanos-volver:focus-visible { outline: 2px solid var(--color-dorado); outline-offset: 2px; }
 .calificar-contador { text-align: right; }
 
 .calificar-fidelidad {
