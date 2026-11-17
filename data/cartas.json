@@ -1095,7 +1095,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_muzzarella"
     },
     {
       "id": "pizza_media_especial",
@@ -1113,7 +1114,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_especial"
     },
     {
       "id": "pizza_media_napolitana",
@@ -1131,7 +1133,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_napolitana"
     },
     {
       "id": "pizza_media_fugazzeta",
@@ -1149,7 +1152,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_fugazzeta"
     },
     {
       "id": "pizza_media_fugazzeta_provolone",
@@ -1167,7 +1171,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_fugazzeta_provolone"
     },
     {
       "id": "pizza_media_calabresa",
@@ -1185,7 +1190,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_calabresa"
     },
     {
       "id": "pizza_media_rucula",
@@ -1203,7 +1209,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_rucula"
     },
     {
       "id": "pizza_media_palmito_golf",
@@ -1221,7 +1228,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_palmito_golf"
     },
     {
       "id": "pizza_media_roquefort",
@@ -1239,7 +1247,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_roquefort"
     },
     {
       "id": "pizza_media_tropical",
@@ -1257,7 +1266,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_tropical"
     },
     {
       "id": "pizza_media_argentina",
@@ -1275,7 +1285,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_argentina"
     },
     {
       "id": "pizza_media_ternera",
@@ -1293,7 +1304,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_ternera"
     },
     {
       "id": "pizza_media_pollo",
@@ -1311,7 +1323,8 @@
       },
       "agotado": false,
       "agotado_fecha": null,
-      "agotado_hasta_nuevo_aviso": false
+      "agotado_hasta_nuevo_aviso": false,
+      "media_de": "pizza_pollo"
     },
     {
       "id": "bebida_agua",

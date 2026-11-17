@@ -1821,6 +1821,65 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
   transform: scale(1.03);
 }
 
+/* Selector "Entera | Media" de la tarjeta de pizza */
+.carta-media-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 200px;
+}
+
+.carta-media-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 44px;
+  padding: 4px 8px;
+  background: #222;
+  color: var(--color-texto);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-premium), border-color 0.2s var(--ease-premium);
+}
+
+.carta-media-opcion-nombre {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.carta-media-opcion-precio {
+  font-size: 0.74rem;
+  font-weight: 600;
+  opacity: 0.85;
+  line-height: 1.1;
+}
+
+.carta-media-opcion--activa {
+  background: var(--color-rojo);
+  border-color: var(--color-rojo);
+}
+
+.carta-media-opcion--activa .carta-media-opcion-precio {
+  opacity: 1;
+}
+
+.carta-media-opcion:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.carta-media-opcion:focus-visible {
+  outline: 2px solid var(--color-dorado);
+  outline-offset: 2px;
+}
+
 .selector-cantidad {
   display: flex;
   align-items: center;
