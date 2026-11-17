@@ -2826,6 +2826,7 @@ function renderProductosCategoria(categoria) {
       if (tipoOferta) card.classList.add(`carta-oferta-${tipoOferta}`);
     }
     if (agotado) card.classList.add('carta-producto-agotado');
+    if (media) card.classList.add('carta-producto-con-media');
 
     const fotoWrap = document.createElement('div');
     fotoWrap.className = 'carta-producto-foto-wrap-nuevo';

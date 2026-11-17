@@ -3648,17 +3648,20 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
 /* Fila con rótulo (tarjetas con Entera/Media): mismas medidas y alineación en ambas filas */
 .carta-producto-lineas-carrito .linea-config-carrito.linea-config-con-rotulo {
   box-sizing: border-box;
+  flex-wrap: wrap; /* si no entra todo, el rótulo queda arriba y los controles abajo */
   min-height: 52px;
   padding: 4px 6px 4px 10px;
-  gap: 6px;
+  gap: 2px 6px;
 }
 
+/* El rótulo tiene ancho propio: nunca se corta ni lo tapan los controles */
 .linea-config-con-rotulo .linea-config-info {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: 56px;
 }
 
 .linea-config-rotulo {
+  display: block;
   color: #f5f5f0;
   font-size: 0.82rem;
   font-weight: 700;
@@ -3666,8 +3669,11 @@ box-shadow:0 8px 30px rgba(0,0,0,.35);
   white-space: nowrap;
 }
 
+/* Los controles ocupan solo el espacio restante y se alinean a la derecha */
 .linea-config-con-rotulo .linea-config-acciones {
-  gap: 6px;
+  flex: 0 1 auto;
+  max-width: 100%;
+  gap: 4px;
   margin-left: auto;
 }
 
@@ -5386,5 +5392,14 @@ body.confirmacion-abierta {
 @media (max-width: 480px) {
   .badge-cercana:not([hidden]) ~ .sucursal-foto-wrap .sucursal-modalidad {
     top: 46px;
+  }
+}
+
+/* Tarjeta con selector Entera/Media en celular: el bloque de acciones usa todo el ancho de la tarjeta */
+@media (max-width: 480px) {
+  .carta-producto-card-nuevo.carta-producto-con-media {
+    grid-template-areas:
+      "foto info"
+      "acciones acciones" !important;
   }
 }
