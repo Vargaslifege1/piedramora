@@ -36,6 +36,7 @@ Vigentes (027 pendiente de aplicar: `crear_pedido` y `valida_cupon` nuevas): `cr
 
 ## Últimos cambios
 
+- 2026-11-17: medias pizzas (rama `feature/media-pizza`): 13 productos `pizza_media_<x>` ("1/2 <NOMBRE>", categoría pizza, sin oferta, así que reciben el cupón) con sucursales/foto/descripción copiadas de su entera. Migración 029 (NO aplicada; aplicar sin nadie editando la carta y recargar el admin después) + `data/cartas.json`. **Precio de mesa PROVISORIO = delivery** (el dueño pasa los reales). Agotado por sucursal sin cambios (`agotados_sucursal`).
 - 2026-11-17: ícono de Instagram en el header (rama `feature/instagram-header`): navbar de la portada y header de la carta, link a instagram.com/piedramora.cta, SVG inline, 44x44, evento GA `click_instagram` (param `ubicacion`). Sin cambios en `_headers` (no hay CSP que bloquee el link). Sin SQL.
 - 2026-11-17: ajustes de diseño del ícono de Instagram: más separación respecto de la × en la carta (gap 14px, ambos 44px, ícono 20px ahí), hover/focus solo cambia color (180 ms) sin glow. Se quitó el resplandor (`text-shadow`/`drop-shadow`) de "PIEDRA MORA" del hero, del logo grande del hero, del logo de la navbar y del logo del header de la carta. Solo CSS.
 - 2026-11-17: ícono de Instagram blanco (#fff), hover/focus solo opacidad 1 a .75; queda solo en la navbar de la home (se quitó del header de la carta junto con su wrapper y el gap; la × volvió a su tamaño original). Solo HTML/CSS.

@@ -1080,6 +1080,240 @@
       "agotado_hasta_nuevo_aviso": false
     },
     {
+      "id": "pizza_media_muzzarella",
+      "categoria": "pizza",
+      "nombre": "1/2 MUZZARELLA",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, huevo, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 7000,
+        "mesa": 7000
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_especial",
+      "categoria": "pizza",
+      "nombre": "1/2 ESPECIAL",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, jamón, huevo, morrones glaseados, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 8500,
+        "mesa": 8500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_napolitana",
+      "categoria": "pizza",
+      "nombre": "1/2 NAPOLITANA",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, rodajas de tomate, huevo rallado, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 8500,
+        "mesa": 8500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_fugazzeta",
+      "categoria": "pizza",
+      "nombre": "1/2 FUGAZZETA",
+      "descripcion": "Media pizza. Muzzarella, cebolla salteada, ají, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 8500,
+        "mesa": 8500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_fugazzeta_provolone",
+      "categoria": "pizza",
+      "nombre": "1/2 FUGAZZETA CON PROVOLONE",
+      "descripcion": "Media pizza. Muzzarella, cebolla salteada, provolone, ají, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 9500,
+        "mesa": 9500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_calabresa",
+      "categoria": "pizza",
+      "nombre": "1/2 CALABRESA",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, calabresa y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 10000,
+        "mesa": 10000
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_rucula",
+      "categoria": "pizza",
+      "nombre": "1/2 RUCULA",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, jamón crudo, rúcula, queso reggianito y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 11500,
+        "mesa": 11500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_palmito_golf",
+      "categoria": "pizza",
+      "nombre": "1/2 PALMITO CON SALSA GOLF",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, palmitos, morrones glaseados, salsa golf, huevo y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 11500,
+        "mesa": 11500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_roquefort",
+      "categoria": "pizza",
+      "nombre": "1/2 ROQUEFORT",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, queso azul y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 9500,
+        "mesa": 9500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_tropical",
+      "categoria": "pizza",
+      "nombre": "1/2 TROPICAL",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, jamón, rodajas de ananá, azúcar rubia, cerezas y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 11500,
+        "mesa": 11500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_argentina",
+      "categoria": "pizza",
+      "nombre": "1/2 ARGENTINA",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, papas fritas, huevos a la plancha y mix de aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 10500,
+        "mesa": 10500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_ternera",
+      "categoria": "pizza",
+      "nombre": "1/2 TERNERA",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella, ternera, morrones glaseados, huevo, ají, orégano y aceitunas.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 11500,
+        "mesa": 11500
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
+      "id": "pizza_media_pollo",
+      "categoria": "pizza",
+      "nombre": "1/2 POLLO",
+      "descripcion": "Media pizza. Salsa de tomate, muzzarella y escabeche de pollo.",
+      "foto": "assets/menu-pizzas.webp",
+      "sucursales": [
+        "maestro-quiroga",
+        "intendente-lascano"
+      ],
+      "precios": {
+        "delivery": 9000,
+        "mesa": 9000
+      },
+      "agotado": false,
+      "agotado_fecha": null,
+      "agotado_hasta_nuevo_aviso": false
+    },
+    {
       "id": "bebida_agua",
       "categoria": "bebida",
       "nombre": "AGUA MINERAL",
