@@ -6860,6 +6860,42 @@
       item.appendChild(p);
     }
 
+    // Cliente del pedido asociado (el join respeta RLS: el encargado solo ve su sucursal).
+    const nombreCliente = String((pedido && pedido.cliente_nombre) || '').trim();
+    const telCrudo = pedido && pedido.cliente_telefono;
+    const telFormateado = telCrudo ? (PM.formatearTelefonoAR(telCrudo) || String(telCrudo)) : '';
+    const urlChat = telCrudo ? PM.urlWhatsappCliente(telCrudo) : '';
+    if (nombreCliente || telFormateado) {
+      const fila2 = document.createElement('div');
+      fila2.className = 'admin-cal-cliente';
+      const quien = document.createElement('p');
+      quien.className = 'admin-cal-quien';
+      quien.textContent = [nombreCliente, telFormateado].filter(Boolean).join(' · ');
+      fila2.appendChild(quien);
+      if (urlChat) {
+        const texto = `Hola${nombreCliente ? ` ${nombreCliente.split(/\s+/)[0]}` : ''}, te escribimos de Piedra Mora por tu calificación. \u{1F64F}`;
+        const enlace = document.createElement('a');
+        enlace.className = 'btn-secundario admin-cal-whatsapp';
+        enlace.href = `${urlChat}?text=${encodeURIComponent(texto)}`;
+        enlace.target = '_blank';
+        enlace.rel = 'noopener';
+        enlace.textContent = 'WhatsApp';
+        fila2.appendChild(enlace);
+      }
+      item.appendChild(fila2);
+    }
+
+    // Nota baja (3 o menos en comida o entrega): rótulo y borde sutil.
+    const notaBaja = (Number(fila.comida) <= 3)
+      || (fila.entrega !== null && fila.entrega !== undefined && Number(fila.entrega) <= 3);
+    if (notaBaja) {
+      item.classList.add('nota-baja');
+      const rotulo = document.createElement('span');
+      rotulo.className = 'admin-cal-rotulo-baja';
+      rotulo.textContent = 'Nota baja';
+      notas.appendChild(rotulo);
+    }
+
     const cuando = new Date(fila.created_at);
     const fecha = Number.isNaN(cuando.getTime()) ? '' : cuando.toLocaleString('es-AR', {
       timeZone: ZONA_AR, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
@@ -6893,7 +6929,7 @@
   function consultarPaginaCalificaciones(filtro, desdeFila) {
     let consulta = cliente
       .from('calificaciones')
-      .select('id,created_at,sucursal_id,comida,entrega,comentario,pedido_id,pedidos(numero_orden,modalidad)')
+      .select('id,created_at,sucursal_id,comida,entrega,comentario,pedido_id,pedidos(numero_orden,modalidad,cliente_nombre,cliente_telefono)')
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .range(desdeFila, desdeFila + CAL_PAGINA - 1);

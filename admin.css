@@ -3117,6 +3117,11 @@ p {
 .admin-cal-meta { margin: 0; font-size: 0.8rem; opacity: 0.75; overflow-wrap: anywhere; }
 .admin-cal-comentario { margin: 0; font-size: 0.92rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .admin-cal-sin-comentario { margin: 0; font-size: 0.85rem; opacity: 0.6; font-style: italic; }
+.admin-cal-item.nota-baja { border-color: var(--admin-rojo); border-left-width: 4px; }
+.admin-cal-rotulo-baja { margin-left: auto; padding: 1px 8px; border: 1px solid var(--admin-rojo); border-radius: 999px; color: var(--admin-rojo); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+.admin-cal-cliente { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.admin-cal-quien { margin: 0; font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.admin-cal-whatsapp { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px; text-decoration: none; }
 .admin-cal-mas { display: flex; justify-content: center; margin-top: 12px; }
 .admin-cal-mas .btn-secundario { min-height: 44px; }
 .admin-stats-filtros { display: grid; gap: 12px; margin-bottom: 12px; }
