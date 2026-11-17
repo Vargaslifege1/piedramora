@@ -2733,17 +2733,24 @@ function crearBotonEliminarLinea(linea, clase = 'btn-eliminar-linea') {
   return btn;
 }
 
-function crearLineaCarrito(linea) {
+// rotulo (opcional): en tarjetas con selector Entera/Media, todas las filas llevan rótulo y comparten estructura.
+function crearLineaCarrito(linea, rotulo) {
   const wrap = document.createElement('div');
   wrap.className = 'linea-config-carrito';
   if (linea.noDisponible) wrap.classList.add('linea-config-no-disponible');
   wrap.dataset.lineaId = linea.id;
 
   const especificaciones = obtenerEspecificacionesLinea(linea);
-  // Línea de una media pizza: se rotula "Media" para distinguirla de la entera en la misma tarjeta.
-  const prodLinea = CARTAS_UNIFICADAS.productos.find(p => p && p.id === linea.productoBaseId);
-  if (prodLinea && prodLinea.media_de) especificaciones.unshift('Media');
-  if (especificaciones.length > 0) {
+  if (rotulo) {
+    wrap.classList.add('linea-config-con-rotulo');
+    const info = document.createElement('div');
+    info.className = 'linea-config-info';
+    const textoRotulo = document.createElement('span');
+    textoRotulo.className = 'linea-config-rotulo';
+    textoRotulo.textContent = rotulo;
+    info.appendChild(textoRotulo);
+    wrap.appendChild(info);
+  } else if (especificaciones.length > 0) {
     const info = document.createElement('div');
     info.className = 'linea-config-info';
 
@@ -2920,9 +2927,10 @@ function renderProductosCategoria(categoria) {
 
     if (!esCartaSoloLectura()) {
       // Líneas de la entera y de su media: se muestran juntas en la tarjeta de la entera.
+      // Orden fijo: Entera arriba, Media abajo. Con media, cada fila lleva su rótulo.
       const lineasEnCarrito = [
-        ...obtenerItemsDeProductoEnCarrito(prodEntera.id),
-        ...(media ? obtenerItemsDeProductoEnCarrito(media.id) : [])
+        ...obtenerItemsDeProductoEnCarrito(prodEntera.id).map(l => ({ linea: l, rotulo: media ? 'Entera' : '' })),
+        ...(media ? obtenerItemsDeProductoEnCarrito(media.id).map(l => ({ linea: l, rotulo: 'Media' })) : [])
       ];
       const cantidadTotal = obtenerCantidadTotalEnCarrito(prod.id);
       const contenedorControles = document.createElement('div');
@@ -2933,8 +2941,8 @@ function renderProductosCategoria(categoria) {
         lineasWrap.className = 'lineas-desglosadas-wrap';
         lineasWrap.classList.add('carta-producto-lineas-carrito');
 
-        lineasEnCarrito.forEach(linea => {
-          lineasWrap.appendChild(crearLineaCarrito(linea));
+        lineasEnCarrito.forEach(({ linea, rotulo }) => {
+          lineasWrap.appendChild(crearLineaCarrito(linea, rotulo));
         });
 
         if (productoPermitePersonalizacion(prod) && !agotado) {
