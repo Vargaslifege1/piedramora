@@ -96,9 +96,10 @@ body {
   flex: 0 0 auto;
   width: 44px;
   height: 44px;
-  color: var(--color-dorado);
+  color: #fff;
   border-radius: 50%;
-  transition: color 0.18s ease;
+  opacity: 1;
+  transition: opacity 0.18s ease;
 }
 
 .btn-instagram svg {
@@ -108,31 +109,12 @@ body {
 
 .btn-instagram:hover,
 .btn-instagram:focus-visible {
-  color: var(--color-texto);
+  opacity: 0.75;
 }
 
 .btn-instagram:focus-visible {
-  outline: 2px solid var(--color-dorado);
+  outline: 2px solid #fff;
   outline-offset: 0;
-}
-
-/* Header de la carta: ícono y × separados, ambos con área táctil de 44px */
-.carta-header-acciones {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 0 0 auto;
-}
-
-.carta-header-acciones .btn-instagram svg {
-  width: 20px;
-  height: 20px;
-}
-
-.carta-header-acciones .carta-cerrar {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
 }
 
 .logo-chico {
