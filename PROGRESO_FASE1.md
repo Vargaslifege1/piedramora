@@ -21,9 +21,10 @@ Aplicadas en la base real: 000 a 026.
 - 021 seguridad de envío (coordenadas) y trigger de estados · 022 estadísticas y CRM (solo lectura)
 - 023 teléfonos a 10 dígitos y fusión de clientes · 024 horarios en servidor y pedidos programados (`crear_pedido` de 16 parámetros)
 - 025 modalidades por turno y excepciones por fecha · 026 `crm_clientes` busca por teléfono normalizado
+- 027 cupones no acumulables (no aplicada): base sin promo, sin medio de pago con descuento ni premio; `valida_cupon` nueva con `p_items` · 028 elimina la `valida_cupon` vieja (no aplicada; aplicar DESPUÉS de publicar el main.js nuevo)
 - 099 rollback opcional de la carta (no se ejecuta salvo emergencia)
 
-Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026.
+Vigentes (027 pendiente de aplicar: `crear_pedido` y `valida_cupon` nuevas): `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `sucursal_estado` = 025; `crm_clientes` = 026.
 
 ## Pendientes
 
@@ -34,6 +35,8 @@ Vigentes: `crear_pedido` = 025 (16 parámetros); `pm_calcular_pedido` = 021; `su
 - Backups fuera del repo: `C:\Users\PC\Documents\backups-piedramora\` (antes-de-carta, carta-v1, carta-fase0); `backup-*/` está en `.gitignore`.
 
 ## Últimos cambios
+
+- 2026-11-17: cupones no acumulables (rama `feature/cupon-no-acumulable`): migraciones 027/028 (NO aplicadas). El cupón descuenta solo sobre productos sin promo (`categoria promo` o `en_oferta`) y se rechaza con promos solas, medio de pago con descuento o premio. `valida_cupon` recibe items y calcula en el servidor; main.js muestra la etiqueta del servidor y bloquea premios con cupón; admin sin la casilla "acumulable con pago" (la columna queda).
 
 - 2026-11-09: auditoría pre-publicación: rutas relativas OK, SEO (og:image absoluta, robots sin admin, sitemap), `_headers` sin CSP. Pendiente del dueño: dominio/URLs (TODO en index.html, robots, sitemap) y URL Configuration de Supabase.
 - 2026-11-09: sitio: la pastilla de modalidad indica cuándo aplica ("Hoy/Mañana/El DD/MM solo delivery|retiro"); en pantallas angostas baja de línea si está "Más cerca de vos".

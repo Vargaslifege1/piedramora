@@ -123,7 +123,6 @@
     cuponModalidades: document.getElementById('cupon-modalidades'),
     cuponActivo: document.getElementById('cupon-activo'),
     cuponPrimeraCompra: document.getElementById('cupon-primera-compra'),
-    cuponAcumulable: document.getElementById('cupon-acumulable'),
     cuponNotaUsos: document.getElementById('cupon-nota-usos'),
     cuponFormEstado: document.getElementById('cupon-form-estado'),
     btnGuardarCupon: document.getElementById('btn-guardar-cupon'),
@@ -4635,7 +4634,6 @@
     el.cuponModalidades.value = editando ? unico(cupon.modalidades_permitidas) : '';
     el.cuponActivo.checked = editando ? !!cupon.activo : true;
     el.cuponPrimeraCompra.checked = editando ? !!cupon.primera_compra : false;
-    el.cuponAcumulable.checked = editando ? !!cupon.acumulable_con_pago : false;
     if (el.cuponNotaUsos) {
       el.cuponNotaUsos.hidden = !(editando && resumenUsosCupon(cupon.id).cantidad > 0);
     }
@@ -4737,8 +4735,7 @@
       compra_minima: compra,
       primera_compra: el.cuponPrimeraCompra.checked,
       sucursales_permitidas: el.cuponSucursales.value ? [el.cuponSucursales.value] : null,
-      modalidades_permitidas: el.cuponModalidades.value ? [el.cuponModalidades.value] : null,
-      acumulable_con_pago: el.cuponAcumulable.checked
+      modalidades_permitidas: el.cuponModalidades.value ? [el.cuponModalidades.value] : null
     };
 
     el.btnGuardarCupon.disabled = true;
