@@ -70,6 +70,7 @@
         <button type="button" class="admin-tab" data-admin-vista="fidelidad" hidden>Fidelidad</button>
         <button type="button" class="admin-tab" data-admin-vista="estadisticas" hidden>Estadísticas</button>
         <button type="button" class="admin-tab" data-admin-vista="clientes" hidden>Clientes</button>
+        <button type="button" class="admin-tab" data-admin-vista="calificaciones">Calificaciones</button>
         <button type="button" class="admin-tab" data-admin-vista="horarios" hidden>Horarios</button>
         <button type="button" class="admin-tab" data-admin-vista="disponibilidad" hidden>Disponibilidad</button>
       </nav>
@@ -476,6 +477,48 @@
         </section>
         </div>
       </section>
+      <section id="admin-vista-calificaciones" class="admin-vista" hidden>
+        <div class="admin-pedidos-head">
+          <div>
+            <p class="admin-eyebrow">Calificaciones</p>
+            <h2>Opiniones de los clientes</h2>
+            <p class="admin-ayuda">Solo las ven el dueño y cada encargado (de su sucursal). Los clientes no las ven.</p>
+          </div>
+          <div class="admin-pedidos-acciones">
+            <button type="button" id="btn-cal-recargar" class="btn-secundario">Recargar</button>
+          </div>
+        </div>
+
+        <section class="admin-card admin-stats-filtros">
+          <label class="admin-campo">
+            <span>Sucursal</span>
+            <select id="cal-sucursal"><option value="">Todas</option></select>
+          </label>
+          <div class="admin-stats-periodos" role="group" aria-label="Período">
+            <button type="button" class="btn-secundario" data-cal-periodo="todo">Todo</button>
+            <button type="button" class="btn-secundario" data-cal-periodo="7">7 días</button>
+            <button type="button" class="btn-secundario activa" data-cal-periodo="30">30 días</button>
+            <button type="button" class="btn-secundario" data-cal-periodo="custom">Personalizado</button>
+          </div>
+          <div id="cal-rango" class="admin-stats-rango" hidden>
+            <label class="admin-campo"><span>Desde</span><input id="cal-desde" type="date"></label>
+            <label class="admin-campo"><span>Hasta</span><input id="cal-hasta" type="date"></label>
+          </div>
+        </section>
+
+        <p id="cal-estado" class="admin-estado" aria-live="polite"></p>
+        <div id="cal-aviso" class="admin-aviso" hidden></div>
+        <div id="cal-contenido" hidden>
+          <div id="cal-tarjetas" class="admin-stats-tarjetas"></div>
+          <h3 class="admin-cal-subtitulo">Comentarios y notas (más nuevas primero)</h3>
+          <div id="cal-lista" class="admin-cal-lista"></div>
+          <p id="cal-vacio" class="admin-envios-vacio" hidden>No hay calificaciones en este período.</p>
+          <div class="admin-cal-mas">
+            <button type="button" id="btn-cal-mas" class="btn-secundario" hidden>Cargar 50 más</button>
+          </div>
+        </div>
+      </section>
+
       <section id="admin-vista-estadisticas" class="admin-vista" hidden>
         <div class="admin-pedidos-head">
           <div>

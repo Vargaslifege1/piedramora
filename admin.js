@@ -213,6 +213,8 @@
 
   let pedidos = [];
   let pedidosCargados = false;
+  // Pedidos que ya tienen calificación (para no ofrecer "Pedir calificación").
+  const calificadosPedidos = new Set();
   let pedidosCargando = false;
   let pedidoAbiertoId = null;
   let pedidosCanal = null;
@@ -674,6 +676,7 @@
       if (!SUCURSALES_NOMBRES[id]) SUCURSALES_NOMBRES[id] = id;
     });
     poblarFiltroSucursalesPedidos();
+    poblarFiltroSucursalesCalificaciones();
     poblarSelectSucursalesEnvios();
     poblarSelectAgotados();
   }
@@ -784,6 +787,7 @@
     });
 
     poblarFiltroSucursalesPedidos();
+    poblarFiltroSucursalesCalificaciones();
     poblarSelectSucursalesEnvios();
     poblarSelectAgotados();
 
@@ -2754,6 +2758,9 @@
       botones.push(`<button type="button" class="btn-primario" data-pedido-accion="avanzar">${PM.escaparHtml(etiquetaBotonAvance(pedido))}</button>`);
     }
     botones.push('<button type="button" class="btn-secundario" data-pedido-accion="imprimir">Imprimir</button>');
+    if (pedidoPuedePedirCalificacion(pedido)) {
+      botones.push('<button type="button" class="btn-secundario" data-pedido-accion="calificacion">Pedir calificación</button>');
+    }
     if (mostrarBotonPagado(pedido)) {
       botones.push('<button type="button" class="btn-secundario" data-pedido-accion="pagado">Marcar pagado</button>');
     }
@@ -3067,7 +3074,7 @@
     }
 
     try {
-      const camposBase = 'id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas,programado_para';
+      const camposBase = 'id,numero_orden,created_at,sucursal_id,modalidad,estado,cliente_nombre,cliente_telefono,direccion,lat,lng,zona_envio,items_snapshot,subtotal,descuento,costo_envio,total,metodo_pago,notas,programado_para,entregado_en,fidelidad_contado';
       let respuesta = await cliente
         .from('pedidos')
         .select(`${camposBase},pagado,pagado_en`)
@@ -3091,6 +3098,7 @@
 
       pedidos = Array.isArray(data) ? data : [];
       pedidosCargados = true;
+      await cargarCalificadosPedidos();
       renderPedidos();
       actualizarBadgePedidos();
       actualizarAlertaPedidos();
@@ -3127,14 +3135,18 @@
         .from('pedidos')
         .update({ estado: nuevoEstado })
         .eq('id', id)
-        .select('id,estado')
+        .select('id,estado,entregado_en')
         .single();
 
       if (error) throw error;
 
       const indice = pedidos.findIndex(item => String(item.id) === String(id));
       if (indice >= 0) {
-        pedidos[indice] = { ...pedidos[indice], estado: (data && data.estado) || nuevoEstado };
+        pedidos[indice] = {
+          ...pedidos[indice],
+          estado: (data && data.estado) || nuevoEstado,
+          entregado_en: (data && data.entregado_en) || pedidos[indice].entregado_en || null
+        };
         actualizarTarjetaEnVista(pedidos[indice]);
       }
       actualizarBadgePedidos();
@@ -3171,7 +3183,74 @@
     }
     if (accion === 'imprimir') {
       imprimirPedido(id);
+      return;
     }
+    if (accion === 'calificacion') {
+      await pedirCalificacionPedido(pedido);
+    }
+  }
+
+  // ===== Pedir calificación por WhatsApp (031) =====
+  const CALIFICAR_PLAZO_MS = 7 * 24 * 60 * 60 * 1000; // el servidor es quien valida el plazo real
+
+  function pedidoPuedePedirCalificacion(pedido) {
+    if (!pedido || pedido.estado !== 'entregado') return false;
+    if (calificadosPedidos.has(String(pedido.id))) return false;
+    if (!PM.normalizarTelefonoAR(pedido.cliente_telefono)) return false;
+    const base = Date.parse(pedido.entregado_en || pedido.created_at);
+    return Number.isFinite(base) && Date.now() - base <= CALIFICAR_PLAZO_MS;
+  }
+
+  // Marca los pedidos entregados (últimos 7 días) que ya tienen calificación.
+  async function cargarCalificadosPedidos() {
+    try {
+      const limite = Date.now() - CALIFICAR_PLAZO_MS;
+      const ids = pedidos
+        .filter(p => p.estado === 'entregado' && Date.parse(p.entregado_en || p.created_at) >= limite)
+        .map(p => String(p.id));
+      calificadosPedidos.clear();
+      if (!ids.length || !cliente) return;
+      const { data, error } = await cliente.from('calificaciones').select('pedido_id').in('pedido_id', ids);
+      if (error) throw error;
+      (data || []).forEach(fila => calificadosPedidos.add(String(fila.pedido_id)));
+    } catch (error) {
+      // Sin esta lista el botón se ofrece igual; si ya estaba calificado, el cliente lo ve en el link.
+      console.warn('No se pudieron consultar las calificaciones de los pedidos:', error);
+    }
+  }
+
+  async function pedirCalificacionPedido(pedido) {
+    if (!pedidoPuedePedirCalificacion(pedido)) {
+      mostrarAvisoPedidos('Este pedido ya no se puede calificar.', 'error');
+      return;
+    }
+    const base = new URL('./', window.location.href);
+    const local = ['localhost', '127.0.0.1', '[::1]', ''].includes(base.hostname);
+    if (local && !await confirmarAccion({
+      titulo: 'Link de prueba',
+      mensaje: 'Estás en un entorno local: el link va a apuntar a esta dirección y el cliente no podría abrirlo. ¿Abrir WhatsApp igual?',
+      textoConfirmar: 'Abrir WhatsApp',
+      textoCancelar: 'Volver'
+    })) return;
+    const link = `${base.origin}${base.pathname}?calificar=${encodeURIComponent(String(pedido.id))}`;
+    const texto = armarMensajeCalificacion(pedido, link);
+    const url = `${PM.urlWhatsappCliente(pedido.cliente_telefono)}?text=${encodeURIComponent(texto)}`;
+    window.open(url, '_blank', 'noopener');
+  }
+
+  // Mensaje de WhatsApp para pedir la calificación. El párrafo del medio punto
+  // solo va si el pedido contó para fidelidad. El link queda en una línea propia.
+  function armarMensajeCalificacion(pedido, link) {
+    const parrafos = [
+      '¡Hola! Esperamos que hayas disfrutado muchísimo tu pedido de Piedra Mora. \u{1F355}\u{2764}\u{FE0F}',
+      'Queremos seguir mejorando para vos. ¿Te tomarías 10 segundos para calificarnos? ¡Cada reseña nos ayuda a crecer!'
+    ];
+    if (pedido && pedido.fidelidad_contado === true) {
+      parrafos.push('Al dejar tu calificación, sumás medio punto extra en tu programa de fidelidad para tu próxima compra. \u{1F31F}');
+    }
+    parrafos.push(`Podés calificar tu experiencia acá:\n${link}`);
+    parrafos.push('¡Gracias por elegirnos!');
+    return parrafos.join('\n\n');
   }
 
   async function marcarPedidoPagado(id, boton) {
@@ -6640,7 +6719,334 @@
     });
   }
 
+  // ===== Pestaña Calificaciones (031) =====
+  // Promedios y totales: los calcula stats_calificaciones en el servidor sobre TODO
+  // el filtro. Solo la lista de comentarios se pagina (50 en 50), y se arma con
+  // nodos DOM + textContent (los comentarios son texto del cliente).
+  const CAL_PAGINA = 50;
+  const calificacionesEstado = { periodo: '30', seq: 0, filas: [], hayMas: false, filtro: null, cargandoMas: false };
+
+  function calEl(id) { return document.getElementById(id); }
+
+  function poblarFiltroSucursalesCalificaciones() {
+    const select = calEl('cal-sucursal');
+    if (!select) return;
+    if (esAdminSucursal()) {
+      select.disabled = true;
+      const nombre = adminSucursalId ? nombreSucursalPedido(adminSucursalId) : 'Sin sucursal asignada';
+      select.textContent = '';
+      const opcion = document.createElement('option');
+      opcion.value = adminSucursalId || '';
+      opcion.textContent = nombre;
+      select.appendChild(opcion);
+      select.value = adminSucursalId || '';
+      return;
+    }
+    select.disabled = false;
+    const actual = select.value;
+    select.textContent = '';
+    const todas = document.createElement('option');
+    todas.value = '';
+    todas.textContent = 'Todas';
+    select.appendChild(todas);
+    Object.keys(SUCURSALES_NOMBRES)
+      .sort((a, b) => SUCURSALES_NOMBRES[a].localeCompare(SUCURSALES_NOMBRES[b], 'es'))
+      .forEach(id => {
+        const op = document.createElement('option');
+        op.value = id;
+        op.textContent = SUCURSALES_NOMBRES[id];
+        select.appendChild(op);
+      });
+    if (actual) select.value = actual;
+  }
+
+  // Límites en hora Argentina; hasta es exclusivo (día siguiente). Cada lado puede ir vacío.
+  function rangoCalificaciones() {
+    const hoy = fechaArgentinaISO(new Date());
+    const p = calificacionesEstado.periodo;
+    let desde = '';
+    let hasta = '';
+    if (p === '7') { desde = sumarDiasISO(hoy, -6); hasta = hoy; }
+    else if (p === '30') { desde = sumarDiasISO(hoy, -29); hasta = hoy; }
+    else if (p === 'custom') {
+      desde = (calEl('cal-desde') || {}).value || '';
+      hasta = (calEl('cal-hasta') || {}).value || '';
+    }
+    return {
+      p_desde: desde ? `${desde}T00:00:00-03:00` : null,
+      p_hasta: hasta ? `${sumarDiasISO(hasta, 1)}T00:00:00-03:00` : null
+    };
+  }
+
+  function avisoCalificaciones(texto) {
+    const aviso = calEl('cal-aviso');
+    if (!aviso) return;
+    aviso.hidden = !texto;
+    aviso.dataset.tipo = 'error';
+    aviso.textContent = texto || '';
+  }
+
+  function mensajeErrorCalificaciones(error) {
+    if (esErrorPermiso(error)) return 'No tenés permiso para hacer esto.';
+    const msg = String((error && error.message) || '');
+    if (msg.includes('731')) return 'El período no puede superar los 731 días.';
+    return 'No se pudieron cargar las calificaciones. Probá de nuevo.';
+  }
+
+  function textoNotaCalificacion(n) {
+    return Number.isFinite(n)
+      ? Number(n).toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+      : '-';
+  }
+
+  function crearTarjetaCalificacion(titulo, valor, sub) {
+    const caja = document.createElement('div');
+    caja.className = 'admin-stats-tarjeta';
+    const t = document.createElement('span');
+    t.className = 'admin-stats-tit';
+    t.textContent = titulo;
+    const v = document.createElement('strong');
+    v.textContent = valor;
+    const s = document.createElement('span');
+    s.className = 'admin-stats-sub';
+    s.textContent = sub || ' ';
+    caja.append(t, v, s);
+    return caja;
+  }
+
+  function renderTarjetasCalificaciones(stats) {
+    const cont = calEl('cal-tarjetas');
+    if (!cont) return;
+    const total = Number(stats.total) || 0;
+    const totalEntrega = Number(stats.total_entrega) || 0;
+    const prom = (valor) => (valor === null || valor === undefined ? '-' : `${textoNotaCalificacion(Number(valor))} / 5`);
+    cont.textContent = '';
+    cont.append(
+      crearTarjetaCalificacion('Comida (promedio)', total ? prom(stats.promedio_comida) : '-', `${total} ${total === 1 ? 'calificación' : 'calificaciones'}`),
+      crearTarjetaCalificacion('Entrega (promedio)', totalEntrega ? prom(stats.promedio_entrega) : '-', `${totalEntrega} con nota de entrega`),
+      crearTarjetaCalificacion('Calificaciones', String(total)),
+      crearTarjetaCalificacion('Con comentario', String(Number(stats.con_comentario) || 0))
+    );
+  }
+
+  function estrellasTexto(n) {
+    const v = Math.max(0, Math.min(5, Number(n) || 0));
+    return '★'.repeat(v) + '☆'.repeat(5 - v);
+  }
+
+  function crearItemCalificacion(fila) {
+    const pedido = Array.isArray(fila.pedidos) ? fila.pedidos[0] : fila.pedidos;
+    const item = document.createElement('article');
+    item.className = 'admin-cal-item';
+
+    const notas = document.createElement('div');
+    notas.className = 'admin-cal-notas';
+    const comida = document.createElement('span');
+    comida.append('Comida ');
+    const estC = document.createElement('span');
+    estC.className = 'admin-cal-estrellas';
+    estC.textContent = estrellasTexto(fila.comida);
+    estC.setAttribute('aria-label', `${fila.comida} de 5`);
+    comida.appendChild(estC);
+    notas.appendChild(comida);
+    if (fila.entrega !== null && fila.entrega !== undefined) {
+      const entrega = document.createElement('span');
+      entrega.append('Entrega ');
+      const estE = document.createElement('span');
+      estE.className = 'admin-cal-estrellas';
+      estE.textContent = estrellasTexto(fila.entrega);
+      estE.setAttribute('aria-label', `${fila.entrega} de 5`);
+      entrega.appendChild(estE);
+      notas.appendChild(entrega);
+    }
+    item.appendChild(notas);
+
+    if (fila.comentario) {
+      const p = document.createElement('p');
+      p.className = 'admin-cal-comentario';
+      p.textContent = fila.comentario; // textContent: nunca innerHTML con texto del cliente
+      item.appendChild(p);
+    } else {
+      const p = document.createElement('p');
+      p.className = 'admin-cal-sin-comentario';
+      p.textContent = 'Sin comentario';
+      item.appendChild(p);
+    }
+
+    // Cliente del pedido asociado (el join respeta RLS: el encargado solo ve su sucursal).
+    const nombreCliente = String((pedido && pedido.cliente_nombre) || '').trim();
+    const telCrudo = pedido && pedido.cliente_telefono;
+    const telFormateado = telCrudo ? (PM.formatearTelefonoAR(telCrudo) || String(telCrudo)) : '';
+    const urlChat = telCrudo ? PM.urlWhatsappCliente(telCrudo) : '';
+    if (nombreCliente || telFormateado) {
+      const fila2 = document.createElement('div');
+      fila2.className = 'admin-cal-cliente';
+      const quien = document.createElement('p');
+      quien.className = 'admin-cal-quien';
+      quien.textContent = [nombreCliente, telFormateado].filter(Boolean).join(' · ');
+      fila2.appendChild(quien);
+      if (urlChat) {
+        const texto = `Hola${nombreCliente ? ` ${nombreCliente.split(/\s+/)[0]}` : ''}, te escribimos de Piedra Mora por tu calificación. \u{1F64F}`;
+        const enlace = document.createElement('a');
+        enlace.className = 'btn-secundario admin-cal-whatsapp';
+        enlace.href = `${urlChat}?text=${encodeURIComponent(texto)}`;
+        enlace.target = '_blank';
+        enlace.rel = 'noopener';
+        enlace.textContent = 'WhatsApp';
+        fila2.appendChild(enlace);
+      }
+      item.appendChild(fila2);
+    }
+
+    // Nota baja (3 o menos en comida o entrega): rótulo y borde sutil.
+    const notaBaja = (Number(fila.comida) <= 3)
+      || (fila.entrega !== null && fila.entrega !== undefined && Number(fila.entrega) <= 3);
+    if (notaBaja) {
+      item.classList.add('nota-baja');
+      const rotulo = document.createElement('span');
+      rotulo.className = 'admin-cal-rotulo-baja';
+      rotulo.textContent = 'Nota baja';
+      notas.appendChild(rotulo);
+    }
+
+    const cuando = new Date(fila.created_at);
+    const fecha = Number.isNaN(cuando.getTime()) ? '' : cuando.toLocaleString('es-AR', {
+      timeZone: ZONA_AR, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+    }).replace(',', '');
+    const meta = document.createElement('p');
+    meta.className = 'admin-cal-meta';
+    meta.textContent = [
+      pedido && pedido.numero_orden ? `Pedido ${pedido.numero_orden}` : 'Pedido',
+      nombreSucursalPedido(fila.sucursal_id),
+      pedido && pedido.modalidad ? etiquetaModalidadPedido(pedido.modalidad) : '',
+      fecha
+    ].filter(Boolean).join(' · ');
+    item.appendChild(meta);
+    return item;
+  }
+
+  function renderListaCalificaciones() {
+    const lista = calEl('cal-lista');
+    const vacio = calEl('cal-vacio');
+    const mas = calEl('btn-cal-mas');
+    if (!lista) return;
+    lista.textContent = '';
+    calificacionesEstado.filas.forEach(fila => lista.appendChild(crearItemCalificacion(fila)));
+    if (vacio) vacio.hidden = calificacionesEstado.filas.length > 0;
+    if (mas) {
+      mas.hidden = !calificacionesEstado.hayMas;
+      mas.disabled = calificacionesEstado.cargandoMas;
+    }
+  }
+
+  function consultarPaginaCalificaciones(filtro, desdeFila) {
+    let consulta = cliente
+      .from('calificaciones')
+      .select('id,created_at,sucursal_id,comida,entrega,comentario,pedido_id,pedidos(numero_orden,modalidad,cliente_nombre,cliente_telefono)')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(desdeFila, desdeFila + CAL_PAGINA - 1);
+    if (filtro.p_sucursal) consulta = consulta.eq('sucursal_id', filtro.p_sucursal);
+    if (filtro.p_desde) consulta = consulta.gte('created_at', filtro.p_desde);
+    if (filtro.p_hasta) consulta = consulta.lt('created_at', filtro.p_hasta);
+    return consulta;
+  }
+
+  async function cargarCalificaciones() {
+    if (!cliente) return;
+    const rango = rangoCalificaciones();
+    const estado = calEl('cal-estado');
+    const contenido = calEl('cal-contenido');
+    avisoCalificaciones('');
+    if (rango.p_desde && rango.p_hasta && rango.p_hasta <= rango.p_desde) {
+      mostrarEstado(estado, '');
+      avisoCalificaciones('La fecha "hasta" no puede ser anterior a "desde".');
+      return;
+    }
+    // El encargado queda siempre en su sucursal (el servidor lo vuelve a exigir).
+    const suc = esAdminSucursal() ? (adminSucursalId || null) : ((calEl('cal-sucursal') || {}).value || null);
+    const filtro = { p_desde: rango.p_desde, p_hasta: rango.p_hasta, p_sucursal: suc };
+    const mi = ++calificacionesEstado.seq; // descarta respuestas viejas
+    mostrarEstado(estado, 'Cargando calificaciones...');
+    try {
+      const [rs, rl] = await Promise.all([
+        cliente.rpc('stats_calificaciones', filtro),
+        consultarPaginaCalificaciones(filtro, 0)
+      ]);
+      if (mi !== calificacionesEstado.seq) return;
+      if (rs.error) throw rs.error;
+      if (rl.error) throw rl.error;
+      const filas = Array.isArray(rl.data) ? rl.data : [];
+      calificacionesEstado.filtro = filtro;
+      calificacionesEstado.filas = filas;
+      calificacionesEstado.hayMas = filas.length === CAL_PAGINA;
+      renderTarjetasCalificaciones(rs.data || {});
+      renderListaCalificaciones();
+      mostrarEstado(estado, '');
+      if (contenido) contenido.hidden = false;
+    } catch (error) {
+      if (mi !== calificacionesEstado.seq) return;
+      console.warn('No se pudieron cargar las calificaciones:', error);
+      mostrarEstado(estado, '');
+      if (contenido) contenido.hidden = true;
+      avisoCalificaciones(mensajeErrorCalificaciones(error));
+    }
+  }
+
+  async function cargarMasCalificaciones() {
+    const est = calificacionesEstado;
+    if (!cliente || est.cargandoMas || !est.hayMas || !est.filtro) return;
+    const mi = est.seq;
+    est.cargandoMas = true;
+    renderListaCalificaciones();
+    try {
+      const { data, error } = await consultarPaginaCalificaciones(est.filtro, est.filas.length);
+      if (mi !== est.seq) return;
+      if (error) throw error;
+      const filas = Array.isArray(data) ? data : [];
+      est.filas = est.filas.concat(filas);
+      est.hayMas = filas.length === CAL_PAGINA;
+    } catch (error) {
+      console.warn('No se pudieron cargar más calificaciones:', error);
+      avisoCalificaciones(mensajeErrorCalificaciones(error));
+    } finally {
+      est.cargandoMas = false;
+      renderListaCalificaciones();
+    }
+  }
+
+  function conectarEventosCalificaciones() {
+    document.querySelectorAll('[data-cal-periodo]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        calificacionesEstado.periodo = boton.dataset.calPeriodo;
+        document.querySelectorAll('[data-cal-periodo]').forEach(b => b.classList.toggle('activa', b === boton));
+        const rango = calEl('cal-rango');
+        if (rango) rango.hidden = calificacionesEstado.periodo !== 'custom';
+        if (calificacionesEstado.periodo === 'custom') {
+          const hoy = fechaArgentinaISO(new Date());
+          const d = calEl('cal-desde');
+          const h = calEl('cal-hasta');
+          if (d && !d.value) d.value = sumarDiasISO(hoy, -29);
+          if (h && !h.value) h.value = hoy;
+        }
+        cargarCalificaciones();
+      });
+    });
+    ['cal-sucursal', 'cal-desde', 'cal-hasta'].forEach(id => {
+      const nodo = calEl(id);
+      if (nodo) nodo.addEventListener('change', cargarCalificaciones);
+    });
+    const rec = calEl('btn-cal-recargar');
+    if (rec) rec.addEventListener('click', cargarCalificaciones);
+    const mas = calEl('btn-cal-mas');
+    if (mas) mas.addEventListener('click', cargarMasCalificaciones);
+  }
+
   function mostrarVistaAdmin(vista) {
+    const esCalif = vista === 'calificaciones';
+    const vistaCalif = calEl('admin-vista-calificaciones');
+    if (vistaCalif) vistaCalif.hidden = !esCalif;
+    if (esCalif && cliente) cargarCalificaciones();
     if (vista === 'clientes' && !puedeVerCupones()) vista = 'pedidos';
     if (vista === 'horarios' && !puedeVerHorarios()) vista = 'pedidos';
     if (vista === 'disponibilidad' && !puedeVerHorarios()) vista = 'pedidos';
@@ -6675,7 +7081,7 @@
       tab.classList.toggle('activa', activa);
       tab.setAttribute('aria-selected', activa ? 'true' : 'false');
     });
-    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats || esCrm || esHorarios || esDisp;
+    if (el.vistaCarta) el.vistaCarta.hidden = esPedidos || esEnvios || esCupones || esFidelidad || esStats || esCrm || esHorarios || esDisp || esCalif;
     if (el.vistaFidelidad) el.vistaFidelidad.hidden = !esFidelidad;
     if (esFidelidad && cliente) {
       if (!fidelidadCargada) cargarFidelidad();
@@ -6862,6 +7268,7 @@
     if (el.btnNuevoTramo) el.btnNuevoTramo.addEventListener('click', () => abrirFormTramo(null));
     conectarEventosFidelidad();
     conectarEventosEstadisticas();
+    conectarEventosCalificaciones();
     conectarEventosCrm();
     if (el.btnNuevoCupon) el.btnNuevoCupon.addEventListener('click', () => abrirFormCupon(null));
     if (el.btnCuponesRecargar) el.btnCuponesRecargar.addEventListener('click', () => cargarCupones());
