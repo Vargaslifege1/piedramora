@@ -72,6 +72,19 @@
   <!-- Google Analytics 4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-03X6WP8YYT"></script>
   <script>
+    // Visitas propias: ?pm_nomedir=1 activa, ?pm_nomedir=0 desactiva (flag en localStorage).
+    // También lo activa el login del admin. Con el flag, GA queda apagado en este navegador.
+    try {
+      var pmUrl = new URL(window.location.href);
+      var pmParam = pmUrl.searchParams.get('pm_nomedir');
+      if (pmParam === '1') window.localStorage.setItem('pm_no_medir', '1');
+      else if (pmParam === '0') window.localStorage.removeItem('pm_no_medir');
+      if (pmParam !== null) {
+        pmUrl.searchParams.delete('pm_nomedir');
+        window.history.replaceState(null, '', pmUrl.pathname + pmUrl.search + pmUrl.hash);
+      }
+      if (window.localStorage.getItem('pm_no_medir') === '1') window['ga-disable-G-03X6WP8YYT'] = true;
+    } catch (e) {}
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
@@ -882,6 +895,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" integrity="sha384-uteMfOloLDGt042uDz+xHGF3ym63/WQ6rFq7murQRG8Ih7QrXGEGNtWd8688sb4O" crossorigin="anonymous" defer></script>
   <script src="js/core/utils.js" defer></script>
+  <script src="js/core/analitica.js" defer></script>
   <script src="js/core/carta-ids.js" defer></script>
   <script src="main.js" defer></script>
 </body>

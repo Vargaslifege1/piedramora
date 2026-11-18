@@ -2218,12 +2218,19 @@
         mostrarEstado(el.loginEstado, 'No se pudo ingresar: ' + error.message, 'error');
         return;
       }
+      marcarNoMedirAnalitica();
       mostrarEstado(el.loginEstado, '');
     } catch (error) {
       mostrarEstado(el.loginEstado, 'No se pudo ingresar: ' + (error.message || 'error de conexión'), 'error');
     } finally {
       el.btnLogin.disabled = false;
     }
+  }
+
+  // El admin comparte origen con el sitio público: marca este navegador para que
+  // sus visitas no se cuenten en Google Analytics (flag leído por index.html).
+  function marcarNoMedirAnalitica() {
+    try { window.localStorage.setItem('pm_no_medir', '1'); } catch (e) {}
   }
 
   async function cerrarSesion() {
@@ -7679,6 +7686,7 @@
     // Configurar el observador de sesión una única vez de forma global
     cliente.auth.onAuthStateChange((evento, sesion) => {
       if (sesion && sesion.user) {
+        marcarNoMedirAnalitica();
         if (el.panel && el.panel.hidden) mostrarPanel(sesion.user);
       } else {
         mostrarLogin();

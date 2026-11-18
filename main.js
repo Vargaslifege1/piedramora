@@ -169,6 +169,139 @@ document.addEventListener('click', (e) => {
   }
 });
 
+/* ===== Embudo de compra (GA4) =====
+ * Todo pasa por pmTrack (js/core/analitica.js). Nunca va nombre, teléfono,
+ * dirección ni notas: solo datos del pedido (producto, precio, sucursal, modalidad). */
+let pmModalidadElegida = null;       // 'delivery' | 'retiro' | 'mesa' (null si todavía no se sabe)
+let pmCarritoAbandonoEnviado = false; // cart_abandon una vez por carrito
+let pmPedidoConfirmado = false;      // pedido ya enviado: no es abandono
+
+function pmModalidadActiva() {
+  if (cartaModalidadSeleccionada === 'mesa') return 'mesa';
+  const activo = document.querySelector('[data-tipo-entrega].activa');
+  if (!activo) return null;
+  return activo.dataset.tipoEntrega === 'delivery' ? 'delivery' : 'retiro';
+}
+
+// Sucursal y modalidad se agregan solos a cada evento (pmTrack los toma de acá)
+window.pmContextoAnalitica = function () {
+  return {
+    sucursal_id: cartaActualSucursalId || undefined,
+    modalidad: cartaModalidadSeleccionada === 'mesa' ? 'mesa' : (pmModalidadElegida || undefined)
+  };
+};
+
+function pmItemGA(linea, cantidad) {
+  const item = {
+    item_id: String(linea.productoBaseId),
+    item_name: String(linea.nombre || ''),
+    price: Number(linea.precio) || 0,
+    quantity: Number(cantidad !== undefined ? cantidad : linea.cantidad) || 1
+  };
+  if (linea.categoriaId) item.item_category = String(linea.categoriaId);
+  if (linea.variacion && linea.variacion.nombre) item.item_variant = String(linea.variacion.nombre);
+  return item;
+}
+
+function pmItemsCarritoGA() {
+  return CARRITO.map((linea) => pmItemGA(linea));
+}
+
+function pmSubtotalCarritoGA() {
+  return CARRITO.reduce((acc, i) => acc + (Number(i.precio) || 0) * (Number(i.cantidad) || 0), 0);
+}
+
+function pmTrackAgregar(linea, cantidad) {
+  pmCarritoAbandonoEnviado = false;
+  pmPedidoConfirmado = false;
+  const item = pmItemGA(linea, cantidad);
+  pmTrack('add_to_cart', { currency: 'ARS', value: item.price * item.quantity, items: [item] });
+}
+
+function pmTrackQuitar(linea, cantidad) {
+  const item = pmItemGA(linea, cantidad);
+  pmTrack('remove_from_cart', { currency: 'ARS', value: item.price * item.quantity, items: [item] });
+}
+
+// El código de cupón es lo único "escrito por el cliente" que va a GA: se filtra el formato
+function pmCodigoCupon(codigo) {
+  const c = String(codigo || '').trim().toUpperCase();
+  return /^[A-Z0-9_-]{1,30}$/.test(c) ? c : 'INVALIDO';
+}
+
+function pmMotivoCupon(mensaje) {
+  const m = String(mensaje || '').normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '').toLowerCase();
+  if (m.includes('vencido')) return 'vencido';
+  if (m.includes('ya usaste')) return 'ya_usado';
+  if (m.includes('minimo')) return 'minimo_no_alcanzado';
+  if (m.includes('primera compra')) return 'primera_compra';
+  if (m.includes('usos disponibles')) return 'sin_usos';
+  if (m.includes('descuento mayor')) return 'descuento_mayor';
+  if (m.includes('vigente')) return 'fuera_de_vigencia';
+  if (m.includes('no se puede usar con')) return 'no_combinable';
+  if (m.includes('no es valido')) return 'no_valido';
+  return 'otro';
+}
+
+function pmMotivoRechazoServidor(error) {
+  const mensaje = String((error && error.message) || '');
+  if (/fuera de la zona/i.test(mensaje)) return 'fuera_de_zona';
+  if (/varios pedidos seguidos|muchos pedidos/i.test(mensaje)) return 'limite_pedidos';
+  return 'rechazo_servidor';
+}
+
+function pmTrackErrorCheckout(motivo, extra) {
+  pmTrack('checkout_error', { motivo, ...(extra || {}) });
+}
+
+// Aviso "estamos cerrados": una vez por sucursal y lugar (carta / checkout) por visita
+function pmTrackAvisoCerrado(donde) {
+  try {
+    const id = cartaActualSucursalId;
+    if (!id || esCartaSoloLectura() || obtenerEstadoSucursal(id).abierto) return;
+    pmTrackUnaVez(`aviso_cerrado|${id}|${donde}`, 'ver_aviso_cerrado', { ubicacion: donde });
+  } catch (e) {}
+}
+
+// begin_checkout: primera vez que el cliente toca un campo de sus datos (una vez por visita)
+document.addEventListener('focusin', (e) => {
+  const id = e.target && e.target.id;
+  if (id !== 'cliente-nombre' && id !== 'cliente-telefono' && id !== 'cliente-direccion-input') return;
+  if (!CARRITO.length) return;
+  pmTrackUnaVez('begin_checkout', 'begin_checkout', {
+    currency: 'ARS',
+    value: pmSubtotalCarritoGA(),
+    items: pmItemsCarritoGA()
+  });
+});
+
+// Abandono: la pestaña se oculta con productos en el carrito (una vez por carrito)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden') return;
+  if (pmCarritoAbandonoEnviado || pmPedidoConfirmado || pedidoEnviando || !CARRITO.length) return;
+  pmCarritoAbandonoEnviado = true;
+  const panel = document.getElementById('checkout-panel');
+  pmTrack('cart_abandon', {
+    currency: 'ARS',
+    cantidad_productos: CARRITO.reduce((acc, i) => acc + (Number(i.cantidad) || 0), 0),
+    value: pmSubtotalCarritoGA(),
+    etapa: panel && !panel.hidden ? 'checkout' : 'carta',
+    transport_type: 'beacon'
+  });
+});
+
+// Clic en cualquier enlace a WhatsApp (tarjetas de sucursal, botón de la carta, etc.)
+document.addEventListener('click', (e) => {
+  const link = e.target.closest && e.target.closest('a[href*="wa.me"]');
+  if (!link) return;
+  const ubicacion = link.closest('#carta-whatsapp') ? 'carta' : (link.closest('.btn-whatsapp') ? 'tarjeta' : 'otro');
+  pmTrack('click_whatsapp', { ubicacion });
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('#btn-calificanos')) pmTrack('click_calificanos');
+});
+
 function atributoTracking(tipoBoton, sucursal) {
   const tipo = PM.escaparHtml(JSON.stringify(String(tipoBoton)));
   const id = PM.escaparHtml(JSON.stringify(String(sucursal.id)));
@@ -2022,6 +2155,7 @@ function abrirCartaUI() {
   bloquearScrollFondo();
   cartaAbierta = true;
   aplicarModoVisualizacionCarta();
+  pmTrackAvisoCerrado('carta');
 }
 
 function construirLinkWhatsappCarta(sucursalId) {
@@ -2137,6 +2271,8 @@ function obtenerCantidadTotalEnCarrito(productoBaseId) {
 }
 
 function eliminarLineaDelCarrito(lineaId) {
+  const lineaQuitada = CARRITO.find(i => i.id === lineaId);
+  if (lineaQuitada) pmTrackQuitar(lineaQuitada);
   CARRITO = CARRITO.filter(i => i.id !== lineaId);
   const checkoutPanel = document.getElementById('checkout-panel');
   if (CARRITO.length === 0 && checkoutPanel && !checkoutPanel.hidden) {
@@ -2152,6 +2288,8 @@ function modificarCantidadLinea(lineaId, cambio) {
       mostrarAvisoPM('Este producto ya no está disponible.');
       return;
     }
+    if (cambio > 0) pmTrackAgregar(CARRITO[index], cambio);
+    else if (cambio < 0) pmTrackQuitar(CARRITO[index], Math.min(-cambio, CARRITO[index].cantidad));
     CARRITO[index].cantidad += cambio;
     if (CARRITO[index].cantidad <= 0) {
       CARRITO.splice(index, 1);
@@ -2407,10 +2545,15 @@ function alHacerClicAgregar(productoId) {
       adicionalesLista: []
     });
   }
+  pmTrackAgregar({ productoBaseId: prodObj.id, nombre: prodObj.nombre, precio: precioBase, categoriaId: prodObj.categoria }, 1);
   actualizarVistaCarrito();
 }
 
 function abrirModalPersonalizacion(prod) {
+  pmTrack('select_item', {
+    item_list_id: prod.categoria ? String(prod.categoria) : undefined,
+    items: [{ item_id: String(prod.id), item_name: String(prod.nombre || ''), item_category: prod.categoria ? String(prod.categoria) : undefined }]
+  });
   productoEnPersonalizacion = prod;
   cantidadPersonalizacion = 1;
   opcionesSeleccionadas = { variaciones: null, adicionales: [] };
@@ -2657,6 +2800,13 @@ document.getElementById('btn-confirmar-adicionales')?.addEventListener('click', 
     });
   }
 
+  pmTrackAgregar({
+    productoBaseId: productoEnPersonalizacion.id,
+    nombre: productoEnPersonalizacion.nombre,
+    precio: precioUnitario,
+    categoriaId: productoEnPersonalizacion.categoria,
+    variacion: variacion ? { nombre: variacion.nombre } : null
+  }, cantidadPersonalizacion);
   cerrarModalPersonalizacion();
   actualizarVistaCarrito();
 });
@@ -2796,6 +2946,12 @@ function renderProductosCategoria(categoria) {
   const productos = [...(categoria.productos || [])]
     .sort((a, b) => Number(tarjetaProductoAgotada(a)) - Number(tarjetaProductoAgotada(b)));
   const sucursalId = cartaActualSucursalId;
+
+  // view_item_list: una vez por sucursal y categoría por visita (esta función también redibuja al cambiar el carrito)
+  pmTrackUnaVez(`view_item_list|${sucursalId}|${categoria.id || categoria.nombre}`, 'view_item_list', {
+    item_list_id: String(categoria.id || categoria.nombre || ''),
+    item_list_name: String(categoria.nombre || '')
+  });
 
   productos.forEach(prodEntera => {
     // Con media: el producto "activo" (el que se muestra, cuesta y se agrega) depende del selector.
@@ -3011,6 +3167,10 @@ function abrirModalCheckout() {
   try { fidelidadProgramarConsultaPremios(); } catch (e) {}
   actualizarVistaEstadoCarta();
   cargarProgramarMaxDias();
+
+  pmModalidadElegida = pmModalidadActiva();
+  pmTrack('view_cart', { currency: 'ARS', value: pmSubtotalCarritoGA(), items: pmItemsCarritoGA() });
+  pmTrackAvisoCerrado('checkout');
 
   overlay.hidden = false;
   panel.hidden = false;
@@ -3424,6 +3584,7 @@ async function validarCuponActual(codigoForzado) {
     cuponAplicado = null;
     mostrarLineaCupon(false);
     mostrarEstadoCupon('No podés usar un cupón junto con un premio de fidelidad.', 'error');
+    pmTrack('apply_coupon_error', { coupon: pmCodigoCupon(codigo), motivo: 'premio_activo' });
     return;
   }
 
@@ -3441,6 +3602,7 @@ async function validarCuponActual(codigoForzado) {
     cuponAplicado = null;
     mostrarLineaCupon(false);
     const vacio = !String(telRaw ?? '').replace(/\D/g, '');
+    pmTrack('apply_coupon_error', { coupon: pmCodigoCupon(codigo), motivo: vacio ? 'telefono_faltante' : 'telefono_invalido' });
     if (vacio) mostrarEstadoCupon('Completá tu teléfono primero.', 'error');
     else {
       mostrarEstadoCupon(MSG_TELEFONO_AR, 'error');
@@ -3470,6 +3632,7 @@ async function validarCuponActual(codigoForzado) {
       cuponAplicado = null;
       mostrarLineaCupon(false);
       mostrarEstadoCupon('No se pudo validar el cupón ahora. Probá de nuevo en un momento.', 'error');
+      pmTrack('apply_coupon_error', { coupon: pmCodigoCupon(codigo), motivo: 'error_red' });
       return;
     }
 
@@ -3499,16 +3662,19 @@ async function validarCuponActual(codigoForzado) {
       };
       mostrarEstadoCupon(data.mensaje || 'Cupón aplicado.', 'ok');
       mostrarLineaCupon(true, cuponAplicado.descuento, codigo, cuponAplicado.etiqueta);
+      pmTrack('apply_coupon_ok', { coupon: pmCodigoCupon(codigo), descuento: cuponAplicado.descuento });
     } else {
       cuponAplicado = null;
       mostrarLineaCupon(false);
       mostrarEstadoCupon((data && data.mensaje) || 'El cupón no es válido.', 'error');
+      pmTrack('apply_coupon_error', { coupon: pmCodigoCupon(codigo), motivo: pmMotivoCupon(data && data.mensaje) });
     }
   } catch (err) {
     console.warn('No se pudo validar el cupón.', err);
     cuponAplicado = null;
     mostrarLineaCupon(false);
     mostrarEstadoCupon('No se pudo validar el cupón. Probá de nuevo.', 'error');
+    pmTrack('apply_coupon_error', { coupon: pmCodigoCupon(codigo), motivo: 'error_red' });
   } finally {
     cuponValidandoEnCurso = false;
     if (boton) boton.disabled = false;
@@ -3668,6 +3834,12 @@ document.querySelectorAll('[data-tipo-entrega]').forEach(btn => {
       wrapDir.style.display = objetivo.dataset.tipoEntrega === 'delivery' ? 'block' : 'none';
     }
     if (objetivo.dataset.tipoEntrega !== 'delivery') limpiarErrorDireccion();
+    pmModalidadElegida = objetivo.dataset.tipoEntrega === 'delivery' ? 'delivery' : 'retiro';
+    pmTrackUnaVez(`add_payment_info|${pmModalidadElegida}`, 'add_payment_info', {
+      currency: 'ARS',
+      value: pmSubtotalCarritoGA(),
+      items: pmItemsCarritoGA()
+    });
     limpiarErrorModalidad();
     programarCotizacionEnvio();
   });
@@ -4518,15 +4690,16 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
   const itemsNoDisponibles = CARRITO.filter(item => item.noDisponible);
   if (itemsNoDisponibles.length > 0) {
     mostrarAvisoPM('Hay productos o adicionales que ya no están disponibles. Revisá el pedido antes de continuar.');
+    pmTrackErrorCheckout('producto_no_disponible');
     renderizarListaCheckout();
     return;
   }
 
   const nombre = validarNombreCliente();
-  if (!nombre) return;
+  if (!nombre) { pmTrackErrorCheckout('validacion_nombre'); return; }
 
   const telefono = validarTelefonoCliente();
-  if (!telefono) return;
+  if (!telefono) { pmTrackErrorCheckout('validacion_telefono'); return; }
 
   const esMesa = cartaModalidadSeleccionada === 'mesa';
   if (esMesa) {
@@ -4543,11 +4716,13 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
   actualizarVistaEstadoCarta();
   if (!obtenerEstadoSucursal(cartaActualSucursalId).abierto && !progAntes.programado) {
     mostrarErrorProgramar('Ahora estamos cerrados. Elegí cuándo querés tu pedido y enviá de nuevo.');
+    pmTrackErrorCheckout('local_cerrado');
     return;
   }
   const prog = leerProgramadoCheckout();
   if (prog.error) {
     mostrarErrorProgramar(prog.error);
+    pmTrackErrorCheckout('programacion_invalida');
     return;
   }
 
@@ -4567,6 +4742,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
 
     if (!direccionTexto || !Number.isFinite(lat) || !Number.isFinite(lng)) {
       mostrarErrorDireccion('Seleccioná una dirección de la lista o marcá tu ubicación en el mapa.');
+      pmTrackErrorCheckout('validacion_direccion');
       return;
     }
     direccionFormateada = `${direccionTexto} — GPS: https://www.google.com/maps?q=${lat},${lng}`;
@@ -4674,12 +4850,14 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           borrarIdempotencyKeyPedido();
           cerrarVentanaPedido(ventanaWhatsapp);
           mostrarAvisoPM(`${mensajePremio} Revisá tu pedido y volvé a enviarlo.`);
+          pmTrackErrorCheckout('premio_invalido');
           return;
         } else if (esRechazoPorModalidad(error)) {
           // Modalidad no aceptada: texto del servidor junto al selector, sin WhatsApp
           // "sin registrar" y sin perder el carrito ni la idempotency key.
           cerrarVentanaPedido(ventanaWhatsapp);
           mostrarErrorModalidad(String(error.message || 'Esa modalidad no está disponible.'));
+          pmTrackErrorCheckout('modalidad_rechazada');
           refrescarEstados(true);
           return;
         } else if (esRechazoPorHorario(error)) {
@@ -4687,10 +4865,12 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           // y sin perder el carrito ni la idempotency key.
           cerrarVentanaPedido(ventanaWhatsapp);
           mostrarErrorProgramar(String(error.message || 'No pudimos programar el pedido.'));
+          pmTrackErrorCheckout(/cerrado/i.test(String(error.message || '')) ? 'local_cerrado' : 'programacion_invalida');
           refrescarEstados(true);
           return;
         } else if (codigoCuponConfirmado && esRechazoPorCupon(error)) {
           const mensajeCupon = String(error.message || 'El cupón ya no es válido.');
+          pmTrackErrorCheckout('cupon_rechazado', { coupon: pmCodigoCupon(codigoCuponConfirmado), motivo_cupon: pmMotivoCupon(mensajeCupon) });
           quitarCuponAplicado();
           mostrarEstadoCupon(`${mensajeCupon} Tu pedido se envía sin el cupón.`, 'error');
           codigoCuponConfirmado = null;
@@ -4707,6 +4887,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           }
         } else if (esRechazoPorAgotado(error)) {
           const mensajeRechazo = String(error.message || 'El servidor rechazó el pedido.');
+          pmTrackErrorCheckout('producto_agotado');
           const productoAgotado = extraerProductoAgotado(mensajeRechazo);
           const avisoRespaldo = cartaDesdeRespaldoLocal
             ? ' La carta que estabas viendo estaba desactualizada.'
@@ -4741,6 +4922,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           return;
         } else if (esRechazoPedido(error)) {
           const mensajeRechazo = String(error.message || 'El servidor rechazó el pedido.');
+          pmTrackErrorCheckout(pmMotivoRechazoServidor(error));
           const continuar = await confirmarAccion({ titulo: 'No pudimos registrar el pedido', mensaje: `${mensajeRechazo}. ¿Querés enviarlo igual por WhatsApp?`, textoAceptar: 'Enviar igual', textoCancelar: 'Volver' }) === 'aceptar';
           if (!continuar) {
             cerrarVentanaPedido(ventanaWhatsapp);
@@ -4748,6 +4930,7 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
           }
         } else {
           console.warn('No se pudo guardar el pedido en la base. Se continúa con WhatsApp.', error);
+          pmTrackErrorCheckout('error_red');
         }
       }
     }
@@ -4822,7 +5005,26 @@ document.getElementById('checkout-form')?.addEventListener('submit', async (e) =
       programadoPara: programadoMostrar
     });
 
+    pmPedidoConfirmado = true;
     if (pedidoGuardado) {
+      try {
+        const transaccion = numeroOrden || String(pedidoGuardado.id || '');
+        const cuponCompra = !premioUsado && codigoCuponConfirmado ? pmCodigoCupon(codigoCuponConfirmado) : undefined;
+        const modalidadCompra = tipoEntrega === 'Delivery' ? 'delivery' : 'retiro';
+        if (transaccion) {
+          pmTrackUnaVez(`purchase|${transaccion}`, 'purchase', {
+            transaction_id: transaccion,
+            value: totalesMensaje.total,
+            currency: 'ARS',
+            shipping: totalesMensaje.costo_envio,
+            coupon: cuponCompra,
+            con_premio: premioUsado ? 'si' : 'no',
+            modalidad: modalidadCompra,
+            items: pmItemsCarritoGA()
+          });
+        }
+        if (prog.programado) pmTrack('pedido_programado', { modalidad: modalidadCompra, value: totalesMensaje.total });
+      } catch (e) {}
       try { fidelidadTrasPedido(); } catch (e) {}
       try { calificarRecordarPedido(pedidoGuardado.id); } catch (e) {}
       vaciarCarrito({ resetDireccion: true });
@@ -5037,6 +5239,8 @@ async function abrirCartaDosEtapas(sucursalId) {
 
   ultimoFoco = document.activeElement;
   trackearClicCarta('ver_carta', sucursalId, sucursal.nombre, {});
+  if (cambiaDeSucursal) pmModalidadElegida = null;
+  pmTrackUnaVez(`select_sucursal|${sucursalId}`, 'select_sucursal', { sucursal_id: sucursalId });
 
   const retomaCarrito = CARRITO.length > 0 && cartaActualSucursalId === sucursalId;
   const modalidadRetomada = retomaCarrito ? cartaModalidadSeleccionada : null;
