@@ -8,7 +8,7 @@ const dist = join(raiz, 'dist');
 
 // Lista blanca: archivos y carpetas que se publican.
 const ARCHIVOS = ['index.html', 'admin.html', 'main.js', 'admin.js', 'style.css', 'admin.css',
-  'robots.txt', 'sitemap.xml', '_headers', 'apple-touch-icon.png'];
+  'robots.txt', 'sitemap.xml', '_headers', '_redirects', 'apple-touch-icon.png'];
 const CARPETAS = ['js', 'data', 'assets'];
 const PATRONES_RAIZ = [/^favicon.*$/i, /^android-chrome.*$/i];
 // Nunca se copia aunque este dentro de una carpeta permitida.

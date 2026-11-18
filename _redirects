@@ -1,0 +1,4 @@
+# Links cortos con UTM para redes (Cloudflare Workers Static Assets). 302 para poder cambiar el destino.
+/ig     /?utm_source=instagram&utm_medium=bio&utm_campaign=perfil   302
+/wsp    /?utm_source=whatsapp&utm_medium=perfil&utm_campaign=pedidos   302
+/tiktok /?utm_source=tiktok&utm_medium=video&utm_campaign=cupon20   302

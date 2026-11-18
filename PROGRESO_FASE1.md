@@ -42,6 +42,8 @@ Vigentes: `crear_pedido` = 027 (16 parámetros, con cupón no acumulable); `vali
 
 ## Últimos cambios
 
+- 2026-11-18: links cortos con UTM (rama `feature/links-cortos`, sin merge a `main`, sin SQL): `_redirects` en la raíz con `/ig`, `/wsp` y `/tiktok` (302 a `/?utm_source=...`). `tools/preparar-dist.mjs` lo copia a `dist/` junto con `_headers`. Las rutas no chocan con archivos ni con `main.js` (lee `sucursal`/`modo`/`mesa`, no el path). Pendiente: probar tras el deploy.
+
 - 2026-11-18: embudo GA4 mergeado a `main` (merge de `feature/embudo-analitica`). `dist/` no está versionado: el deploy de Cloudflare tiene que correr `node tools/preparar-dist.mjs` como comando de build (no figura en `wrangler.jsonc`; verificar en el panel de Cloudflare).
 
 - 2026-11-18: embudo de compra en GA4 (mergeado a `main`, rama `feature/embudo-analitica`, sin SQL): helper único `pmTrack`/`pmTrackUnaVez` en `js/core/analitica.js` (try/catch, no rompe con ad blockers). Eventos: select_sucursal, view_item_list, select_item, add_to_cart, remove_from_cart, view_cart, begin_checkout, add_payment_info, apply_coupon_ok/error, checkout_error, purchase, pedido_programado, cart_abandon, ver_aviso_cerrado, click_whatsapp, click_calificanos (se mantienen click_boton_pedido y click_instagram). Sin datos personales. Visitas propias: flag localStorage `pm_no_medir` (?pm_nomedir=1/0, login del admin) que además activa `ga-disable-G-03X6WP8YYT`. Para publicar: `node tools/preparar-dist.mjs`.
